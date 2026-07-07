@@ -9,6 +9,7 @@ import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
 import { Compass, Sparkles, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
+import ClayLogo from './components/ClayLogo';
 
 export default function App() {
   const sectionAnimation = {
@@ -111,9 +112,9 @@ export default function App() {
       <footer className="bg-brand-sand/50 border-t border-brand-slate/10 py-16 relative z-10">
         <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
           <div className="md:col-span-5 flex flex-col gap-3">
-            <div className="flex items-center gap-2 font-display text-base font-bold text-brand-charcoal">
-              <Compass className="w-5 h-5 text-brand-amber" />
-              <span>AI, <span className="font-light italic text-brand-slate">Explained Simply</span></span>
+            <div className="flex items-center gap-2 font-display text-lg font-bold text-brand-charcoal">
+              <ClayLogo size={28} />
+              <span>Simple <span className="text-brand-amber font-extrabold">AI</span></span>
             </div>
             <p className="text-xs text-brand-muted leading-relaxed max-w-sm">
               An interactive, beginner-safe editorial journal dedicated to demystifying modern artificial intelligence, machine learning structures, and generative algorithms through clean visual logic.
@@ -158,7 +159,7 @@ export default function App() {
         </div>
 
         <div className="max-w-5xl mx-auto px-6 mt-12 pt-6 border-t border-brand-slate/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-brand-muted">
-          <span>© 2026 AI, Explained Simply. Constructed with skeuomorphic-glass hybrid layouts.</span>
+          <span>© 2026 Simple AI. Constructed with skeuomorphic-glass hybrid layouts.</span>
           <div className="flex gap-4">
             <span className="hover:text-brand-amber transition-colors cursor-pointer">Editorial Policies</span>
             <span className="hover:text-brand-amber transition-colors cursor-pointer">Privacy Principles</span>
