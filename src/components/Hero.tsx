@@ -2,8 +2,10 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import { Sparkles, ArrowDown } from 'lucide-react';
 import ClayLogo from './ClayLogo';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function Hero() {
+  const { t, lang } = useLanguage();
   const [hoveredNode, setHoveredNode] = useState<number | null>(null);
 
   // A list of interactive "data points" for a miniature pattern matching game
@@ -31,7 +33,7 @@ export default function Hero() {
           className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-brand-amber/15 rounded-full text-xs font-semibold text-brand-amber shadow-sm mb-8"
         >
           <ClayLogo size={20} />
-          <span>An Editorial Guide by Clay</span>
+          <span>{t('hero.badge')}</span>
         </motion.div>
 
         {/* Master Hook Heading */}
@@ -39,9 +41,13 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-brand-charcoal leading-[1.1] tracking-tight max-w-3xl mb-6"
+          className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-brand-charcoal leading-[1.1] tracking-tight max-w-3xl mb-6 text-balance"
         >
-          AI is not magic. It’s <span className="text-brand-amber relative">pattern-matching</span> at massive scale.
+          {lang === 'en' ? (
+            <>AI is not magic. It’s <span className="text-brand-amber relative">pattern-matching</span> at massive scale.</>
+          ) : (
+            <>AI koi jaadu nahi hai yaaron. Ye bade paimane par <span className="text-brand-amber relative">pattern matching</span> hai.</>
+          )}
         </motion.h1>
 
         {/* Elegant Sub-intro */}
@@ -51,7 +57,7 @@ export default function Hero() {
           transition={{ duration: 1, delay: 0.3 }}
           className="font-sans text-lg md:text-xl text-brand-muted max-w-2xl leading-relaxed mb-10"
         >
-          No formulas, no math, and no confusing technical jargon. Just a calm, interactive walk through how computers learn to look at our world and make sense of it.
+          {t('hero.subtitle')}
         </motion.p>
 
         {/* Tactile Interactive Pattern Canvas */}
@@ -120,8 +126,8 @@ export default function Hero() {
 
           {/* Tactile interaction instructions */}
           <div className="absolute bottom-3 left-4 right-4 flex justify-between items-center text-xs text-brand-muted pointer-events-none">
-            <span className="font-medium">Hover nodes to reveal patterns</span>
-            <span className="font-mono bg-brand-sand px-2 py-0.5 rounded border border-brand-slate/5">Skeuo-tactile engine v1.0</span>
+            <span className="font-medium">{t('hero.canvas.instruction')}</span>
+            <span className="font-mono bg-brand-sand px-2 py-0.5 rounded border border-brand-slate/5">{t('hero.canvas.engine')}</span>
           </div>
         </motion.div>
 
@@ -136,7 +142,7 @@ export default function Hero() {
           transition={{ delay: 0.9, duration: 0.5 }}
           className="flex flex-col items-center gap-2 text-xs font-semibold text-brand-slate hover:text-brand-amber transition-colors group cursor-pointer"
         >
-          <span>Begin the Scroll Journey</span>
+          <span>{t('hero.button')}</span>
           <motion.div
             animate={{ y: [0, 6, 0] }}
             transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}

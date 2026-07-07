@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Sparkles, Play, ArrowRight, Volume2, VolumeX, Headphones } from 'lucide-react';
+import { Sparkles, ArrowRight, Volume2, VolumeX, Headphones } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function ClayExplainer() {
+  const { lang, t } = useLanguage();
   const [activeShot, setActiveShot] = useState<number>(0);
   const [isBlinking, setIsBlinking] = useState(false);
   const [isWaving, setIsWaving] = useState(false);
@@ -34,35 +36,51 @@ export default function ClayExplainer() {
   const storyShots = [
     {
       id: 0,
-      title: 'Shot 1: Meet Clay',
-      caption: 'AI means machines that learn from patterns — not magic, just clever training.',
+      title: lang === 'en' ? 'Shot 1: Meet Clay' : 'Scene 1: Clay se Milo',
+      caption: lang === 'en' 
+        ? 'AI means machines that learn from patterns — not magic, just clever training.' 
+        : 'AI ka matlab aisi machines jo patterns se seekhte hain - koi jaadu nahi, khali dhang ki training hai.',
       expression: 'happy',
       clayAction: 'waving',
-      bubbleText: "Hello there! I'm Clay, your friendly guide. Tap the steps below to see how I explain AI!"
+      bubbleText: lang === 'en'
+        ? "Hello there! I'm Clay, your friendly guide. Tap the steps below to see how I explain AI!"
+        : "Sallam waalaikum yaaron! Main hoon Clay, aap ka dost aur guide. Neeche diye so steps dabaake dekho main AI kaise samjhata hoon!"
     },
     {
       id: 1,
-      title: 'Shot 2: What is AI?',
-      caption: 'Instead of following rigid hand-written rules, AI looks at examples to learn.',
+      title: lang === 'en' ? 'Shot 2: What is AI?' : 'Scene 2: AI Kya Hai?',
+      caption: lang === 'en'
+        ? 'Instead of following rigid hand-written rules, AI looks at examples to learn.'
+        : 'Sookhe haath se likhe so rules ke bajaye, AI khud examples dekh ke seekh leta hai.',
       expression: 'curious',
       clayAction: 'pointing',
-      bubbleText: "Think of me as a little kid. If you show me thousands of leaf pictures, my brain figures out the pattern by itself!"
-    },
-    {
-      id: 2,
-      title: 'Shot 3: Everyday Use',
-      caption: 'Recommendations, voice assistants, spam filters, and digital maps.',
-      expression: 'excited',
-      clayAction: 'holding',
-      bubbleText: "You already use pattern-matching daily when Netflix recommends a movie, or Google Maps routes your car!"
+      bubbleText: lang === 'en'
+        ? "Think of me as a little kid. If you show me thousands of leaf pictures, my brain figures out the pattern by itself!"
+        : "Hadd hai yaaron, mujhe ek chota bacha samjho. Agar tum mujhe hazaaro patton ki photo dikhaye toh dimaag pattern khud samajh jata!"
     },
     {
       id: 3,
-      title: 'Shot 4: Family Tree',
-      caption: 'AI is the broad umbrella. ML and Deep Learning sit nested inside it.',
+      title: lang === 'en' ? 'Shot 3: Everyday Use' : 'Scene 3: Roz ka Istemaal',
+      caption: lang === 'en'
+        ? 'Recommendations, voice assistants, spam filters, and digital maps.'
+        : 'Recommendations, voice assistants, spam filters, aur digital maps.',
+      expression: 'excited',
+      clayAction: 'holding',
+      bubbleText: lang === 'en'
+        ? "You already use pattern-matching daily when Netflix recommends a movie, or Google Maps routes your car!"
+        : "Arey miya, tum toh pehle se roz pattern matching use karre jab Netflix film bolta ya Google Maps sahi rasta batata!"
+    },
+    {
+      id: 4,
+      title: lang === 'en' ? 'Shot 4: Family Tree' : 'Scene 4: Family Tree',
+      caption: lang === 'en'
+        ? 'AI is the broad umbrella. ML and Deep Learning sit nested inside it.'
+        : 'AI sabse bada umbrella hai. Machine Learning aur Deep Learning iske andar rehte.',
       expression: 'thinking',
       clayAction: 'explaining',
-      bubbleText: "We are all nested together. Machine Learning lives inside AI, and Generative AI sits at the very heart of the tree!"
+      bubbleText: lang === 'en'
+        ? "We are all nested together. Machine Learning lives inside AI, and Generative AI sits at the very heart of the tree!"
+        : "Hum sab ek hi khandaan ke hain yaaron. Machine learning AI ke andar rehta, aur Generative AI shor machata bilkul beech mein!"
     }
   ];
 
@@ -93,13 +111,16 @@ export default function ClayExplainer() {
     <div className="max-w-5xl mx-auto px-6 py-12" id="clay-explainer">
       <div className="text-center max-w-2xl mx-auto mb-12">
         <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono bg-brand-amber/10 px-3 py-1 rounded-full">
-          Featured Storyboard
+          {lang === 'en' ? "Featured Storyboard" : "Khaas Storyboard"}
         </span>
         <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mt-3 mb-4">
-          Meet Clay: Your AI Explainer Host
+          {lang === 'en' ? "Meet Clay: Your AI Explainer Host" : "Clay se Milo: Aapka AI Explainer Guide"}
         </h2>
         <p className="font-sans text-brand-muted">
-          Based on our custom stop-motion turnaround reference, interact with Clay to hear and see his visual explanations.
+          {lang === 'en' 
+            ? "Based on our custom stop-motion turnaround reference, interact with Clay to hear and see his visual explanations."
+            : "Hamare stop-motion model ke mutabiq, Clay ke upar tap karo uski pyaari awaaz aur explanation sunne ke liye!"
+          }
         </p>
       </div>
 
@@ -129,7 +150,12 @@ export default function ClayExplainer() {
 
           <div className="p-4 rounded-2xl bg-brand-sand/40 border border-brand-slate/5 text-xs text-brand-muted leading-relaxed flex items-start gap-2">
             <Sparkles className="w-4 h-4 text-brand-amber shrink-0 mt-0.5" />
-            <span>This interactive showcase implements the <strong>tactile animation script</strong> designed for stop-motion video generation.</span>
+            <span>
+              {lang === 'en'
+                ? "This interactive showcase implements the tactile animation script designed for stop-motion video generation."
+                : "Ye interactive show stop-motion video banane ke liye banaya gaya dhang ka animation script use karta hai."
+              }
+            </span>
           </div>
         </div>
 
@@ -250,9 +276,11 @@ export default function ClayExplainer() {
             </div>
 
             <div className="text-center mt-3 z-20">
-              <span className="font-display text-sm font-extrabold text-brand-charcoal">Clay the Explainer</span>
+              <span className="font-display text-sm font-extrabold text-brand-charcoal">
+                {lang === 'en' ? "Clay the Explainer" : "Clay the Explainer"}
+              </span>
               <p className="text-[10px] font-mono text-brand-muted mt-0.5 uppercase tracking-wider">
-                Terracotta & Cream stop-motion bot
+                {lang === 'en' ? "Terracotta & Cream stop-motion bot" : "Terracotta & Cream stop-motion bot"}
               </p>
             </div>
           </div>
@@ -260,13 +288,13 @@ export default function ClayExplainer() {
           {/* Bottom Bar Controls */}
           <div className="flex justify-between items-center z-10 border-t border-brand-slate/5 pt-4">
             <span className="text-xs text-brand-muted font-medium">
-              Active Scene: <span className="text-brand-amber font-bold">{storyShots[activeShot].title}</span>
+              {lang === 'en' ? "Active Scene:" : "Abhi ki Scene:"} <span className="text-brand-amber font-bold">{storyShots[activeShot].title}</span>
             </span>
             <button
               onClick={() => handleShotChange((activeShot + 1) % storyShots.length)}
               className="flex items-center gap-1 text-xs font-bold text-brand-amber hover:text-brand-amber-dark transition-colors cursor-pointer"
             >
-              <span>Next Scene</span>
+              <span>{lang === 'en' ? "Next Scene" : "Agli Scene Dekho"}</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>

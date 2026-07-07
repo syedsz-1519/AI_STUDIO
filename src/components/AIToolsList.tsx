@@ -14,6 +14,7 @@ import {
   Check,
   Cpu
 } from 'lucide-react';
+import { useLanguage } from '../hooks/useLanguage';
 
 interface AITool {
   name: string;
@@ -25,6 +26,7 @@ interface AITool {
 }
 
 export default function AIToolsList() {
+  const { lang, t } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -376,17 +378,65 @@ export default function AIToolsList() {
       freeStatus: "Free Tier",
       bestFor: "Explaining scientific PDFs",
       url: "https://typeset.io"
+    },
+    {
+      name: "DeepSeek",
+      category: "text",
+      description: "World-class open source conversational and reasoning models. Renowned for extremely powerful logical answers.",
+      freeStatus: "Truly Free",
+      bestFor: "Logical reasoning & code",
+      url: "https://www.deepseek.com"
+    },
+    {
+      name: "Flux.1",
+      category: "image",
+      description: "State-of-the-art open source image generation model. Highly accurate prompt following and text rendering inside images.",
+      freeStatus: "Free Tier",
+      bestFor: "Unmatched photorealism",
+      url: "https://huggingface.co/spaces/black-forest-labs/FLUX.1-schnell"
+    },
+    {
+      name: "Viggle AI",
+      category: "video",
+      description: "Animate any static character or drawing with matching human movements and dance scripts.",
+      freeStatus: "Free Tier",
+      bestFor: "Character motion mixing",
+      url: "https://viggle.ai"
+    },
+    {
+      name: "Stable Audio",
+      category: "audio",
+      description: "Generate high-quality background audio tracks, sound effects, or custom beats from text descriptors.",
+      freeStatus: "Free Tier",
+      bestFor: "Ambient music & SFX",
+      url: "https://stableaudio.com"
+    },
+    {
+      name: "Project IDX",
+      category: "coding",
+      description: "Google's browser-based web development environment, fully integrated with Gemini assistance.",
+      freeStatus: "Truly Free",
+      bestFor: "Full-stack web workspace",
+      url: "https://idx.dev"
+    },
+    {
+      name: "Elicit",
+      category: "search",
+      description: "AI research assistant that automates literature reviews, find papers, and summarizes scientific claims.",
+      freeStatus: "Free Tier",
+      bestFor: "Literature synthesis",
+      url: "https://elicit.com"
     }
   ];
 
   const categories = [
-    { id: 'all', label: 'All Tools', icon: Cpu },
-    { id: 'text', label: 'Writing', icon: BookOpen },
-    { id: 'image', label: 'Image & Design', icon: ImageIcon },
-    { id: 'video', label: 'Video', icon: Video },
-    { id: 'audio', label: 'Audio & Music', icon: Music },
-    { id: 'coding', label: 'Coding & Productivity', icon: Code },
-    { id: 'search', label: 'Search & Research', icon: Globe }
+    { id: 'all', label: lang === 'en' ? 'All Tools' : 'Sabh Milake', icon: Cpu },
+    { id: 'text', label: lang === 'en' ? 'Writing' : 'Likhna & Bolna', icon: BookOpen },
+    { id: 'image', label: lang === 'en' ? 'Image & Design' : 'Tasveer & Design', icon: ImageIcon },
+    { id: 'video', label: lang === 'en' ? 'Video' : 'Video Banana', icon: Video },
+    { id: 'audio', label: lang === 'en' ? 'Audio & Music' : 'Awaaz & Gaane', icon: Music },
+    { id: 'coding', label: lang === 'en' ? 'Coding & Productivity' : 'Coding & Kaam-Kaaj', icon: Code },
+    { id: 'search', label: lang === 'en' ? 'Search & Research' : 'Dhoondna (Research)', icon: Globe }
   ];
 
   const filteredTools = aiTools.filter(tool => {
@@ -413,13 +463,21 @@ export default function AIToolsList() {
         <div className="text-center max-w-2xl mx-auto mb-12">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-sand rounded-full text-[10px] font-mono font-bold text-brand-amber uppercase tracking-wider mb-3 shadow-[inset_0_1px_2px_rgba(0,0,0,0.02)]">
             <Sparkles className="w-3 h-3" />
-            <span>Curated Directory</span>
+            <span>{lang === 'en' ? "Curated Directory" : "Chune So Tools"}</span>
           </div>
           <h2 className="font-display text-3xl sm:text-4xl font-extrabold text-brand-charcoal mb-4">
-            The Free AI Toolbox
+            {lang === 'en' ? "The Free AI Toolbox" : "Muft AI ke Hoshiyar Tools"}
           </h2>
-          <p className="text-xs sm:text-sm text-brand-slate leading-relaxed">
-            A hand-picked collection of <strong>40+ highly capable, genuinely free, or free-tier (freemium) AI systems</strong>. Cut through the noise and start experimenting immediately without opening your wallet.
+          <p className="text-xs sm:text-sm text-brand-slate leading-relaxed text-center">
+            {lang === 'en' ? (
+              <>
+                A hand-picked collection of <strong>40+ highly capable, genuinely free, or free-tier (freemium) AI systems</strong>. Cut through the noise and start experimenting immediately without opening your wallet.
+              </>
+            ) : (
+              <>
+                Ekdum mast chun ke nikale so <strong>40+ khatarnak aur bilkul muft (ya free-tier) AI tools</strong> ka khazana. Bina ek paisa kharch kare abhi ke abhi try kar sako miya!
+              </>
+            )}
           </p>
         </div>
 
@@ -432,7 +490,7 @@ export default function AIToolsList() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
             <input
               type="text"
-              placeholder="Search tools, use cases, or tags..."
+              placeholder={lang === 'en' ? "Search tools, use cases, or tags..." : "Tools ya unke kaam dhoondo..."}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-9 pr-4 py-2 bg-[#FAF8F5] border border-brand-slate/10 rounded-xl font-sans text-xs focus:outline-none focus:ring-1 focus:ring-brand-amber transition-all placeholder:text-brand-muted"
@@ -492,20 +550,24 @@ export default function AIToolsList() {
                         ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' 
                         : 'bg-brand-sand/60 text-brand-charcoal/80 border border-brand-slate/5'
                     }`}>
-                      {tool.freeStatus}
+                      {tool.freeStatus === 'Truly Free' 
+                        ? (lang === 'en' ? 'Truly Free' : 'Ekdum Muft') 
+                        : (lang === 'en' ? 'Free Tier' : 'Muft / Paid')}
                     </span>
                   </div>
 
                   {/* Description */}
-                  <p className="text-[11px] leading-relaxed text-brand-slate mb-4 min-h-[48px]">
+                  <p className="text-[11px] leading-relaxed text-brand-slate mb-4 min-h-[48px] text-left">
                     {tool.description}
                   </p>
                 </div>
 
                 {/* Bottom line: Best For & Links */}
-                <div className="pt-3 border-t border-brand-slate/5 mt-auto flex items-center justify-between gap-2">
+                <div className="pt-3 border-t border-brand-slate/5 mt-auto flex items-center justify-between gap-2 text-left">
                   <div className="overflow-hidden">
-                    <span className="text-[9px] font-mono text-brand-muted uppercase block tracking-wider">Best For</span>
+                    <span className="text-[9px] font-mono text-brand-muted uppercase block tracking-wider">
+                      {lang === 'en' ? "Best For" : "Kiske Liye"}
+                    </span>
                     <span className="text-[10px] font-bold text-brand-charcoal block truncate">
                       {tool.bestFor}
                     </span>
@@ -521,7 +583,7 @@ export default function AIToolsList() {
                       {copiedId === tool.name ? (
                         <Check className="w-3.5 h-3.5 text-emerald-600 stroke-[3]" />
                       ) : (
-                        "Copy"
+                        lang === 'en' ? "Copy" : "Copy"
                       )}
                     </button>
                     <a
@@ -549,8 +611,14 @@ export default function AIToolsList() {
             <div className="w-12 h-12 bg-brand-sand rounded-2xl flex items-center justify-center text-brand-muted mx-auto mb-3">
               <Filter className="w-5 h-5" />
             </div>
-            <h4 className="font-display font-extrabold text-sm text-brand-charcoal">No AI Tools found</h4>
-            <p className="text-[11px] text-brand-muted mt-1">Try resetting your filters or typing another query.</p>
+            <h4 className="font-display font-extrabold text-sm text-brand-charcoal">
+              {lang === 'en' ? "No AI Tools found" : "Koi Tool Nai Mila miya!"}
+            </h4>
+            <p className="text-[11px] text-brand-muted mt-1">
+              {lang === 'en' 
+                ? "Try resetting your filters or typing another query." 
+                : "Kuch dusra naam likh ke dhoond ke dekho."}
+            </p>
           </motion.div>
         )}
 

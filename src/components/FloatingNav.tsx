@@ -2,8 +2,11 @@ import { useState, useEffect } from 'react';
 import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
+import { useLanguage } from '../hooks/useLanguage';
+import LanguageToggle from './LanguageToggle';
 
 export default function FloatingNav() {
+  const { lang, t } = useLanguage();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -135,38 +138,38 @@ export default function FloatingNav() {
             onClick={() => scrollToSection('what-is-ai')} 
             className={`cursor-pointer transition-colors ${activeSection === 'what-is-ai' ? 'text-brand-amber' : 'text-brand-slate hover:text-brand-charcoal'}`}
           >
-            The Basics
+            {t('nav.intro')}
           </button>
           <button 
             onClick={() => scrollToSection('family-tree')} 
             className={`cursor-pointer transition-colors ${activeSection === 'family-tree' ? 'text-brand-amber' : 'text-brand-slate hover:text-brand-charcoal'}`}
           >
-            Family Tree
+            {t('nav.family')}
           </button>
           <button 
             onClick={() => scrollToSection('prompting-rag')} 
             className={`cursor-pointer transition-colors ${activeSection === 'prompting-rag' ? 'text-brand-amber' : 'text-brand-slate hover:text-brand-charcoal'}`}
           >
-            How It's Used
+            {t('nav.how')}
           </button>
           <button 
             onClick={() => scrollToSection('ai-tools-directory')} 
             className={`cursor-pointer transition-colors ${activeSection === 'ai-tools-directory' ? 'text-brand-amber font-semibold' : 'text-brand-slate hover:text-brand-charcoal'}`}
           >
-            AI Toolbox
+            {t('nav.toolbox')}
           </button>
           <button 
             onClick={() => scrollToSection('deeper')} 
             className="px-3 py-1 bg-brand-amber/10 hover:bg-brand-amber/20 text-brand-amber rounded-full text-xs font-semibold cursor-pointer transition-all border border-brand-amber/20"
           >
-            Go Deeper
+            {t('nav.close')}
           </button>
         </div>
 
         {/* Progress Display */}
-        <div className="hidden md:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-3">
           <span className="font-mono text-xs text-brand-muted font-medium">
-            {Math.round(scrollProgress)}% read
+            {Math.round(scrollProgress)}% {lang === 'en' ? 'read' : 'mukammal'}
           </span>
           {scrollProgress > 90 && (
             <button
@@ -179,16 +182,21 @@ export default function FloatingNav() {
           )}
         </div>
 
-        {/* Subtle Ambient Sound Toggle */}
-        <div className="flex items-center gap-3">
+        {/* Subtle Ambient Sound Toggle & Language Toggle */}
+        <div className="flex items-center gap-2">
+          {/* Global Language Toggle placed ON THE TOP RIGHT SIDE */}
+          <div className="hidden sm:block">
+            <LanguageToggle />
+          </div>
+
           <button
             onClick={toggleAmbient}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer select-none ${isAmbientOn ? 'bg-brand-amber/15 text-brand-amber border-brand-amber/30 shadow-[0_0_12px_rgba(217,119,6,0.15)]' : 'bg-brand-sand/60 hover:bg-brand-sand text-brand-slate border-brand-slate/10'}`}
             title="Warm lo-fi study beats (procedurally synthesized)"
           >
             {isAmbientOn ? <Volume2 className="w-3.5 h-3.5 text-brand-amber animate-pulse" /> : <VolumeX className="w-3.5 h-3.5 text-brand-slate" />}
-            <span className="hidden sm:inline">Ambient lo-fi: {isAmbientOn ? 'ON' : 'OFF'}</span>
-            <span className="sm:hidden">{isAmbientOn ? 'Lo-Fi' : 'Mute'}</span>
+            <span className="hidden lg:inline">{lang === 'en' ? 'Ambient lo-fi' : 'Pyaari dhun'}: {isAmbientOn ? 'ON' : 'OFF'}</span>
+            <span className="lg:hidden">{isAmbientOn ? (lang === 'en' ? 'Lo-Fi' : 'On') : (lang === 'en' ? 'Mute' : 'Mute')}</span>
           </button>
 
           {/* Mobile Menu Trigger */}
@@ -204,39 +212,44 @@ export default function FloatingNav() {
       {/* Mobile Drawer (Glassmorphic) */}
       {isMenuOpen && (
         <div className="md:hidden absolute top-16 left-0 right-0 glass-panel py-4 px-6 flex flex-col gap-4 border-t border-brand-amber/10 animate-fade-in shadow-xl">
+          {/* Mobile view Language Switcher inside menu drawer */}
+          <div className="sm:hidden self-center pb-2 border-b border-brand-slate/5 w-full flex justify-center">
+            <LanguageToggle />
+          </div>
+
           <button 
             onClick={() => scrollToSection('what-is-ai')} 
             className="text-left py-2 font-medium text-brand-slate hover:text-brand-amber transition-colors cursor-pointer"
           >
-            1. The Basics
+            1. {t('nav.intro')}
           </button>
           <button 
             onClick={() => scrollToSection('family-tree')} 
             className="text-left py-2 font-medium text-brand-slate hover:text-brand-amber transition-colors cursor-pointer"
           >
-            2. The Family Tree
+            2. {t('nav.family')}
           </button>
           <button 
             onClick={() => scrollToSection('prompting-rag')} 
             className="text-left py-2 font-medium text-brand-slate hover:text-brand-amber transition-colors cursor-pointer"
           >
-            3. Prompting & RAG
+            3. {t('nav.how')}
           </button>
           <button 
             onClick={() => scrollToSection('ai-tools-directory')} 
             className="text-left py-2 font-medium text-brand-slate hover:text-brand-amber transition-colors cursor-pointer"
           >
-            4. AI Toolbox
+            4. {t('nav.toolbox')}
           </button>
           <button 
             onClick={() => scrollToSection('deeper')} 
             className="text-left py-2 font-medium text-brand-amber hover:text-brand-amber-dark transition-colors cursor-pointer"
           >
-            5. Want to Go Deeper?
+            5. {t('nav.deeper')}
           </button>
           <div className="h-[1px] bg-brand-slate/10 my-1" />
           <div className="flex justify-between items-center text-xs text-brand-muted">
-            <span>Reading Progress</span>
+            <span>{lang === 'en' ? 'Reading Progress' : 'Kitna Padhe'}</span>
             <span className="font-mono">{Math.round(scrollProgress)}%</span>
           </div>
         </div>

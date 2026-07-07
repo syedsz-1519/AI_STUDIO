@@ -340,7 +340,8 @@ class AudioEngine {
         v.name.toLowerCase().includes('standard-b')
       )
     ) || voices.find(v => 
-      v.name.includes('Google US English') ||
+      v.name.toLowerCase().includes('google us english') ||
+      v.name.toLowerCase().includes('microsoft david') ||
       v.lang.startsWith('en')
     );
 
@@ -349,9 +350,9 @@ class AudioEngine {
     }
 
     // Set properties for a soft, precise, and highly listenable teen boy voice
-    this.activeUtterance.pitch = 1.12;  // Slightly youthful/bright pitch
-    this.activeUtterance.rate = 1.05;   // Eloquent, precise, and highly clear pace
-    this.activeUtterance.volume = 0.95; // Soft yet distinct volume presence
+    this.activeUtterance.pitch = 1.15;  // Youthful, friendly teen boy pitch
+    this.activeUtterance.rate = 0.96;   // Soft, clear, and perfectly paced for high listenability
+    this.activeUtterance.volume = 0.90; // Gentle and comfortable volume presence
 
     this.activeUtterance.onstart = () => {
       if (this.onSpeakStateChange) this.onSpeakStateChange(true);

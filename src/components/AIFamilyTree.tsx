@@ -3,51 +3,67 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Network, HelpCircle, Layers, Fingerprint, Cpu } from 'lucide-react';
 import { MLType } from '../types';
 import TechTooltip from './TechTooltip';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function AIFamilyTree() {
+  const { lang, t } = useLanguage();
   const [activeNestingLevel, setActiveNestingLevel] = useState<number>(0);
 
   const mlTypes: MLType[] = [
     {
-      title: 'Supervised Learning',
-      analogy: 'Learning with a guide',
-      description: 'You feed the machine labeled pictures (like "dog" or "cat") until it learns which visual clues match which label.'
+      title: lang === 'en' ? 'Supervised Learning' : 'Supervised Learning (Ustad ke Sath)',
+      analogy: lang === 'en' ? 'Learning with a guide' : 'Ustad ki help se seekhna',
+      description: lang === 'en'
+        ? 'You feed the machine labeled pictures (like "dog" or "cat") until it learns which visual clues match which label.'
+        : 'Tum machine ko pehle se naam likhe so photo’aa dete (jaise "billi" ya "kutti"), jab tak ke wo sahi visual clues na pakad le.'
     },
     {
-      title: 'Unsupervised Learning',
-      analogy: 'Sorting a wild pile',
-      description: 'The machine groups unlabeled data by itself, spotting hidden structures or similarities you might have missed.'
+      title: lang === 'en' ? 'Unsupervised Learning' : 'Unsupervised Learning (Apne Aap)',
+      analogy: lang === 'en' ? 'Sorting a wild pile' : 'Bina ustad ke dher jama karna',
+      description: lang === 'en'
+        ? 'The machine groups unlabeled data by itself, spotting hidden structures or similarities you might have missed.'
+        : 'Machine bina naam diye so data ko khud ba khud groups mein daal deti hai patterns pakad ke.'
     },
     {
-      title: 'Reinforcement Learning',
-      analogy: 'Trial, error, and treats',
-      description: 'The machine operates in a trial-and-error loop, earning points for correct moves (like teaching a dog with treats).'
+      title: lang === 'en' ? 'Reinforcement Learning' : 'Reinforcement Learning (Inaam waala)',
+      analogy: lang === 'en' ? 'Trial, error, and treats' : 'Inaam aur sazaa ka khel',
+      description: lang === 'en'
+        ? 'The machine operates in a trial-and-error loop, earning points for correct moves (like teaching a dog with treats).'
+        : 'Machine galti kar kar ke seekhti hai. Sahi kaam pe points milte (jaise kutte ko treat de ke seekhana).'
     }
   ];
 
   const nestingLevels = [
     {
       id: 0,
-      title: 'Artificial Intelligence (AI)',
-      description: 'The broadest umbrella. Any technology that lets machines simulate human-like reasoning, matching, or puzzle-solving.',
+      title: lang === 'en' ? 'Artificial Intelligence (AI)' : 'Artificial Intelligence (AI)',
+      description: lang === 'en'
+        ? 'The broadest umbrella. Any technology that lets machines simulate human-like reasoning, matching, or puzzle-solving.'
+        : 'Sabse bada umbrella. Koi bhi technology jo computer ko insaan ke jaisa dimaag lagane aur puzzle solve karne mein madad kare.',
       color: 'bg-brand-cream border-brand-charcoal/20 text-brand-charcoal'
     },
     {
       id: 1,
-      title: 'Machine Learning (ML)',
-      description: 'A subset of AI where computer systems learn rules directly from historical examples, bypassing hand-written code rules.',
+      title: lang === 'en' ? 'Machine Learning (ML)' : 'Machine Learning (ML)',
+      description: lang === 'en'
+        ? 'A subset of AI where computer systems learn rules directly from historical examples, bypassing hand-written code rules.'
+        : 'AI ka wo hissa jahan computers hazaaro examples dekh ke rules khud ba khud likh lete hain.',
       color: 'bg-white border-brand-slate/20 text-brand-charcoal shadow-sm'
     },
     {
       id: 2,
-      title: 'Deep Learning (DL)',
-      description: 'A deeper layer of ML using stacked artificial "neural networks" to automatically master complex structures like human voices or faces.',
+      title: lang === 'en' ? 'Deep Learning (DL)' : 'Deep Learning (DL)',
+      description: lang === 'en'
+        ? 'A deeper layer of ML using stacked artificial "neural networks" to automatically master complex structures like human voices or faces.'
+        : 'ML ka bohot gehra hissa jahan multi-layered networks (jaise insaani dimaag ke neurons) bade mushkil kaam jaise awaaz ya chehra pehchanna seekhte hain.',
       color: 'bg-brand-sand/60 border-brand-amber/15 text-brand-charcoal shadow-sm'
     },
     {
       id: 3,
-      title: 'Generative AI (GenAI)',
-      description: 'The newest inner-core. AI systems trained on massive content maps to create entirely fresh images, writings, or audio tracks.',
+      title: lang === 'en' ? 'Generative AI (GenAI)' : 'Generative AI (GenAI)',
+      description: lang === 'en'
+        ? 'The newest inner-core. AI systems trained on massive content maps to create entirely fresh images, writings, or audio tracks.'
+        : 'Aaj kal ka naya inner core. Ye systems naye photos, gaane aur asaan articles khud se likh ke generate kar sakte hain.',
       color: 'bg-brand-amber/10 border-brand-amber/40 text-brand-amber shadow-sm'
     }
   ];
@@ -57,12 +73,17 @@ export default function AIFamilyTree() {
       <div className="max-w-5xl mx-auto px-6">
         {/* Title */}
         <div className="text-center max-w-2xl mx-auto mb-10">
-          <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">Layer 02: Core Concepts</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">
+            {lang === 'en' ? "Layer 02: Core Concepts" : "Layer 02: Khaas Concepts"}
+          </span>
           <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mt-1 mb-3">
-            The AI Family Tree
+            {lang === 'en' ? "The AI Family Tree" : "AI ka Khandan (Family Tree)"}
           </h2>
           <p className="font-sans text-xs sm:text-sm text-brand-muted leading-relaxed">
-            Many terms get thrown around like they mean the same thing. In reality, they are nested inside each other like Russian nesting dolls.
+            {lang === 'en'
+              ? "Many terms get thrown around like they mean the same thing. In reality, they are nested inside each other like Russian nesting dolls."
+              : "Bohot saare log samjhte hain sab ka matlab ek hi hai. Par asal mein ye Russian nesting dolls ke jaise ek dusre ke andar nested hain."
+            }
           </p>
         </div>
 
@@ -133,8 +154,12 @@ export default function AIFamilyTree() {
                 </div>
 
                 {/* Float helper labels */}
-                <div className="absolute -top-3 -left-3 text-[9px] font-bold text-brand-muted uppercase font-mono tracking-wider">Broad System</div>
-                <div className="absolute -bottom-3 -right-3 text-[9px] font-bold text-brand-amber uppercase font-mono tracking-wider">Inner Core</div>
+                <div className="absolute -top-3 -left-3 text-[9px] font-bold text-brand-muted uppercase font-mono tracking-wider">
+                  {lang === 'en' ? "Broad System" : "Bada System"}
+                </div>
+                <div className="absolute -bottom-3 -right-3 text-[9px] font-bold text-brand-amber uppercase font-mono tracking-wider">
+                  {lang === 'en' ? "Inner Core" : "Main Core"}
+                </div>
               </div>
             </div>
 
@@ -185,9 +210,9 @@ export default function AIFamilyTree() {
                 </div>
 
                 <div className="flex gap-4 text-[10px] font-mono text-brand-muted pt-4 border-t border-brand-slate/5 mt-6">
-                  <span>Interactive Map</span>
+                  <span>{lang === 'en' ? "Interactive Map" : "Interactive Map"}</span>
                   <span>•</span>
-                  <span>Tap on circles or doll list to switch</span>
+                  <span>{lang === 'en' ? "Tap on circles or doll list to switch" : "Circles ya button dabaake change karo"}</span>
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -211,20 +236,36 @@ export default function AIFamilyTree() {
                 <Network className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
               </div>
 
-              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono block mb-2">Lesson 04</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono block mb-2">
+                {lang === 'en' ? "Lesson 04" : "Sabak 04"}
+              </span>
               <h3 className="font-display text-2xl font-extrabold text-brand-charcoal mb-4">
-                What is Machine Learning (ML)?
+                {lang === 'en' ? "What is Machine Learning (ML)?" : "Machine Learning (ML) Kya hai?"}
               </h3>
               <p className="font-sans text-brand-charcoal leading-relaxed text-[14px] mb-6">
-                <TechTooltip term="Machine Learning">Machine Learning</TechTooltip> — <span className="text-brand-slate italic">a subset of AI where computers analyze thousands of examples to find patterns instead of following rigid programmed rules</span> — allows software to improve on its own. Rather than hand-coding a rule like "if a pixel is green, it's a leaf," we feed the system 100,000 photos of forests and let the algorithm write its own equations.
+                {lang === 'en' ? (
+                  <>
+                    <TechTooltip term="Machine Learning">Machine Learning</TechTooltip> — <span className="text-brand-slate italic">a subset of AI where computers analyze thousands of examples to find patterns instead of following rigid programmed rules</span> — allows software to improve on its own. Rather than hand-coding a rule like "if a pixel is green, it's a leaf," we feed the system 100,000 photos of forests and let the algorithm write its own equations.
+                  </>
+                ) : (
+                  <>
+                    <strong className="text-brand-amber">Machine Learning</strong> — <span className="text-brand-slate italic">AI ka wo subset hai jahan computer rules seekhne ke liye bohot saare examples dekhta hai</span> — iski wajah se computer software khud behtar hota rehta hai. Pehle ke jaisa hand code nahi karna padta "agar green color hai toh patti bolo". Ab hum machine ko hazaaro jangal ki photos dedete hain aur wo khud apna dimaag lagake patti pehchanna seekh leta hai.
+                  </>
+                )}
               </p>
             </div>
 
             <div className="glass-panel p-5 rounded-2xl border-l-4 border-brand-slate relative bg-brand-sand/20">
               <HelpCircle className="w-4 h-4 text-brand-slate absolute top-4 right-4 opacity-30" />
-              <span className="font-mono text-[10px] font-bold text-brand-slate uppercase block mb-1">How it feels</span>
+              <span className="font-mono text-[10px] font-bold text-brand-slate uppercase block mb-1">
+                {lang === 'en' ? "How it feels" : "Ek aur Misaal"}
+              </span>
               <p className="text-brand-charcoal text-xs leading-relaxed italic">
-                "Instead of cooking a dish by writing down a rigid list of steps, machine learning is like tasting a soup 500 times, adding a pinch of salt each time, until it matches the taste pattern of your memory."
+                {lang === 'en' ? (
+                  `"Instead of cooking a dish by writing down a rigid list of steps, machine learning is like tasting a soup 500 times, adding a pinch of salt each time, until it matches the taste pattern of your memory."`
+                ) : (
+                  `"Shorba banane ke step-by-step rules likhne ke bajaye, machine learning 500 baar shorba chakhne ke jaisa hai. Har baar thoda namak dalke check karte, jab tak wo tumhare purane yaad so taste se dhang se match nahi ho jata!"`
+                )}
               </p>
             </div>
           </motion.div>
@@ -246,7 +287,7 @@ export default function AIFamilyTree() {
                 <div>
                   <h4 className="font-display text-xs sm:text-sm font-bold text-brand-charcoal flex items-center gap-1.5 flex-wrap">
                     {type.title}
-                    <span className="text-[9px] font-sans font-medium text-brand-muted px-2 py-0.5 bg-brand-sand/60 rounded-full border border-brand-slate/5">
+                    <span className="text-[9px] font-sans font-medium text-[#E07A5F] px-2 py-0.5 bg-brand-sand/60 rounded-full border border-brand-slate/5">
                       {type.analogy}
                     </span>
                   </h4>
@@ -277,17 +318,31 @@ export default function AIFamilyTree() {
             </div>
 
             <div className="flex items-center gap-2.5 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">Lesson 05</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">
+                {lang === 'en' ? "Lesson 05" : "Sabak 05"}
+              </span>
             </div>
             
             <h3 className="font-display text-2xl font-extrabold text-brand-charcoal mb-4">
-              What is Deep Learning (DL)?
+              {lang === 'en' ? "What is Deep Learning (DL)?" : "Deep Learning (DL) Kya Hai?"}
             </h3>
             <p className="font-sans text-brand-charcoal leading-relaxed text-[14px] md:text-[15px]">
-              <TechTooltip term="Deep Learning">Deep Learning</TechTooltip> — <span className="text-brand-slate italic">a specialized kind of Machine Learning that uses layered mathematical structures called <TechTooltip term="Neural Networks">neural networks</TechTooltip> to capture highly complex relationships in images or sounds</span> — mimics how human brains process raw sights and noises. 
+              {lang === 'en' ? (
+                <>
+                  <TechTooltip term="Deep Learning">Deep Learning</TechTooltip> — <span className="text-brand-slate italic">a specialized kind of Machine Learning that uses layered mathematical structures called <TechTooltip term="Neural Networks">neural networks</TechTooltip> to capture highly complex relationships in images or sounds</span> — mimics how human brains process raw sights and noises. 
+                </>
+              ) : (
+                <>
+                  <strong className="text-brand-amber">Deep Learning</strong> — <span className="text-brand-slate italic">Machine Learning ka wo hissa hai jo mathematical layer patterns jise artificial neural networks bolte, usse awaaz aur photo’aa samajhta hai</span> — ye bilkul insaan ke dimaag ki tarah dher saari files process kar sakta hai.
+                </>
+              )}
             </p>
             <p className="font-sans text-brand-muted leading-relaxed text-xs sm:text-sm mt-3">
-              By stacking these virtual neurons on top of each other, the program starts finding tiny patterns (like lines or shades) in the first layers, then combines them into shapes (like circles or ears) in the middle layers, and finally recognizes complete, high-level objects (like a faces, speech accents, or musical melodies) at the end.
+              {lang === 'en' ? (
+                "By stacking these virtual neurons on top of each other, the program starts finding tiny patterns (like lines or shades) in the first layers, then combines them into shapes (like circles or ears) in the middle layers, and finally recognizes complete, high-level objects (like a faces, speech accents, or musical melodies) at the end."
+              ) : (
+                "Bohot saare virtual neurons ko layers mein set karke, computer pehli layer mein halki shading ya lakeerein pehchanta, phir beech ki layer mein shapes (jaise gole ya kaan) pehchanta, aur aakhir mein poora ka poora chehra, awaaz, ya dhang ka music pakad leta hai."
+              )}
             </p>
           </div>
         </motion.div>

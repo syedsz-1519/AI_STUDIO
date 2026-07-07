@@ -20,75 +20,94 @@ import {
 import { PocketExample, AIType } from '../types';
 import TechTooltip from './TechTooltip';
 import AITimeline from './AITimeline';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function WhatIsAI() {
+  const { lang, t } = useLanguage();
   const [selectedExample, setSelectedExample] = useState<string | null>(null);
   const [showTimeline, setShowTimeline] = useState(false);
-  const [lang, setLang] = useState<'en' | 'hyd'>('en');
 
   const pocketExamples: PocketExample[] = [
     {
       id: 'netflix',
-      title: 'Netflix Predictions',
+      title: lang === 'en' ? 'Netflix Predictions' : 'Netflix ki Soch',
       iconName: 'Tv',
-      description: 'Finds your next movie obsession.',
-      explanation: 'Instead of choosing blindly, it compares your exact viewing history with millions of other users to spot similar taste patterns.'
+      description: lang === 'en' ? 'Finds your next movie obsession.' : 'Tumhein agli film bolta.',
+      explanation: lang === 'en' 
+        ? 'Instead of choosing blindly, it compares your exact viewing history with millions of other users to spot similar taste patterns.'
+        : 'Blindly select karne ke bajaye, ye tumhari watched films ko baaqi hazaaro logon se compare karke dhang ke patterns nikalta hai.'
     },
     {
       id: 'maps',
-      title: 'Google Maps ETA',
+      title: lang === 'en' ? 'Google Maps ETA' : 'Google Maps ETA',
       iconName: 'MapPin',
-      description: 'Predicts traffic patterns.',
-      explanation: 'Looks at historical road congestion alongside real-time speeds of active drivers to forecast your arrival down to the minute.'
+      description: lang === 'en' ? 'Predicts traffic patterns.' : 'Traffic patterns dhoondta.',
+      explanation: lang === 'en'
+        ? 'Looks at historical road congestion alongside real-time speeds of active drivers to forecast your arrival down to the minute.'
+        : 'Purani traffic congestion aur abhi chalre so gaadiyon ki speed dekh ke bilkul minute to minute sahi rasta aur ETA batata hai.'
     },
     {
       id: 'chatgpt',
-      title: 'ChatGPT responses',
+      title: lang === 'en' ? 'ChatGPT responses' : 'ChatGPT ke Jawaab',
       iconName: 'MessageSquareCode',
-      description: 'Drafts emails and answers.',
-      explanation: 'A program that has digested massive libraries of human text, letting it predict the most helpful next word in a sentence.'
+      description: lang === 'en' ? 'Drafts emails and answers.' : 'Mails likhta aur jawaab deta.',
+      explanation: lang === 'en'
+        ? 'A program that has digested massive libraries of human text, letting it predict the most helpful next word in a sentence.'
+        : 'Aisa program jisko duniya jahan ki kitabein padhaye, taaki wo sentence mein agla sabse logical word khud predict kar sake.'
     },
     {
       id: 'assistants',
-      title: 'Voice Assistants',
+      title: lang === 'en' ? 'Voice Assistants' : 'Awaaz wale Assistants',
       iconName: 'Mic',
-      description: 'Siri & Alexa listening.',
-      explanation: 'Translates sound waves of spoken words into text commands, mapping them to software actions like setting an alarm.'
+      description: lang === 'en' ? 'Siri & Alexa listening.' : 'Siri aur Alexa ka sunna.',
+      explanation: lang === 'en'
+        ? 'Translates sound waves of spoken words into text commands, mapping them to software actions like setting an alarm.'
+        : 'Hamari boli so awaaz ko text commands mein badal ke mobile ya speaker ko alarm lagane ya gaana bajane bolta hai.'
     },
     {
       id: 'spam',
-      title: 'Spam Filtering',
+      title: lang === 'en' ? 'Spam Filtering' : 'Spam Filter (Safe Inbox)',
       iconName: 'Mail',
-      description: 'Keeps your inbox safe.',
-      explanation: 'Scans text files for warning words or sender patterns to filter out unwanted messages before they hit your view.'
+      description: lang === 'en' ? 'Keeps your inbox safe.' : 'Kachra mails door rakhta.',
+      explanation: lang === 'en'
+        ? 'Scans text files for warning words or sender patterns to filter out unwanted messages before they hit your view.'
+        : 'Har aane wale mail ko scan karta hai warning words aur fake senders ke liye, taaki kachra mail seedha spam folder mein chale jaye.'
     },
     {
       id: 'photo',
-      title: 'Photo Face-grouping',
+      title: lang === 'en' ? 'Photo Face-grouping' : 'Chehra Pehchanna',
       iconName: 'Smile',
-      description: 'Sorts photos by friend.',
-      explanation: 'Finds unique geometry in facial structures, grouping photos of the same individual together automatically.'
+      description: lang === 'en' ? 'Sorts photos by friend.' : 'Doston ke photos alag karta.',
+      explanation: lang === 'en'
+        ? 'Finds unique geometry in facial structures, grouping photos of the same individual together automatically.'
+        : 'Chehre ki ankhon, naak, aur naksh ko pehchan ke ek hi dost ki saari photos ko ek album mein jama kar deta hai.'
     }
   ];
 
   const aiTypes: AIType[] = [
     {
-      title: 'Narrow AI',
+      title: lang === 'en' ? 'Narrow AI' : 'Narrow AI (Chota AI)',
       short: 'ANI',
-      badge: 'What exists today',
-      description: 'Systems designed to master just one specific task, like playing chess or recommending music. Every single AI system in operation today is Narrow AI.'
+      badge: lang === 'en' ? 'What exists today' : 'Jo aaj chalra hai',
+      description: lang === 'en' 
+        ? 'Systems designed to master just one specific task, like playing chess or recommending music. Every single AI system in operation today is Narrow AI.'
+        : 'Aise systems jo khali ek hi kaam mein ustad hote hain, jaise chess khelna ya gaane batana. Aaj chalra so har AI khali ANI hai yaaron.'
     },
     {
-      title: 'General AI',
+      title: lang === 'en' ? 'General AI' : 'General AI (Insaan ke Jaisa)',
       short: 'AGI',
-      badge: 'Theoretical target',
-      description: 'A theoretical system with human-level intelligence that can learn and apply knowledge to any problem. It does not exist yet.'
+      badge: lang === 'en' ? 'Theoretical target' : 'Aane wala kal',
+      description: lang === 'en'
+        ? 'A theoretical system with human-level intelligence that can learn and apply knowledge to any problem. It does not exist yet.'
+        : 'Insaan ke barabar dimaag rakhne wala AI jo koi bhi naya kaam khud seekh sake. Ye abhi tak nahi bana hai yaaron.'
     },
     {
-      title: 'Super AI',
+      title: lang === 'en' ? 'Super AI' : 'Super AI (Insaan se aage)',
       short: 'ASI',
-      badge: 'Sci-Fi boundary',
-      description: 'A hypothetical machine that surpasses human brain capacity in every dimension, from logical analysis to social empathy.'
+      badge: lang === 'en' ? 'Sci-Fi boundary' : 'Hypothetical hadd',
+      description: lang === 'en'
+        ? 'A hypothetical machine that surpasses human brain capacity in every dimension, from logical analysis to social empathy.'
+        : 'Aisi machine jo har cheez mein insaani dimaag se hazar guna aage nikal jaye. Khali filmon mein dikhate abhi tak.'
     }
   ];
 
@@ -121,29 +140,11 @@ export default function WhatIsAI() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-brand-amber/5 rounded-full blur-2xl pointer-events-none" />
             
             <div>
-              {/* Top Row with Icon, Lesson Badge, and Language Toggle */}
+              {/* Top Row with Icon, Lesson Badge, and Dynamic Translation */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
                 {/* 3D-style Tactile Icon Tile */}
                 <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-white to-[#F4EFE6] border border-t-white border-l-white border-b-4 border-r border-brand-amber/20 shadow-[0_6px_12px_-3px_rgba(211,98,64,0.12),0_10px_20px_-5px_rgba(211,98,64,0.06),inset_0_2px_4px_rgba(255,255,255,0.95)] flex items-center justify-center shrink-0 text-brand-amber">
                   <BrainCircuit className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
-                </div>
-
-                {/* Dialect Language Switcher */}
-                <div className="flex items-center gap-1 bg-brand-sand/50 p-1 rounded-xl border border-brand-slate/5 self-start sm:self-auto shadow-sm">
-                  <button
-                    onClick={() => setLang('en')}
-                    className={`inline-flex items-center gap-1 px-3 py-1 text-[10px] font-display font-extrabold rounded-lg transition-all cursor-pointer ${lang === 'en' ? 'bg-white text-brand-charcoal shadow-sm' : 'text-brand-muted hover:text-brand-charcoal'}`}
-                  >
-                    <Languages className="w-3.5 h-3.5" />
-                    <span>English</span>
-                  </button>
-                  <button
-                    onClick={() => setLang('hyd')}
-                    className={`inline-flex items-center gap-1 px-3 py-1 text-[10px] font-display font-extrabold rounded-lg transition-all cursor-pointer ${lang === 'hyd' ? 'bg-[#E07A5F] text-white shadow-sm' : 'text-brand-muted hover:text-brand-charcoal'}`}
-                  >
-                    <Languages className="w-3.5 h-3.5" />
-                    <span>Hyderabadi (Roman Urdu)</span>
-                  </button>
                 </div>
               </div>
 
@@ -270,13 +271,20 @@ export default function WhatIsAI() {
                 <Smartphone className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
               </div>
 
-              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">Lesson 02</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">
+                {lang === 'en' ? "Lesson 02" : "Sabak 02"}
+              </span>
               <h2 className="font-display text-2xl font-extrabold text-brand-charcoal mt-1 mb-4">
-                AI in Your Pocket
+                {lang === 'en' ? "AI in Your Pocket" : "Roz ka AI Istemaal"}
               </h2>
               <p className="font-sans text-xs leading-relaxed text-brand-muted">
-                You probably use AI multiple times a day without even noticing. Here are six everyday examples of how AI processes patterns behind the scenes.
-                <span className="block mt-4 text-brand-amber font-bold font-mono">Tap any card to reveal how it works under the hood.</span>
+                {lang === 'en' 
+                  ? "You probably use AI multiple times a day without even noticing. Here are six everyday examples of how AI processes patterns behind the scenes."
+                  : "Hum roz bohot saari jagah pattern matching dekhte hain aur humein pata bhi nahi chalta yaaron. Dekho ye 6 asaan misalein."
+                }
+                <span className="block mt-4 text-[#E07A5F] font-bold font-mono">
+                  {lang === 'en' ? "Tap any card to reveal how it works under the hood." : "Koyi bhi card dabaake check karo iske piche kya logic hai."}
+                </span>
               </p>
             </div>
 
@@ -296,7 +304,10 @@ export default function WhatIsAI() {
                         {renderIcon(example.iconName)}
                       </div>
                       <span className="text-[10px] font-mono text-brand-muted group-hover:text-brand-amber transition-colors">
-                        {selectedExample === example.id ? 'Close' : 'Reveal'}
+                        {selectedExample === example.id 
+                          ? (lang === 'en' ? 'Close' : 'Band Karo') 
+                          : (lang === 'en' ? 'Reveal' : 'Kholo')
+                        }
                       </span>
                     </div>
                     <h3 className="font-display text-sm font-bold text-brand-charcoal mb-0.5">
@@ -333,12 +344,17 @@ export default function WhatIsAI() {
       {/* 3. Types of AI capability Section */}
       <section className="py-16 max-w-5xl mx-auto px-6">
         <div className="text-center max-w-2xl mx-auto mb-10">
-          <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">Lesson 03</span>
+          <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono">
+            {lang === 'en' ? "Lesson 03" : "Sabak 03"}
+          </span>
           <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mt-1 mb-3">
-            The Three Horizons of AI
+            {lang === 'en' ? "The Three Horizons of AI" : "AI ke Teen Horizons"}
           </h2>
           <p className="font-sans text-xs sm:text-sm text-brand-muted leading-relaxed">
-            Scientists divide AI into three major stages based on what the machines can actually achieve. 
+            {lang === 'en'
+              ? "Scientists divide AI into three major stages based on what the machines can actually achieve."
+              : "Duniya ke bade scientists AI ko teen bade darjon mein divide karte hain machines ki taaqat ke mutabiq."
+            }
           </p>
         </div>
 

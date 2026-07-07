@@ -13,8 +13,10 @@ import {
 } from 'lucide-react';
 import { PromptingType } from '../types';
 import TechTooltip from './TechTooltip';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function PromptingAndRAG() {
+  const { lang, t } = useLanguage();
   const [selectedPromptType, setSelectedPromptType] = useState<number>(0);
   const [ragStep, setRagStep] = useState<number>(0);
 
@@ -28,32 +30,66 @@ export default function PromptingAndRAG() {
 
   const promptingTypes: PromptingType[] = [
     {
-      title: 'Zero-shot',
-      definition: 'Directly asking for something without giving any background context or guidelines.',
-      example: '"Translate \'Good Morning\' into French."'
+      title: lang === 'en' ? 'Zero-shot' : 'Zero-shot (Seedha Sawaal)',
+      definition: lang === 'en' 
+        ? 'Directly asking for something without giving any background context or guidelines.'
+        : 'Bina koi example ya rules bataye, seedha direct computer se pooch lena.',
+      example: lang === 'en' ? '"Translate \'Good Morning\' into French."' : '"Bolo \'Aadaab\' ko French mein kya bolte?"'
     },
     {
-      title: 'Few-shot',
-      definition: 'Providing 1 to 3 written examples first so the machine understands the format you want.',
-      example: '"Happy -> Positive, Angry -> Negative, Relaxed -> ?"'
+      title: lang === 'en' ? 'Few-shot' : 'Few-shot (Misalein Dena)',
+      definition: lang === 'en'
+        ? 'Providing 1 to 3 written examples first so the machine understands the format you want.'
+        : 'Pehle 1-2 examples samjhana ke tumko kaisa format chahiye, phir sawaal puchna.',
+      example: lang === 'en' 
+        ? '"Happy -> Positive, Angry -> Negative, Relaxed -> ?"'
+        : '"Khush -> Positive, Gusse -> Negative, Sukoon -> ?"'
     },
     {
-      title: 'Chain-of-thought',
-      definition: 'Explicitly instructing the AI to walk through its reasoning path step-by-step.',
-      example: '"Explain why 15 is a composite number. Think step by step."'
+      title: lang === 'en' ? 'Chain-of-thought' : 'Chain-of-thought (Dimaag Lagana)',
+      definition: lang === 'en'
+        ? 'Explicitly instructing the AI to walk through its reasoning path step-by-step.'
+        : 'AI ko saaf bolna ke "ek-ek karke step-by-step dimaag lagake samjhao".',
+      example: lang === 'en'
+        ? '"Explain why 15 is a composite number. Think step by step."'
+        : '"Samjhao 15 composite number kyun hai. Ek-ek step dimaag se socho."'
     },
     {
-      title: 'Role prompting',
-      definition: 'Assigning a virtual persona, context, or career background to the AI model before it answers.',
-      example: '"Act as an experienced senior editor. Review this text..."'
+      title: lang === 'en' ? 'Role prompting' : 'Role prompting (Role Dena)',
+      definition: lang === 'en'
+        ? 'Assigning a virtual persona, context, or career background to the AI model before it answers.'
+        : 'AI ko koi character ya profession ka dhang ka role de ke bolna ke "tum abhi ek doctor ho..."',
+      example: lang === 'en'
+        ? '"Act as an experienced senior editor. Review this text..."'
+        : '"Tum abhi bohot bade Hyderabadi Bawarchi ho. Biryani ki review karo..."'
     }
   ];
 
   const ragSteps = [
-    { id: 0, label: 'Question', desc: 'The user asks a specific question.', icon: QuestionIcon },
-    { id: 1, label: 'Search', desc: 'The system searches a private document base.', icon: Search },
-    { id: 2, label: 'Context', desc: 'Relevant facts are retrieved & loaded.', icon: BookOpen },
-    { id: 3, label: 'Answer', desc: 'The AI answers using those exact verified facts.', icon: CheckCircle }
+    { 
+      id: 0, 
+      label: lang === 'en' ? 'Question' : 'Sawaal', 
+      desc: lang === 'en' ? 'The user asks a specific question.' : 'User apna sawaal likhta hai.', 
+      icon: QuestionIcon 
+    },
+    { 
+      id: 1, 
+      label: lang === 'en' ? 'Search' : 'Dhoondna', 
+      desc: lang === 'en' ? 'The system searches a private document base.' : 'System tumhare private files ya documents mein dhoondta hai.', 
+      icon: Search 
+    },
+    { 
+      id: 2, 
+      label: lang === 'en' ? 'Context' : 'Saboot', 
+      desc: lang === 'en' ? 'Relevant facts are retrieved & loaded.' : 'Sahi information aur saboot nikal ke load hote hain.', 
+      icon: BookOpen 
+    },
+    { 
+      id: 3, 
+      label: lang === 'en' ? 'Answer' : 'Sahi Jawab', 
+      desc: lang === 'en' ? 'The AI answers using those exact verified facts.' : 'AI unhi load kiye so facts se bilkul sach aur sahi jawab likhta hai.', 
+      icon: CheckCircle 
+    }
   ];
 
   return (
@@ -79,22 +115,40 @@ export default function PromptingAndRAG() {
                 <Zap className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
               </div>
 
-              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber block mb-2 font-mono">Lesson 08</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber block mb-2 font-mono">
+                {lang === 'en' ? "Lesson 08" : "Sabak 08"}
+              </span>
               <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mb-4">
-                Talking to AI: Prompting
+                {lang === 'en' ? "Talking to AI: Prompting" : "AI se Baat Karna: Prompting"}
               </h2>
               <p className="font-sans text-brand-charcoal leading-relaxed text-[14px] mb-6">
-                A <TechTooltip term="Prompt">Prompt</TechTooltip> — <span className="text-brand-slate italic">the raw written instructions, queries, or background text you feed into an AI system to guide its behavior</span> — is how humans steering AI get high-quality results. 
-                Just like talking to another person, being vague results in vague answers. Over time, builders have mapped out specific styles of asking questions to extract highly accurate logic.
+                {lang === 'en' ? (
+                  <>
+                    A <TechTooltip term="Prompt">Prompt</TechTooltip> — <span className="text-brand-slate italic">the raw written instructions, queries, or background text you feed into an AI system to guide its behavior</span> — is how humans steering AI get high-quality results. 
+                    Just like talking to another person, being vague results in vague answers. Over time, builders have mapped out specific styles of asking questions to extract highly accurate logic.
+                  </>
+                ) : (
+                  <>
+                    Ek <strong className="text-brand-amber">Prompt</strong> — <span className="text-brand-slate italic">wo likhe so instructions, sawaal ya rules hain jo tum computer ko dete ho dhang se kaam karwane ke liye</span> — isse hum badhiya aur sahi jawab nikalwa sakte hain. 
+                    Miya, agar tum gol-gol sawaal puchoge toh jawab bhi gol-gol milega. Isliye dhang se puchna seekhna zaroori hai.
+                  </>
+                )}
               </p>
             </div>
 
             {/* Quick-tips tactile drawer */}
             <div className="bg-[#F9F7F3] border border-brand-slate/10 p-4 rounded-2xl flex items-center gap-3.5 shadow-inner">
               <Zap className="w-5 h-5 text-brand-amber shrink-0 animate-pulse" />
-              <div className="text-[11px] leading-normal">
-                <span className="font-bold text-brand-charcoal block">Prompting Rule of Thumb</span>
-                <span className="text-brand-muted">Treat the AI like a highly capable intern with zero context. Spell out exactly what you want.</span>
+              <div className="text-[11px] leading-normal text-left">
+                <span className="font-bold text-brand-charcoal block">
+                  {lang === 'en' ? "Prompting Rule of Thumb" : "Prompting ka Pakka Rule"}
+                </span>
+                <span className="text-brand-muted">
+                  {lang === 'en'
+                    ? "Treat the AI like a highly capable intern with zero context. Spell out exactly what you want."
+                    : "AI ko ek dhang ka hoshiyar intern samjho jisko tumhare project ka zero pata hai. Ek-ek baat khol ke samjhao."
+                  }
+                </span>
               </div>
             </div>
           </motion.div>
@@ -107,7 +161,9 @@ export default function PromptingAndRAG() {
                 <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-white to-[#F4EFE6] border border-t-white border-l-white border-b-4 border-r border-brand-amber/20 shadow-[0_6px_12px_-3px_rgba(211,98,64,0.12),0_10px_20px_-5px_rgba(211,98,64,0.06),inset_0_2px_4px_rgba(255,255,255,0.95)] flex items-center justify-center shrink-0 text-brand-amber">
                   <MessageSquare className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
                 </div>
-                <span className="text-xs font-mono font-bold text-brand-muted uppercase">Prompt Styles</span>
+                <span className="text-xs font-mono font-bold text-brand-muted uppercase">
+                  {lang === 'en' ? "Prompt Styles" : "Prompt Styles"}
+                </span>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-4">
@@ -131,14 +187,18 @@ export default function PromptingAndRAG() {
                 className="bg-white border border-brand-slate/10 p-5 rounded-2xl min-h-[140px] flex flex-col justify-between shadow-sm"
               >
                 <div>
-                  <span className="text-[9px] font-mono font-bold text-brand-amber uppercase tracking-wider block mb-1">Definition</span>
-                  <p className="text-xs text-brand-charcoal leading-relaxed mb-3">
+                  <span className="text-[9px] font-mono font-bold text-brand-amber uppercase tracking-wider block mb-1">
+                    {lang === 'en' ? "Definition" : "Matlab"}
+                  </span>
+                  <p className="text-xs text-brand-charcoal leading-relaxed mb-3 text-left">
                     {promptingTypes[selectedPromptType].definition}
                   </p>
                 </div>
 
-                <div className="bg-brand-sand/30 border border-brand-slate/5 p-2.5 rounded-xl">
-                  <span className="text-[8px] font-mono font-bold text-brand-slate uppercase tracking-wider block mb-0.5">Real World Example</span>
+                <div className="bg-brand-sand/30 border border-brand-slate/5 p-2.5 rounded-xl text-left">
+                  <span className="text-[8px] font-mono font-bold text-brand-slate uppercase tracking-wider block mb-0.5">
+                    {lang === 'en' ? "Real World Example" : "Misaal"}
+                  </span>
                   <p className="text-[10px] font-mono font-semibold text-brand-charcoal leading-snug">
                     {promptingTypes[selectedPromptType].example}
                   </p>
@@ -164,9 +224,11 @@ export default function PromptingAndRAG() {
                 </div>
 
                 <div className="flex flex-col items-end">
-                  <span className="text-xs font-mono font-bold text-brand-muted">RAG Loop Sequence</span>
+                  <span className="text-xs font-mono font-bold text-brand-muted">
+                    {lang === 'en' ? "RAG Loop Sequence" : "RAG Loop Sequence"}
+                  </span>
                   <span className="text-[9px] bg-brand-sand px-2 py-0.5 border border-brand-slate/15 rounded font-mono text-brand-amber font-bold mt-1.5">
-                    Step {ragStep + 1}/4
+                    {lang === 'en' ? `Step ${ragStep + 1}/4` : `Step ${ragStep + 1}/4`}
                   </span>
                 </div>
               </div>
@@ -222,7 +284,7 @@ export default function PromptingAndRAG() {
                 className="bg-white border border-brand-slate/10 p-4 rounded-2xl text-center flex-grow flex flex-col justify-center min-h-[90px] shadow-sm"
               >
                 <h4 className="font-display text-xs font-bold text-brand-charcoal mb-1">
-                  Step {ragStep + 1}: {ragSteps[ragStep].label}
+                  {lang === 'en' ? `Step ${ragStep + 1}: ${ragSteps[ragStep].label}` : `Step ${ragStep + 1}: ${ragSteps[ragStep].label}`}
                 </h4>
                 <p className="text-[11px] text-brand-muted leading-relaxed">
                   {ragSteps[ragStep].desc}
@@ -231,7 +293,7 @@ export default function PromptingAndRAG() {
             </div>
 
             <div className="text-center mt-4 text-[9px] text-brand-muted font-mono">
-              Tap icons or wait to auto-cycle
+              {lang === 'en' ? "Tap icons or wait to auto-cycle" : "Icons dabaao ya auto-cycle ka wait karo"}
             </div>
           </div>
 
@@ -251,19 +313,35 @@ export default function PromptingAndRAG() {
                 <BookOpen className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
               </div>
 
-              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono block mb-2">Lesson 09</span>
+              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber font-mono block mb-2">
+                {lang === 'en' ? "Lesson 09" : "Sabak 09"}
+              </span>
               <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mb-4">
-                RAG: Reducing Hallucinations
+                {lang === 'en' ? "RAG: Reducing Hallucinations" : "RAG: Hallucinations Kam Karna"}
               </h2>
               <p className="font-sans text-brand-charcoal leading-relaxed text-[14px] mb-6">
-                <TechTooltip term="Retrieval-Augmented Generation">Retrieval-Augmented Generation</TechTooltip> — <span className="text-brand-slate italic">an AI system pattern that first searches a secure, private document database for relevant facts before sending those exact details along with your question to the LLM</span> — is like giving an AI an open-book exam.
+                {lang === 'en' ? (
+                  <>
+                    <TechTooltip term="Retrieval-Augmented Generation">Retrieval-Augmented Generation</TechTooltip> — <span className="text-brand-slate italic">an AI system pattern that first searches a secure, private document database for relevant facts before sending those exact details along with your question to the LLM</span> — is like giving an AI an open-book exam.
+                  </>
+                ) : (
+                  <>
+                    <strong className="text-brand-amber">Retrieval-Augmented Generation (RAG)</strong> — <span className="text-brand-slate italic">wo system hai jo computer ko answer likhne se pehle sahi documents dhoondne mein madad karta hai taake wo sach jawab de sake</span> — ye bilkul computer ko open-book exam dene ke jaisa hai.
+                  </>
+                )}
               </p>
             </div>
 
             <div className="glass-panel p-5 rounded-2xl border-l-4 border-brand-slate relative bg-brand-sand/20">
-              <span className="font-mono text-[10px] font-bold text-brand-slate uppercase block mb-1">Behind the scenes</span>
-              <p className="text-brand-charcoal text-xs leading-relaxed italic">
-                Without RAG, an AI relies purely on its memory of training data, which can lead to "<TechTooltip term="Hallucinations">hallucinations</TechTooltip>" (writing confidently incorrect facts). With RAG, the system acts as a smart research assistant: it scans your trusted documents first, copies out the true data, and instructs the AI to write an answer using only those verified facts.
+              <span className="font-mono text-[10px] font-bold text-brand-slate uppercase block mb-1">
+                {lang === 'en' ? "Behind the scenes" : "Parde ke Peeche"}
+              </span>
+              <p className="text-brand-charcoal text-xs leading-relaxed italic text-left">
+                {lang === 'en' ? (
+                  `Without RAG, an AI relies purely on its memory of training data, which can lead to "hallucinations" (writing confidently incorrect facts). With RAG, the system acts as a smart research assistant: it scans your trusted documents first, copies out the true data, and instructs the AI to write an answer using only those verified facts.`
+                ) : (
+                  `Bina RAG ke, AI khali dimaag so ratti-ratayi purani baaton pe jawab deta hai, jisse wo bohot confidence ke sath jhooth jawab de deta (jise "hallucination" bolte). RAG lagane se computer ek hoshiyar researcher ban jata hai: pehle dhang ke files padhta hai, sahi facts dhoondta hai, aur AI ko bolta khali isi sachi information se jawab banao!`
+                )}
               </p>
             </div>
           </motion.div>

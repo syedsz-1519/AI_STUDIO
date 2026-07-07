@@ -17,8 +17,10 @@ import {
 } from 'lucide-react';
 import { roadmapSections, Section, Term } from '../data/roadmapTerms';
 import ClayLogo from './ClayLogo';
+import { useLanguage } from '../hooks/useLanguage';
 
 export default function ClosingAndDeeper() {
+  const { lang, t } = useLanguage();
   const [isOpen, setIsOpen] = useState(true); // Open by default to showcase the roadmap immediately
   const [searchQuery, setSearchQuery] = useState('');
   const [revealedQuizzes, setRevealedQuizzes] = useState<Record<string, boolean>>({});
@@ -107,14 +109,17 @@ export default function ClosingAndDeeper() {
           
           <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-brand-sand border border-brand-slate/10 rounded-full text-[11px] font-mono font-bold text-brand-slate mb-4">
             <Calendar className="w-3 h-3 text-brand-amber" />
-            <span>Updated Roadmap: 6 July 2026</span>
+            <span>{lang === 'en' ? "Updated Roadmap: 6 July 2026" : "Naya Roadmap: 6 July 2026"}</span>
           </div>
 
-          <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-brand-charcoal tracking-tight mb-4">
-            85+ AI Terms Explained in Simple Words
+          <h2 className="font-display text-4xl sm:text-5xl font-extrabold text-brand-charcoal tracking-tight mb-4 text-center">
+            {lang === 'en' ? "85+ AI Terms Explained in Simple Words" : "85+ AI ke Alfaaz Boht Aasan Zubaan mein"}
           </h2>
-          <p className="font-sans text-brand-slate text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-            A real learning path, not just a random dictionary. Start at the top, work your way down. Each of the 12 sections builds directly on the ones before it.
+          <p className="font-sans text-brand-slate text-base sm:text-lg leading-relaxed max-w-2xl mx-auto text-center">
+            {lang === 'en' 
+              ? "A real learning path, not just a random dictionary. Start at the top, work your way down. Each of the 12 sections builds directly on the ones before it."
+              : "Ye bilkul ek seedha learning rasta hai miya, koi ainvayi dictionary nai hai. Upar se shuru karo aur seekhte seekhte niche jao. Ek-ek section pehle wale pe bana hua hai."
+            }
           </p>
         </div>
 
@@ -123,25 +128,32 @@ export default function ClosingAndDeeper() {
           <div className="absolute top-0 right-0 w-32 h-32 bg-brand-amber/5 rounded-full blur-2xl pointer-events-none" />
           
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 z-10 relative">
-            <div>
+            <div className="text-left">
               <div className="flex items-center gap-2 mb-2">
                 <Trophy className="w-5 h-5 text-brand-amber" />
-                <h3 className="font-display text-lg font-bold text-brand-charcoal">Your Interactive Study Progress</h3>
+                <h3 className="font-display text-lg font-bold text-brand-charcoal">
+                  {lang === 'en' ? "Your Interactive Study Progress" : "Aapki Padhayi ki Progress"}
+                </h3>
               </div>
               <p className="text-xs text-brand-muted leading-relaxed max-w-md">
-                Tick off terms as you scroll and read to master the AI ecosystem! Your progress is locally saved.
+                {lang === 'en'
+                  ? "Tick off terms as you scroll and read to master the AI ecosystem! Your progress is locally saved."
+                  : "Miya, jaise jaise padhte jaa rahe ho, tick lagate jao! Sab progress browser mein automatically save hoti."
+                }
               </p>
             </div>
 
             <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4 shrink-0">
-              <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-brand-slate/10 shadow-sm">
+              <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-brand-slate/10 shadow-sm text-left">
                 <div className="w-10 h-10 rounded-xl bg-brand-amber/10 flex items-center justify-center shrink-0">
                   <Award className="w-5 h-5 text-brand-amber" />
                 </div>
                 <div>
-                  <span className="block text-[10px] font-mono uppercase font-bold text-brand-muted">Learned</span>
+                  <span className="block text-[10px] font-mono uppercase font-bold text-brand-muted">
+                    {lang === 'en' ? "Learned" : "Seekh Liye"}
+                  </span>
                   <span className="font-display text-base font-extrabold text-brand-charcoal">
-                    {completedCount} <span className="font-normal text-xs text-brand-slate">/ {totalTermsCount} Terms</span>
+                    {completedCount} <span className="font-normal text-xs text-brand-slate">/ {totalTermsCount} {lang === 'en' ? 'Terms' : 'Alfaaz'}</span>
                   </span>
                 </div>
               </div>
@@ -153,7 +165,7 @@ export default function ClosingAndDeeper() {
                   title="Reset learning checklist"
                 >
                   <RefreshCw className="w-3.5 h-3.5" />
-                  <span>Reset</span>
+                  <span>{lang === 'en' ? "Reset" : "Shuru se"}</span>
                 </button>
               )}
             </div>
@@ -162,8 +174,10 @@ export default function ClosingAndDeeper() {
           {/* Animated Progress Bar */}
           <div className="mt-6">
             <div className="flex justify-between items-center text-xs font-mono font-bold text-brand-slate mb-2">
-              <span>PROGRESS</span>
-              <span className="text-brand-amber">{percentComplete}% MASTERED</span>
+              <span>{lang === 'en' ? "PROGRESS" : "PROGRESS"}</span>
+              <span className="text-brand-amber">
+                {percentComplete}% {lang === 'en' ? "MASTERED" : "SEEKH LIYE"}
+              </span>
             </div>
             <div className="w-full h-3 bg-brand-sand border border-brand-slate/10 rounded-full overflow-hidden p-[2px] shadow-inner">
               <motion.div 
@@ -182,7 +196,7 @@ export default function ClosingAndDeeper() {
             <Search className="absolute left-4.5 top-1/2 -translate-y-1/2 w-5 h-5 text-brand-slate" />
             <input
               type="text"
-              placeholder="Search all 85+ terms instantly... (e.g., Transformer, RAG, Epoch)"
+              placeholder={lang === 'en' ? "Search all 85+ terms instantly... (e.g., Transformer, RAG, Epoch)" : "Sabh 85+ alfaaz mein se kuch dhoondo... (jaise: Transformer, RAG, Epoch)"}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-12 pr-10 py-4 bg-white border-2 border-brand-charcoal/10 rounded-2xl focus:border-brand-amber outline-none font-sans text-sm shadow-sm transition-all placeholder:text-brand-slate/50"
@@ -192,7 +206,7 @@ export default function ClosingAndDeeper() {
                 onClick={() => setSearchQuery('')}
                 className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-mono font-bold text-brand-slate hover:text-brand-amber bg-brand-sand px-2 py-0.5 rounded border border-brand-slate/10"
               >
-                CLEAR
+                {lang === 'en' ? "CLEAR" : "SAAF"}
               </button>
             )}
           </div>
@@ -286,7 +300,7 @@ export default function ClosingAndDeeper() {
                     </div>
 
                     {/* Section Frame (Bento Card style) */}
-                    <div className="bg-[#F9F7F3] border-2 border-brand-charcoal/10 hover:border-brand-charcoal/20 rounded-3xl p-6 sm:p-8 skeuo-raised relative overflow-hidden transition-all">
+                    <div className="bg-[#F9F7F3] border-2 border-brand-charcoal/10 hover:border-brand-charcoal/20 rounded-3xl p-6 sm:p-8 skeuo-raised relative overflow-hidden transition-all text-left">
                       
                       {/* Top Accent Strip */}
                       <div className="absolute top-0 left-0 right-0 h-1.5 bg-brand-amber/10" />
@@ -296,18 +310,18 @@ export default function ClosingAndDeeper() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-mono font-bold bg-brand-amber/10 text-brand-amber px-2.5 py-1 rounded-md">
-                              Section {section.number}
+                              {lang === 'en' ? `Section ${section.number}` : `Hissa ${section.number}`}
                             </span>
                             {section.buildsOn && (
                               <span className="text-[10px] font-mono font-bold text-brand-muted">
-                                Builds on: <span className="text-brand-slate italic">{section.buildsOn}</span>
+                                {lang === 'en' ? "Builds on:" : "Pehle chahiye:"} <span className="text-brand-slate italic">{section.buildsOn}</span>
                               </span>
                             )}
                           </div>
                           <h3 className="font-display text-2xl font-extrabold text-brand-charcoal mt-2">
                             {section.title}
                           </h3>
-                          <p className="text-xs text-brand-muted mt-1 max-w-xl italic">
+                          <p className="text-xs text-brand-muted mt-1 max-w-xl italic text-left">
                             {section.subtitle}
                           </p>
                         </div>
@@ -315,20 +329,22 @@ export default function ClosingAndDeeper() {
                         {/* Section Quick Stats + Actions */}
                         <div className="flex flex-col items-start sm:items-end gap-2 shrink-0">
                           <span className="text-xs font-mono font-bold text-brand-slate">
-                            {sectionCheckedCount}/{section.terms.length} MASTERED
+                            {sectionCheckedCount}/{section.terms.length} {lang === 'en' ? 'MASTERED' : 'POORA SEEKHE'}
                           </span>
                           
                           <button
                             onClick={() => checkAllInSection(section)}
                             className="text-[10px] font-mono font-bold text-brand-amber hover:text-brand-amber-dark underline cursor-pointer bg-transparent border-0 p-0"
                           >
-                            {isSectionFullyMastered ? "Deselect All" : "Mark All as Learned"}
+                            {isSectionFullyMastered 
+                              ? (lang === 'en' ? "Deselect All" : "Sabh Uncheck Karo") 
+                              : (lang === 'en' ? "Mark All as Learned" : "Sabh seekh liye tick karo")}
                           </button>
                         </div>
                       </div>
 
                       {/* Terms Grid (Clean cards) */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
                         {section.terms.map((term) => {
                           const isChecked = !!completedTerms[term.title];
                           return (
@@ -346,7 +362,7 @@ export default function ClosingAndDeeper() {
                                 <h4 className="font-display text-xs sm:text-sm font-bold text-brand-charcoal group-hover:text-brand-amber transition-colors">
                                   {term.title}
                                 </h4>
-                                <p className="text-[11px] sm:text-xs text-brand-slate leading-relaxed mt-1">
+                                <p className="text-[11px] sm:text-xs text-brand-slate leading-relaxed mt-1 text-left">
                                   {term.definition}
                                 </p>
                               </div>
@@ -357,7 +373,7 @@ export default function ClosingAndDeeper() {
 
                       {/* Interactive "Test yourself" accordion card */}
                       {section.testYourself && (
-                        <div className="mt-8 pt-6 border-t border-brand-slate/10">
+                        <div className="mt-8 pt-6 border-t border-brand-slate/10 text-left">
                           <div className="bg-white/70 border border-brand-amber/15 rounded-2xl p-5 shadow-sm">
                             <div className="flex items-start gap-3">
                               <div className="w-8 h-8 rounded-lg bg-brand-amber/10 flex items-center justify-center text-brand-amber shrink-0">
@@ -365,9 +381,9 @@ export default function ClosingAndDeeper() {
                               </div>
                               <div className="flex-grow">
                                 <span className="text-[10px] font-mono uppercase font-bold text-brand-amber block mb-1">
-                                  Test yourself
+                                  {lang === 'en' ? "Test yourself" : "Apna imtehaan lo"}
                                 </span>
-                                <p className="text-xs sm:text-sm font-medium text-brand-charcoal leading-relaxed">
+                                <p className="text-xs sm:text-sm font-medium text-brand-charcoal leading-relaxed text-left">
                                   {section.testYourself.question}
                                 </p>
 
@@ -377,7 +393,11 @@ export default function ClosingAndDeeper() {
                                   className="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-sand hover:bg-brand-sand-dark text-brand-amber border border-brand-amber/20 hover:border-brand-amber/40 font-display text-xs font-bold rounded-lg cursor-pointer transition-all active:scale-95"
                                 >
                                   <Sparkles className="w-3 h-3" />
-                                  <span>{revealedQuizzes[section.id] ? "Hide Answer" : "Reveal Answer"}</span>
+                                  <span>
+                                    {revealedQuizzes[section.id] 
+                                      ? (lang === 'en' ? "Hide Answer" : "Jawab Chupao") 
+                                      : (lang === 'en' ? "Reveal Answer" : "Jawab Dekho")}
+                                  </span>
                                 </button>
 
                                 {/* Animated Answer Box */}
@@ -387,7 +407,7 @@ export default function ClosingAndDeeper() {
                                       initial={{ height: 0, opacity: 0, marginTop: 0 }}
                                       animate={{ height: 'auto', opacity: 1, marginTop: 12 }}
                                       exit={{ height: 0, opacity: 0, marginTop: 0 }}
-                                      className="overflow-hidden border-t border-brand-slate/10"
+                                      className="overflow-hidden border-t border-brand-slate/10 text-left"
                                     >
                                       <div className="pt-3 flex gap-2.5 items-start">
                                         <div className="w-5 h-5 rounded-full bg-emerald-500/10 flex items-center justify-center shrink-0 mt-0.5">
@@ -395,9 +415,9 @@ export default function ClosingAndDeeper() {
                                         </div>
                                         <div>
                                           <span className="font-mono text-[9px] font-bold text-emerald-700 uppercase tracking-wider block mb-0.5">
-                                            EXPLAINED BY CLAY:
+                                            {lang === 'en' ? "EXPLAINED BY CLAY:" : "CLAY KA JAWAB:"}
                                           </span>
-                                          <p className="text-xs text-brand-slate leading-relaxed">
+                                          <p className="text-xs text-brand-slate leading-relaxed text-left">
                                             {section.testYourself.answer}
                                           </p>
                                         </div>
@@ -422,7 +442,7 @@ export default function ClosingAndDeeper() {
 
         {/* Layer 4: Go Deeper Drawer */}
         <div className="max-w-4xl mx-auto mt-14 pt-8 border-t border-brand-slate/10">
-          <div className="bg-[#F5F2ED] border-2 border-brand-charcoal/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all">
+          <div className="bg-[#F5F2ED] border-2 border-brand-charcoal/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all text-left">
             <button
               onClick={() => setIsDeeperDrawerOpen(!isDeeperDrawerOpen)}
               className="w-full flex items-center justify-between p-5 bg-brand-sand/30 hover:bg-brand-sand/50 transition-colors text-left font-display font-extrabold text-brand-charcoal cursor-pointer outline-none"
@@ -432,8 +452,14 @@ export default function ClosingAndDeeper() {
                   <GraduationCap className="w-5 h-5" />
                 </div>
                 <div>
-                  <h4 className="text-base sm:text-lg font-bold">Layer 4: Go Deeper</h4>
-                  <p className="text-xs font-normal text-brand-muted">Expand to explore advanced, adjacent AI concepts (Opt-in only)</p>
+                  <h4 className="text-base sm:text-lg font-bold">
+                    {lang === 'en' ? "Layer 4: Go Deeper" : "Hissa 4: Gehra Seekho"}
+                  </h4>
+                  <p className="text-xs font-normal text-brand-muted">
+                    {lang === 'en' 
+                      ? "Expand to explore advanced, adjacent AI concepts (Opt-in only)" 
+                      : "Sabh bade bade aur advanced AI ke baatein seekho (Maza aayega)"}
+                  </p>
                 </div>
               </div>
               <div className="w-8 h-8 rounded-full bg-white border border-brand-slate/10 flex items-center justify-center text-brand-slate shrink-0">
@@ -448,52 +474,67 @@ export default function ClosingAndDeeper() {
                   animate={{ height: 'auto', opacity: 1 }}
                   exit={{ height: 0, opacity: 0 }}
                   transition={{ duration: 0.3, ease: 'easeInOut' }}
-                  className="overflow-hidden bg-white border-t border-brand-slate/10"
+                  className="overflow-hidden bg-white border-t border-brand-slate/10 text-left"
                 >
-                  <div className="p-6 sm:p-8 flex flex-col gap-4">
+                  <div className="p-6 sm:p-8 flex flex-col gap-4 text-left">
                     <div className="flex flex-col gap-3.5">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-slate/5 pb-3">
-                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0">
-                          <strong>AI Agents</strong>
+                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0 text-left">
+                          <strong>{lang === 'en' ? "AI Agents" : "AI Agents"}</strong>
                         </span>
-                        <span className="text-xs sm:text-sm text-brand-slate flex-grow">
-                          AI systems that can plan and take actions using tools, rather than just generating text answers.
+                        <span className="text-xs sm:text-sm text-brand-slate flex-grow text-left">
+                          {lang === 'en'
+                            ? "AI systems that can plan and take actions using tools, rather than just generating text answers."
+                            : "Aise AI systems jo khudi se plan karke kaam kar sakte hain, sirf baatein ya text likhne ke bajaye."
+                          }
                         </span>
                       </div>
                       
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-slate/5 pb-3">
-                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0">
-                          <strong>Fine-tuning</strong>
+                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0 text-left">
+                          <strong>{lang === 'en' ? "Fine-tuning" : "Fine-tuning"}</strong>
                         </span>
-                        <span className="text-xs sm:text-sm text-brand-slate flex-grow">
-                          The process of customizing a pre-trained model further on your own specific dataset.
-                        </span>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-slate/5 pb-3">
-                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0">
-                          <strong>Embeddings</strong>
-                        </span>
-                        <span className="text-xs sm:text-sm text-brand-slate flex-grow">
-                          Turning the core meaning of text into lists of numbers to allow computer systems to compare them.
+                        <span className="text-xs sm:text-sm text-brand-slate flex-grow text-left">
+                          {lang === 'en'
+                            ? "The process of customizing a pre-trained model further on your own specific dataset."
+                            : "Pehle se bane hue model ko aapke khud ke data pe daal ke use ekdum khaas banana."
+                          }
                         </span>
                       </div>
 
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-slate/5 pb-3">
-                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0">
-                          <strong>Multimodal AI</strong>
+                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0 text-left">
+                          <strong>{lang === 'en' ? "Embeddings" : "Embeddings"}</strong>
                         </span>
-                        <span className="text-xs sm:text-sm text-brand-slate flex-grow">
-                          Advanced neural networks built to process multiple types of information (text, images, and audio) together.
+                        <span className="text-xs sm:text-sm text-brand-slate flex-grow text-left">
+                          {lang === 'en'
+                            ? "Turning the core meaning of text into lists of numbers to allow computer systems to compare them."
+                            : "Poore alfaaz ya text ke matlab ko numbers ki list banana, taake computer use aasaani se samajh sake."
+                          }
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-slate/5 pb-3">
+                        <span className="font-display font-extrabold text-sm text-[#E07A5F] sm:w-48 shrink-0 text-left">
+                          <strong>{lang === 'en' ? "Multimodal AI" : "Multimodal AI"}</strong>
+                        </span>
+                        <span className="text-xs sm:text-sm text-brand-slate flex-grow text-left">
+                          {lang === 'en'
+                            ? "Advanced neural networks built to process multiple types of information (text, images, and audio) together."
+                            : "Aise models jo ek sath likha hua text, photo aur audio sabh ek sath samajh lete hain."
+                          }
                         </span>
                       </div>
 
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
-                        <span className="font-display font-extrabold text-sm text-rose-500 sm:w-48 shrink-0">
-                          <strong>AI Ethics & Bias</strong>
+                        <span className="font-display font-extrabold text-sm text-rose-500 sm:w-48 shrink-0 text-left">
+                          <strong>{lang === 'en' ? "AI Ethics & Bias" : "AI Ethics aur Bias"}</strong>
                         </span>
-                        <span className="text-xs sm:text-sm text-brand-slate flex-grow">
-                          The study of how models can make unfair or incorrect decisions due to human patterns in their training data.
+                        <span className="text-xs sm:text-sm text-brand-slate flex-grow text-left">
+                          {lang === 'en'
+                            ? "The study of how models can make unfair or incorrect decisions due to human patterns in their training data."
+                            : "Ye study karna ki models galat ya ek-tarfa faisle kaise karte hain kyunki unki training ka data waisa tha."
+                          }
                         </span>
                       </div>
                     </div>
