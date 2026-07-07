@@ -5,6 +5,7 @@ import ClayExplainer from './components/ClayExplainer';
 import AIFamilyTree from './components/AIFamilyTree';
 import GenerativeAI from './components/GenerativeAI';
 import PromptingAndRAG from './components/PromptingAndRAG';
+import AIToolsList from './components/AIToolsList';
 import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
 import { Compass, Sparkles, BookOpen } from 'lucide-react';
@@ -96,6 +97,16 @@ export default function App() {
           <PromptingAndRAG />
         </motion.div>
 
+        {/* Curated AI Tools Directory */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={sectionAnimation}
+        >
+          <AIToolsList />
+        </motion.div>
+
         {/* Layer 3 & 4: Closing, Future Outlook, and collapsible glossary terms */}
         <motion.div
           initial="hidden"
@@ -159,7 +170,7 @@ export default function App() {
         </div>
 
         <div className="max-w-5xl mx-auto px-6 mt-12 pt-6 border-t border-brand-slate/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-brand-muted">
-          <span>© 2026 Simple AI. Constructed with skeuomorphic-glass hybrid layouts.</span>
+          <span>© 2026 Simple AI. By Syed Shahnawaz.</span>
           <div className="flex gap-4">
             <span className="hover:text-brand-amber transition-colors cursor-pointer">Editorial Policies</span>
             <span className="hover:text-brand-amber transition-colors cursor-pointer">Privacy Principles</span>

@@ -330,11 +330,17 @@ class AudioEngine {
     
     // Choose voice
     const voices = window.speechSynthesis.getVoices();
-    // Prefer Google US English, an English female voice, or anything soft
+    // Prefer English male or youthful vocal profiles for a friendly teen boy sound
     const preferredVoice = voices.find(v => 
-      v.name.includes('Google US English') || 
-      v.name.includes('Natural') ||
-      (v.lang.startsWith('en') && v.name.includes('Zira')) ||
+      v.lang.startsWith('en') && (
+        v.name.toLowerCase().includes('male') || 
+        v.name.toLowerCase().includes('guy') || 
+        v.name.toLowerCase().includes('david') || 
+        v.name.toLowerCase().includes('natural') || 
+        v.name.toLowerCase().includes('standard-b')
+      )
+    ) || voices.find(v => 
+      v.name.includes('Google US English') ||
       v.lang.startsWith('en')
     );
 
@@ -342,9 +348,10 @@ class AudioEngine {
       this.activeUtterance.voice = preferredVoice;
     }
 
-    // Set voice properties to sound like a friendly small robot named Clay
-    this.activeUtterance.pitch = 1.25; // Slightly higher, friendly
-    this.activeUtterance.rate = 0.95;   // Slightly slower, cute and deliberate
+    // Set properties for a soft, precise, and highly listenable teen boy voice
+    this.activeUtterance.pitch = 1.12;  // Slightly youthful/bright pitch
+    this.activeUtterance.rate = 1.05;   // Eloquent, precise, and highly clear pace
+    this.activeUtterance.volume = 0.95; // Soft yet distinct volume presence
 
     this.activeUtterance.onstart = () => {
       if (this.onSpeakStateChange) this.onSpeakStateChange(true);

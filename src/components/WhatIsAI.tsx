@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
 import { 
   Tv, 
   MapPin, 
@@ -13,13 +13,18 @@ import {
   Info,
   Smartphone,
   Compass,
-  Target
+  Target,
+  History,
+  Languages
 } from 'lucide-react';
 import { PocketExample, AIType } from '../types';
 import TechTooltip from './TechTooltip';
+import AITimeline from './AITimeline';
 
 export default function WhatIsAI() {
   const [selectedExample, setSelectedExample] = useState<string | null>(null);
+  const [showTimeline, setShowTimeline] = useState(false);
+  const [lang, setLang] = useState<'en' | 'hyd'>('en');
 
   const pocketExamples: PocketExample[] = [
     {
@@ -116,25 +121,79 @@ export default function WhatIsAI() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-brand-amber/5 rounded-full blur-2xl pointer-events-none" />
             
             <div>
-              {/* 3D-style Tactile Icon Tile */}
-              <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-white to-[#F4EFE6] border border-t-white border-l-white border-b-4 border-r border-brand-amber/20 shadow-[0_6px_12px_-3px_rgba(211,98,64,0.12),0_10px_20px_-5px_rgba(211,98,64,0.06),inset_0_2px_4px_rgba(255,255,255,0.95)] flex items-center justify-center shrink-0 mb-5 text-brand-amber">
-                <BrainCircuit className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
+              {/* Top Row with Icon, Lesson Badge, and Language Toggle */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5">
+                {/* 3D-style Tactile Icon Tile */}
+                <div className="relative w-12 h-12 rounded-2xl bg-gradient-to-br from-white to-[#F4EFE6] border border-t-white border-l-white border-b-4 border-r border-brand-amber/20 shadow-[0_6px_12px_-3px_rgba(211,98,64,0.12),0_10px_20px_-5px_rgba(211,98,64,0.06),inset_0_2px_4px_rgba(255,255,255,0.95)] flex items-center justify-center shrink-0 text-brand-amber">
+                  <BrainCircuit className="w-5 h-5 drop-shadow-[0_1.5px_2px_rgba(211,98,64,0.15)]" />
+                </div>
+
+                {/* Dialect Language Switcher */}
+                <div className="flex items-center gap-1 bg-brand-sand/50 p-1 rounded-xl border border-brand-slate/5 self-start sm:self-auto shadow-sm">
+                  <button
+                    onClick={() => setLang('en')}
+                    className={`inline-flex items-center gap-1 px-3 py-1 text-[10px] font-display font-extrabold rounded-lg transition-all cursor-pointer ${lang === 'en' ? 'bg-white text-brand-charcoal shadow-sm' : 'text-brand-muted hover:text-brand-charcoal'}`}
+                  >
+                    <Languages className="w-3.5 h-3.5" />
+                    <span>English</span>
+                  </button>
+                  <button
+                    onClick={() => setLang('hyd')}
+                    className={`inline-flex items-center gap-1 px-3 py-1 text-[10px] font-display font-extrabold rounded-lg transition-all cursor-pointer ${lang === 'hyd' ? 'bg-[#E07A5F] text-white shadow-sm' : 'text-brand-muted hover:text-brand-charcoal'}`}
+                  >
+                    <Languages className="w-3.5 h-3.5" />
+                    <span>Hyderabadi (Roman Urdu)</span>
+                  </button>
+                </div>
               </div>
 
-              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber mb-2 block font-mono">Lesson 01</span>
-              <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mb-4">
-                So, What actually is AI?
-              </h2>
-              <p className="font-sans text-brand-charcoal leading-relaxed mb-6 text-[15px]">
-                <TechTooltip term="Artificial Intelligence">Artificial Intelligence</TechTooltip> — <span className="text-brand-slate italic">the capability of computer systems to perform tasks that historically required human thinking or reasoning</span> — is not an independent thinking creature. Instead, it is a tool that detects recurring structures in huge sets of data.
-              </p>
+              <span className="text-xs font-bold uppercase tracking-wider text-brand-amber mb-2 block font-mono">
+                {lang === 'en' ? "Lesson 01" : "Sabak 01"}
+              </span>
+
+              {lang === 'en' ? (
+                <>
+                  <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mb-4">
+                    So, What actually is AI?
+                  </h2>
+                  <p className="font-sans text-brand-charcoal leading-relaxed mb-6 text-[15px]">
+                    <TechTooltip term="Artificial Intelligence">Artificial Intelligence</TechTooltip> — <span className="text-brand-slate italic">the capability of computer systems to perform tasks that historically required human thinking or reasoning</span> — is not an independent thinking creature. Instead, it is a tool that detects recurring structures in huge sets of data.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mb-4">
+                    Arey Yaaron, AI Bole to Asal mein kya hai?
+                  </h2>
+                  <p className="font-sans text-brand-charcoal leading-relaxed mb-6 text-[15px]">
+                    <strong className="text-brand-amber">AI yaane Artificial Intelligence</strong> bole to <span className="text-brand-slate italic">computer'aa ko dimaag dena</span>. Iska matlab ye nahi hai ki computer khud ba khud sochra. Khali usko bohot saara data (jaise photo’aa, likhe so baataan) dikha ke seekha dete. Uske baad, computer naye cheezon ko pehchanta aur jawaab deta, bilkul ek dimaag wale ke jaisa! Asal mein ye khali ek tool hai jo bade data mein se patterns dhoond leta hai.
+                  </p>
+                </>
+              )}
+
+              {/* AI Timeline Button */}
+              <div className="mb-6">
+                <button
+                  onClick={() => setShowTimeline(!showTimeline)}
+                  className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-xl font-display text-xs font-bold cursor-pointer transition-all active:scale-95 shadow-sm border ${showTimeline ? 'bg-brand-charcoal text-white border-brand-charcoal' : 'bg-[#E07A5F] text-white border-[#C55937] hover:bg-[#C55937]'}`}
+                >
+                  <History className="w-4 h-4" />
+                  <span>{showTimeline ? (lang === 'en' ? "Hide AI Timeline" : "Timeline Chupao") : (lang === 'en' ? "Explore AI Timeline" : "AI Timeline Dekho Yaaron")}</span>
+                </button>
+              </div>
             </div>
 
             {/* Analogy callout - glassmorphic overlay */}
             <div className="glass-panel p-5 rounded-2xl border-l-4 border-brand-amber relative overflow-hidden bg-brand-sand/20">
-              <span className="font-mono text-xs font-bold text-brand-amber uppercase block mb-1">A Simple Analogy</span>
+              <span className="font-mono text-xs font-bold text-brand-amber uppercase block mb-1">
+                {lang === 'en' ? "A Simple Analogy" : "Ekdam Simple Misaal"}
+              </span>
               <p className="text-brand-charcoal text-xs leading-relaxed italic">
-                "It’s just like teaching a child what a 'dog' is. You don't hand them a legal brief explaining animal biology. You show them thousands of dogs in real life until their brain naturally links the floppy ears, tails, and sizes together."
+                {lang === 'en' ? (
+                  `"It’s just like teaching a child what a 'dog' is. You don't hand them a legal brief explaining animal biology. You show them thousands of dogs in real life until their brain naturally links the floppy ears, tails, and sizes together."`
+                ) : (
+                  `"Arey bhai, ye bilkul bache ko billi ya kutte ki pehchaan seekhane ke jaisa hai. Tum usko kitaab padha ke biological details nahi samjhate. Tum usko hazaaro baar kutte dikhaate. Bache ka dimaag khud-ba-khud floppy ears, moochh aur dum ke patterns jod leta hai. Bas, computer bhi aise hi seekhta hai!"`
+                )}
               </p>
             </div>
           </motion.div>
@@ -166,15 +225,35 @@ export default function WhatIsAI() {
               </motion.div>
             </div>
 
-            <div className="text-center mt-4">
-              <span className="font-display text-sm font-bold text-brand-charcoal">The Pattern Matcher</span>
+             <div className="text-center mt-4">
+              <span className="font-display text-sm font-bold text-brand-charcoal">
+                {lang === 'en' ? "The Pattern Matcher" : "Pattern Pehchanne Wala"}
+              </span>
               <p className="text-[11px] text-brand-muted mt-1 max-w-[200px] mx-auto leading-relaxed">
-                Data goes in, patterns are discovered, decisions come out.
+                {lang === 'en' 
+                  ? "Data goes in, patterns are discovered, decisions come out." 
+                  : "Pehle data andar jaata, phir patterns dhoond ke, seedha faisla bahar aata!"
+                }
               </p>
             </div>
           </motion.div>
 
         </div>
+
+        {/* Dynamic Timeline Section Container */}
+        <AnimatePresence>
+          {showTimeline && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginTop: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginTop: 24 }}
+              exit={{ opacity: 0, height: 0, marginTop: 0 }}
+              transition={{ duration: 0.4, ease: "easeInOut" }}
+              className="overflow-hidden"
+            >
+              <AITimeline />
+            </motion.div>
+          )}
+        </AnimatePresence>
       </section>
 
       {/* 2. Pocket Examples Grid Section */}

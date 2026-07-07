@@ -20,7 +20,7 @@ export default function FloatingNav() {
       }
 
       // Simple active section detection
-      const sections = ['hero', 'what-is-ai', 'family-tree', 'prompting-rag', 'deeper'];
+      const sections = ['hero', 'what-is-ai', 'family-tree', 'prompting-rag', 'ai-tools-directory', 'deeper'];
       for (const sectionId of sections) {
         const el = document.getElementById(sectionId);
         if (el) {
@@ -150,6 +150,12 @@ export default function FloatingNav() {
             How It's Used
           </button>
           <button 
+            onClick={() => scrollToSection('ai-tools-directory')} 
+            className={`cursor-pointer transition-colors ${activeSection === 'ai-tools-directory' ? 'text-brand-amber font-semibold' : 'text-brand-slate hover:text-brand-charcoal'}`}
+          >
+            AI Toolbox
+          </button>
+          <button 
             onClick={() => scrollToSection('deeper')} 
             className="px-3 py-1 bg-brand-amber/10 hover:bg-brand-amber/20 text-brand-amber rounded-full text-xs font-semibold cursor-pointer transition-all border border-brand-amber/20"
           >
@@ -217,10 +223,16 @@ export default function FloatingNav() {
             3. Prompting & RAG
           </button>
           <button 
+            onClick={() => scrollToSection('ai-tools-directory')} 
+            className="text-left py-2 font-medium text-brand-slate hover:text-brand-amber transition-colors cursor-pointer"
+          >
+            4. AI Toolbox
+          </button>
+          <button 
             onClick={() => scrollToSection('deeper')} 
             className="text-left py-2 font-medium text-brand-amber hover:text-brand-amber-dark transition-colors cursor-pointer"
           >
-            4. Want to Go Deeper?
+            5. Want to Go Deeper?
           </button>
           <div className="h-[1px] bg-brand-slate/10 my-1" />
           <div className="flex justify-between items-center text-xs text-brand-muted">

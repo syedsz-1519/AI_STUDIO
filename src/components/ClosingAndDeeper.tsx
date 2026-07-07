@@ -17,7 +17,6 @@ import {
 } from 'lucide-react';
 import { roadmapSections, Section, Term } from '../data/roadmapTerms';
 import ClayLogo from './ClayLogo';
-import AITimeline from './AITimeline';
 
 export default function ClosingAndDeeper() {
   const [isOpen, setIsOpen] = useState(true); // Open by default to showcase the roadmap immediately
@@ -414,11 +413,6 @@ export default function ClosingAndDeeper() {
 
                     </div>
                   </motion.div>
-                  {section.id === "section-11" && (
-                    <div className="relative lg:pl-16">
-                      <AITimeline />
-                    </div>
-                  )}
                 </React.Fragment>
               );
             })}
