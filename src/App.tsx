@@ -10,6 +10,7 @@ import AIToolsList from './components/AIToolsList';
 import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
 import FloatingLanguageBubble from './components/FloatingLanguageBubble';
+import FloatingThemeToggle from './components/FloatingThemeToggle';
 import CheckYourKnowledge from './components/CheckYourKnowledge';
 import AIArena from './components/AIArena';
 import { Compass, Sparkles, BookOpen } from 'lucide-react';
@@ -62,6 +63,9 @@ export default function App() {
 
       {/* Floating Language Change Bubble (Bottom Left) */}
       <FloatingLanguageBubble />
+
+      {/* Floating Theme Change Toggle (Bottom Right) */}
+      <FloatingThemeToggle />
 
       {/* Main Narrative Scroll Flow */}
       <main className="relative z-10 flex flex-col gap-4">
