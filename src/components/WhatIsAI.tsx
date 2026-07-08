@@ -15,7 +15,8 @@ import {
   Compass,
   Target,
   History,
-  Languages
+  Languages,
+  BookOpen
 } from 'lucide-react';
 import { PocketExample, AIType } from '../types';
 import TechTooltip from './TechTooltip';
