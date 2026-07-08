@@ -10,6 +10,8 @@ import AIToolsList from './components/AIToolsList';
 import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
 import FloatingLanguageBubble from './components/FloatingLanguageBubble';
+import ClayVoiceToggle from './components/ClayVoiceToggle';
+import LearningRoadmap from './components/LearningRoadmap';
 // Floating Theme Toggle is now bundled inside Settings Control Center
 import CheckYourKnowledge from './components/CheckYourKnowledge';
 import AIArena from './components/AIArena';
@@ -63,6 +65,9 @@ export default function App() {
 
       {/* Floating Language Change Bubble (Bottom Left) */}
       <FloatingLanguageBubble />
+
+      {/* Clay Voice Language Toggle Bubble (Bottom Right) */}
+      <ClayVoiceToggle />
 
       {/* Floating Theme Change Toggle has been moved inside the Settings dialog */}
 
@@ -140,6 +145,16 @@ export default function App() {
           variants={sectionAnimation}
         >
           <AIToolsList />
+        </motion.div>
+
+        {/* Learning Roadmap - 5-Level Path to AI Mastery */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={sectionAnimation}
+        >
+          <LearningRoadmap />
         </motion.div>
 
         {/* Layer 3 & 4: Closing, Future Outlook, and collapsible glossary terms */}
