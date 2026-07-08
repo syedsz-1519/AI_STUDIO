@@ -1,0 +1,24 @@
+{
+  "collections": {
+    "users": {
+      "description": "User profile details, including streak and membership date",
+      "fields": {
+        "email": "string",
+        "fullName": "string",
+        "avatar": "string",
+        "joinedDate": "string",
+        "streak": "number",
+        "linkedPlatforms": "array"
+      }
+    },
+    "progress": {
+      "description": "User progress tracking and bookmarks across sections and terms",
+      "fields": {
+        "userId": "string",
+        "completedTerms": "map",
+        "bookmarks": "map",
+        "updatedAt": "timestamp"
+      }
+    }
+  }
+}

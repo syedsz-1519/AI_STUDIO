@@ -13,11 +13,18 @@ import {
   HelpCircle,
   RefreshCw,
   Award,
-  Compass
+  Compass,
+  Bookmark,
+  BookmarkCheck
 } from 'lucide-react';
 import { roadmapSections, Section, Term } from '../data/roadmapTerms';
 import ClayLogo from './ClayLogo';
 import { useLanguage } from '../hooks/useLanguage';
+import { 
+  toggleTermCompleted, 
+  toggleSectionBookmarked, 
+  syncProgressToCloud 
+} from '../lib/firebase';
 
 export default function ClosingAndDeeper() {
   const { lang, t } = useLanguage();
@@ -27,7 +34,12 @@ export default function ClosingAndDeeper() {
   const [activeSectionId, setActiveSectionId] = useState<string | null>(null);
   const [isDeeperDrawerOpen, setIsDeeperDrawerOpen] = useState(false);
   
-  // Track checked terms in localStorage
+  // Quiz Mode states
+  const [isGlobalQuizMode, setIsGlobalQuizMode] = useState(false);
+  const [quizModeSections, setQuizModeSections] = useState<Record<string, boolean>>({});
+  const [revealedTerms, setRevealedTerms] = useState<Record<string, boolean>>({});
+  
+  // Track checked terms in localStorage & Firebase
   const [completedTerms, setCompletedTerms] = useState<Record<string, boolean>>(() => {
     try {
       const saved = localStorage.getItem('clay_completed_terms');
@@ -37,20 +49,59 @@ export default function ClosingAndDeeper() {
     }
   });
 
+  // Bookmarks state
+  const [bookmarks, setBookmarks] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('clay_bookmarks');
+      return saved ? JSON.parse(saved) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  // Sync state when auth changes
   useEffect(() => {
-    localStorage.setItem('clay_completed_terms', JSON.stringify(completedTerms));
-  }, [completedTerms]);
+    const handleAuthChange = () => {
+      try {
+        const savedTerms = localStorage.getItem('clay_completed_terms');
+        if (savedTerms) setCompletedTerms(JSON.parse(savedTerms));
+        const savedBookmarks = localStorage.getItem('clay_bookmarks');
+        if (savedBookmarks) setBookmarks(JSON.parse(savedBookmarks));
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    window.addEventListener('clay_auth_state_changed', handleAuthChange);
+    return () => window.removeEventListener('clay_auth_state_changed', handleAuthChange);
+  }, []);
 
   // Compute stats
   const totalTermsCount = roadmapSections.reduce((acc, sec) => acc + sec.terms.length, 0);
   const completedCount = Object.values(completedTerms).filter(Boolean).length;
   const percentComplete = Math.round((completedCount / totalTermsCount) * 100);
 
-  const toggleTerm = (termTitle: string) => {
-    setCompletedTerms(prev => ({
-      ...prev,
-      [termTitle]: !prev[termTitle]
-    }));
+  const toggleTerm = async (termTitle: string) => {
+    const newValue = !completedTerms[termTitle];
+    setCompletedTerms(prev => {
+      const next = { ...prev, [termTitle]: newValue };
+      localStorage.setItem('clay_completed_terms', JSON.stringify(next));
+      return next;
+    });
+    
+    // Sync to Firestore
+    await toggleTermCompleted(termTitle, newValue);
+  };
+
+  const toggleBookmark = async (sectionId: string) => {
+    const newValue = !bookmarks[sectionId];
+    setBookmarks(prev => {
+      const next = { ...prev, [sectionId]: newValue };
+      localStorage.setItem('clay_bookmarks', JSON.stringify(next));
+      return next;
+    });
+
+    // Sync to Firestore
+    await toggleSectionBookmarked(sectionId, newValue);
   };
 
   const toggleQuiz = (sectionId: string) => {
@@ -60,13 +111,16 @@ export default function ClosingAndDeeper() {
     }));
   };
 
-  const resetProgress = () => {
+  const resetProgress = async () => {
     if (window.confirm('Reset all learned terms progress?')) {
       setCompletedTerms({});
+      localStorage.setItem('clay_completed_terms', '{}');
+      await syncProgressToCloud({}, bookmarks);
+      window.dispatchEvent(new Event('clay_auth_state_changed'));
     }
   };
 
-  const checkAllInSection = (section: Section) => {
+  const checkAllInSection = async (section: Section) => {
     const nextCompleted = { ...completedTerms };
     const allChecked = section.terms.every(t => completedTerms[t.title]);
     
@@ -74,6 +128,11 @@ export default function ClosingAndDeeper() {
       nextCompleted[t.title] = !allChecked;
     });
     setCompletedTerms(nextCompleted);
+    localStorage.setItem('clay_completed_terms', JSON.stringify(nextCompleted));
+
+    // Sync to Firestore
+    await syncProgressToCloud(nextCompleted, bookmarks);
+    window.dispatchEvent(new Event('clay_auth_state_changed'));
   };
 
   // Filter terms by search query
@@ -144,6 +203,28 @@ export default function ClosingAndDeeper() {
             </div>
 
             <div className="w-full md:w-auto flex flex-col sm:flex-row items-stretch sm:items-center gap-4 shrink-0">
+              {/* Global Quiz Mode Toggle Card */}
+              <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-brand-slate/10 shadow-sm text-left select-none">
+                <div className="w-10 h-10 rounded-xl bg-brand-amber/10 flex items-center justify-center shrink-0">
+                  <GraduationCap className="w-5 h-5 text-brand-amber" />
+                </div>
+                <div>
+                  <span className="block text-[10px] font-mono uppercase font-bold text-brand-muted">
+                    {lang === 'en' ? "Quiz Mode" : "Imtehaan Mode"}
+                  </span>
+                  <button
+                    onClick={() => setIsGlobalQuizMode(!isGlobalQuizMode)}
+                    className={`mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      isGlobalQuizMode 
+                        ? 'bg-brand-amber text-white border-brand-amber shadow-sm' 
+                        : 'bg-brand-sand/60 hover:bg-brand-sand text-brand-[#4E564F] border-brand-slate/10'
+                    }`}
+                  >
+                    <span>{isGlobalQuizMode ? (lang === 'en' ? "GLOBAL: ON" : "GLOBAL: ON") : (lang === 'en' ? "GLOBAL: OFF" : "GLOBAL: OFF")}</span>
+                  </button>
+                </div>
+              </div>
+
               <div className="flex items-center gap-3 bg-white px-4 py-3 rounded-2xl border border-brand-slate/10 shadow-sm text-left">
                 <div className="w-10 h-10 rounded-xl bg-brand-amber/10 flex items-center justify-center shrink-0">
                   <Award className="w-5 h-5 text-brand-amber" />
@@ -188,6 +269,34 @@ export default function ClosingAndDeeper() {
               />
             </div>
           </div>
+
+          {/* Saved Bookmarks Section */}
+          {Object.values(bookmarks).some(Boolean) && (
+            <div className="mt-6 pt-5 border-t border-brand-slate/10 text-left">
+              <span className="block text-[10px] font-mono uppercase font-black text-brand-amber tracking-wider mb-2.5 flex items-center gap-1.5">
+                <BookmarkCheck className="w-3.5 h-3.5 text-brand-amber shrink-0" />
+                {lang === 'en' ? "Your Bookmarked Learning Paths" : "Aapke Bookmark Kiye Hue Raste"}
+              </span>
+              <div className="flex flex-wrap gap-2">
+                {roadmapSections.map(section => {
+                  if (!bookmarks[section.id]) return null;
+                  return (
+                    <button
+                      key={`bookmark-badge-${section.id}`}
+                      onClick={() => {
+                        const el = document.getElementById(section.id);
+                        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                      }}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber/10 hover:bg-brand-amber/20 border border-brand-amber/20 rounded-full text-xs font-bold text-brand-amber transition-all cursor-pointer hover:scale-102 active:scale-98"
+                    >
+                      <span className="opacity-65 text-[10px] font-mono">{section.number}</span>
+                      <span>{section.title}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Global Instant Search Bar */}
@@ -277,6 +386,7 @@ export default function ClosingAndDeeper() {
               const isSectionActive = activeSectionId === section.id;
               const sectionCheckedCount = section.terms.filter(t => completedTerms[t.title]).length;
               const isSectionFullyMastered = sectionCheckedCount === section.terms.length;
+              const isSectionInQuizMode = isGlobalQuizMode || !!quizModeSections[section.id];
 
               return (
                 <React.Fragment key={section.id}>
@@ -286,7 +396,7 @@ export default function ClosingAndDeeper() {
                     whileInView={{ opacity: 1, y: 0 }}
                     viewport={{ once: true, margin: "-50px" }}
                     transition={{ duration: 0.6 }}
-                    className={`relative lg:pl-16 transition-all duration-300 ${isSectionFullyMastered ? 'opacity-90' : ''}`}
+                    className={`relative lg:pl-16 transition-all duration-300 scroll-mt-24 target:ring-2 target:ring-brand-amber/40 target:rounded-[32px] ${isSectionFullyMastered ? 'opacity-90' : ''}`}
                   >
                     {/* Timeline Badge (Desktop) */}
                     <div className="absolute left-5 top-0 w-10 h-10 rounded-full bg-white border-2 border-brand-charcoal/10 flex items-center justify-center z-20 hidden lg:flex shadow-sm">
@@ -332,40 +442,136 @@ export default function ClosingAndDeeper() {
                             {sectionCheckedCount}/{section.terms.length} {lang === 'en' ? 'MASTERED' : 'POORA SEEKHE'}
                           </span>
                           
-                          <button
-                            onClick={() => checkAllInSection(section)}
-                            className="text-[10px] font-mono font-bold text-brand-amber hover:text-brand-amber-dark underline cursor-pointer bg-transparent border-0 p-0"
-                          >
-                            {isSectionFullyMastered 
-                              ? (lang === 'en' ? "Deselect All" : "Sabh Uncheck Karo") 
-                              : (lang === 'en' ? "Mark All as Learned" : "Sabh seekh liye tick karo")}
-                          </button>
+                          <div className="flex flex-wrap items-center gap-3 mt-1">
+                            {/* Bookmark Toggle Button */}
+                            <button
+                              onClick={() => toggleBookmark(section.id)}
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                                bookmarks[section.id]
+                                  ? 'bg-brand-amber/10 text-brand-amber border-brand-amber/20'
+                                  : 'bg-white hover:bg-brand-sand text-brand-slate border-brand-slate/10 hover:border-brand-slate/20'
+                              }`}
+                              title={bookmarks[section.id] ? "Remove bookmark" : "Bookmark this section"}
+                            >
+                              {bookmarks[section.id] ? (
+                                <>
+                                  <BookmarkCheck className="w-3 h-3 text-brand-amber" />
+                                  <span>{lang === 'en' ? "BOOKMARKED" : "SAVED"}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Bookmark className="w-3 h-3 text-brand-slate/50" />
+                                  <span>{lang === 'en' ? "BOOKMARK" : "SAVE"}</span>
+                                </>
+                              )}
+                            </button>
+
+                            {/* Local Quiz Toggle */}
+                            <button
+                              onClick={() => setQuizModeSections(prev => ({ ...prev, [section.id]: !prev[section.id] }))}
+                              disabled={isGlobalQuizMode}
+                              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border transition-all cursor-pointer ${
+                                isSectionInQuizMode 
+                                  ? 'bg-[#E07A5F] text-white border-[#E07A5F]' 
+                                  : 'bg-white hover:bg-brand-sand text-brand-slate border-brand-slate/10 hover:border-brand-slate/20'
+                              } ${isGlobalQuizMode ? 'opacity-50 cursor-not-allowed' : ''}`}
+                              title={isGlobalQuizMode ? "Global Quiz Mode is active" : "Toggle Quiz Mode for this section"}
+                            >
+                              {isSectionInQuizMode ? (lang === 'en' ? "QUIZ: ON" : "QUIZ: ON") : (lang === 'en' ? "QUIZ: OFF" : "QUIZ: OFF")}
+                            </button>
+
+                            <button
+                              onClick={() => checkAllInSection(section)}
+                              className="text-[10px] font-mono font-bold text-brand-amber hover:text-brand-amber-dark underline cursor-pointer bg-transparent border-0 p-0"
+                            >
+                              {isSectionFullyMastered 
+                                ? (lang === 'en' ? "Deselect" : "Uncheck") 
+                                : (lang === 'en' ? "Check All" : "Sabh")}
+                            </button>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Terms Grid (Clean cards) */}
+                      {/* Terms Grid (Clean cards / Interactive Quiz Cards) */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
                         {section.terms.map((term) => {
                           const isChecked = !!completedTerms[term.title];
+                          const isRevealed = !!revealedTerms[term.title];
+                          
                           return (
                             <div
                               key={term.title}
-                              onClick={() => toggleTerm(term.title)}
-                              className={`group p-4 bg-white border rounded-2xl cursor-pointer flex gap-3 transition-all hover:border-brand-amber/30 select-none ${isChecked ? 'border-brand-amber/40 bg-brand-amber/[0.02] shadow-inner' : 'border-brand-slate/10 shadow-sm'}`}
+                              id={`term-${term.title.toLowerCase().replace(/[^a-z0-9]/g, '-')}`}
+                              className={`group p-5 bg-white border rounded-2xl flex flex-col justify-between transition-all select-none relative overflow-hidden scroll-mt-24 target:ring-2 target:ring-brand-amber target:border-brand-amber target:bg-brand-amber/[0.04] ${
+                                isChecked 
+                                  ? 'border-brand-amber/40 bg-brand-amber/[0.02] shadow-inner' 
+                                  : 'border-brand-slate/10 shadow-sm'
+                              } ${isSectionInQuizMode && !isRevealed ? 'border-dashed border-brand-amber/30 hover:border-brand-amber/50 bg-[#FDFBF7]' : 'hover:border-brand-amber/30'}`}
                             >
-                              {/* Visual toggle checkbox */}
-                              <div className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-all ${isChecked ? 'bg-brand-amber border-brand-amber text-white' : 'bg-white border-brand-slate/25 group-hover:border-brand-amber/50'}`}>
-                                {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                              <div className="flex gap-3">
+                                {/* Visual toggle checkbox */}
+                                <div 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleTerm(term.title);
+                                  }}
+                                  className={`w-4.5 h-4.5 rounded-md border flex items-center justify-center shrink-0 mt-0.5 transition-all cursor-pointer ${
+                                    isChecked ? 'bg-brand-amber border-brand-amber text-white' : 'bg-white border-brand-slate/25 group-hover:border-brand-amber/50'
+                                  }`}
+                                >
+                                  {isChecked && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                                </div>
+
+                                <div className="flex-grow">
+                                  <h4 className="font-display text-xs sm:text-sm font-black text-brand-charcoal group-hover:text-brand-amber transition-colors flex items-center gap-1.5">
+                                    {term.title}
+                                    {isSectionInQuizMode && (
+                                      <span className="text-[8px] font-mono font-bold bg-[#E07A5F]/10 text-[#E07A5F] px-1.5 py-0.5 rounded">
+                                        Q
+                                      </span>
+                                    )}
+                                  </h4>
+                                  
+                                  {/* Definition or Quiz placeholder */}
+                                  <div className="mt-2.5">
+                                    {isSectionInQuizMode && !isRevealed ? (
+                                      <div className="py-2 px-3 bg-brand-sand/50 rounded-xl border border-brand-slate/5 text-[11px] sm:text-xs text-brand-muted italic flex flex-col items-start gap-2">
+                                        <span>
+                                          {lang === 'en' ? "Can you define this concept?" : "Kya aap iska matlab bata sakte hain?"}
+                                        </span>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setRevealedTerms(prev => ({ ...prev, [term.title]: true }));
+                                          }}
+                                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-amber/10 hover:bg-brand-amber text-brand-amber hover:text-white border border-brand-amber/15 hover:border-brand-amber text-[9px] font-bold rounded-md transition-all cursor-pointer"
+                                        >
+                                          {lang === 'en' ? "Reveal Definition" : "Definition Dekho"}
+                                        </button>
+                                      </div>
+                                    ) : (
+                                      <p className="text-[11px] sm:text-xs text-brand-slate leading-relaxed text-left animate-fade-in">
+                                        {term.definition}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
 
-                              <div>
-                                <h4 className="font-display text-xs sm:text-sm font-bold text-brand-charcoal group-hover:text-brand-amber transition-colors">
-                                  {term.title}
-                                </h4>
-                                <p className="text-[11px] sm:text-xs text-brand-slate leading-relaxed mt-1 text-left">
-                                  {term.definition}
-                                </p>
-                              </div>
+                              {/* Small Quick-Hide Button if revealed in Quiz Mode */}
+                              {isSectionInQuizMode && isRevealed && (
+                                <div className="mt-3.5 flex justify-end border-t border-brand-slate/5 pt-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setRevealedTerms(prev => ({ ...prev, [term.title]: false }));
+                                    }}
+                                    className="text-[9px] font-mono font-bold text-brand-muted hover:text-[#E07A5F] transition-colors cursor-pointer"
+                                  >
+                                    {lang === 'en' ? "[ Hide definition ]" : "[ Definition chupao ]"}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           );
                         })}
