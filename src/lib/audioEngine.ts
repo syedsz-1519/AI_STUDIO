@@ -17,6 +17,7 @@ class AudioEngine {
   private drumInterval: any = null;
   private userVolume: number = 50; // Default 50 (0-100)
   private userSpeechRate: number = 0.96; // Default 0.96 (0.5 to 2.0)
+  private userPitch: number = 1.15; // Default 1.15 (0.5 to 2.0)
   private crackleEnabled: boolean = true; // Default true
 
   constructor() {
@@ -38,6 +39,14 @@ class AudioEngine {
         const parsed = parseFloat(savedRate);
         if (!isNaN(parsed)) {
           this.userSpeechRate = Math.max(0.5, Math.min(2.0, parsed));
+        }
+      }
+
+      const savedPitch = localStorage.getItem('clay_speech_pitch');
+      if (savedPitch !== null) {
+        const parsed = parseFloat(savedPitch);
+        if (!isNaN(parsed)) {
+          this.userPitch = Math.max(0.5, Math.min(2.0, parsed));
         }
       }
       
@@ -83,6 +92,17 @@ class AudioEngine {
     this.crackleEnabled = enabled;
     if (typeof window !== 'undefined') {
       localStorage.setItem('clay_crackle_enabled', String(enabled));
+    }
+  }
+
+  getPitch(): number {
+    return this.userPitch;
+  }
+
+  setPitch(pitch: number) {
+    this.userPitch = Math.max(0.5, Math.min(2.0, pitch));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('clay_speech_pitch', this.userPitch.toString());
     }
   }
 
@@ -423,9 +443,9 @@ class AudioEngine {
       this.activeUtterance.voice = preferredVoice;
     }
 
-    // Set properties for a soft, precise, and highly listenable teen boy voice
-    this.activeUtterance.pitch = 1.15;  // Youthful, friendly teen boy pitch
-    this.activeUtterance.rate = 0.96;   // Soft, clear, and perfectly paced for high listenability
+    // Set properties for a soft, precise, and highly listenable narrator voice
+    this.activeUtterance.pitch = this.userPitch;  // Custom speaking pitch
+    this.activeUtterance.rate = this.userSpeechRate;   // Soft, clear, and perfectly paced for high listenability
     this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100)); // Gentle and comfortable volume presence
 
     this.activeUtterance.onstart = () => {

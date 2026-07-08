@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX, Sparkles, Settings, Search } from 'lucide-react';
+import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX, Sparkles, Settings, Search, User, Palette } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
 import { useLanguage } from '../hooks/useLanguage';
@@ -250,34 +250,7 @@ export default function FloatingNav() {
             <span className="lg:hidden">{isAmbientOn ? (lang === 'en' ? 'Lo-Fi' : 'On') : (lang === 'en' ? 'Mute' : 'Mute')}</span>
           </button>
 
-          {/* Elegant Settings / Login Trigger */}
-          <button
-            onClick={() => setIsAuthModalOpen(true)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer select-none ${
-              user 
-                ? 'bg-green-500/10 text-green-700 border-green-500/20 hover:bg-green-500/20' 
-                : 'bg-brand-sand/60 hover:bg-brand-sand text-brand-slate border-brand-slate/10 hover:border-brand-slate/25'
-            }`}
-            title={lang === 'en' ? 'Account Settings & Learning Achievements' : 'Account aur Settings'}
-          >
-            {user ? (
-              <>
-                <img 
-                  src={user.avatar} 
-                  alt={user.fullName} 
-                  className="w-4 h-4 rounded-full bg-brand-sand p-0.5 border border-green-500/30" 
-                />
-                <span className="max-w-[70px] truncate hidden sm:inline text-[11px]">
-                  {user.fullName}
-                </span>
-              </>
-            ) : (
-              <>
-                <Settings className="w-3.5 h-3.5 text-brand-slate animate-spin-slow" />
-                <span className="hidden sm:inline text-[11px]">{lang === 'en' ? 'Settings' : 'Settings'}</span>
-              </>
-            )}
-          </button>
+          {/* Settings button removed from main screen to declutter - moved to the slide-out menu bar toggle */}
 
           {/* Interactive Menu Trigger - Responsive on both PC and mobile, Polished and Easy to Learn */}
           <button 
@@ -344,39 +317,92 @@ export default function FloatingNav() {
               {/* Scrollable Contents inside Sidebar */}
               <div className="flex-grow overflow-y-auto pr-1 flex flex-col gap-6 scrollbar-thin">
                 
-                {/* Mobile Quick Profile Settings Card */}
-                <div className="bg-brand-sand/40 border border-brand-slate/10 p-3.5 rounded-2xl shrink-0 flex items-center justify-between gap-3 text-left">
-                  {user ? (
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <img 
-                        src={user.avatar} 
-                        alt={user.fullName} 
-                        className="w-9 h-9 rounded-xl bg-white border border-brand-amber/30 p-0.5 shadow-sm shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <span className="block text-[8px] font-mono font-bold text-brand-amber uppercase tracking-tight">Active Scholar</span>
-                        <span className="block text-xs font-black text-brand-charcoal truncate">{user.fullName}</span>
+                {/* Premium Control Center & App Settings Card */}
+                <div className="bg-[#FAF8F5]/90 border border-brand-charcoal/10 p-4 rounded-2xl shrink-0 flex flex-col gap-3.5 text-left shadow-md">
+                  <div className="flex items-center justify-between pb-2 border-b border-brand-slate/10">
+                    <span className="block text-[9px] font-mono font-bold text-brand-amber uppercase tracking-wider">
+                      {lang === 'en' ? 'App Control Center' : 'App Control Center & Settings'}
+                    </span>
+                    <Settings className="w-4 h-4 text-brand-amber animate-spin-slow" />
+                  </div>
+
+                  {/* Active Scholar Profile Row */}
+                  <div className="flex items-center justify-between gap-3 bg-white/60 p-2 border border-brand-slate/10 rounded-xl">
+                    {user ? (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img 
+                          src={user.avatar} 
+                          alt={user.fullName} 
+                          className="w-8 h-8 rounded-lg bg-white border border-brand-amber/30 p-0.5 shadow-sm shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <span className="block text-[8px] font-mono font-bold text-brand-amber uppercase tracking-tight">Active Scholar</span>
+                          <span className="block text-xs font-black text-brand-charcoal truncate leading-tight">{user.fullName}</span>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2 min-w-0">
-                      <Settings className="w-5 h-5 text-brand-muted animate-spin-slow shrink-0" />
-                      <div className="min-w-0">
-                        <span className="block text-[8px] font-mono font-bold text-brand-muted uppercase tracking-tight">Unsaved Progress</span>
-                        <span className="block text-xs font-black text-brand-charcoal truncate">{lang === 'en' ? "Guest Scholar" : "Guest Scholar"}</span>
+                    ) : (
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-brand-sand/50 flex items-center justify-center shrink-0 border border-brand-slate/10">
+                          <User className="w-4 h-4 text-brand-muted" />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="block text-[8px] font-mono font-bold text-brand-muted uppercase tracking-tight">Unsaved Progress</span>
+                          <span className="block text-xs font-black text-brand-charcoal truncate leading-tight">{lang === 'en' ? "Guest Scholar" : "Guest Scholar"}</span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                  
-                  <button
-                    onClick={() => {
-                      setIsMenuOpen(false);
-                      setIsAuthModalOpen(true);
-                    }}
-                    className="px-3 py-1.5 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-xl text-[10px] font-bold transition-all cursor-pointer shadow-sm uppercase tracking-tight shrink-0"
-                  >
-                    {user ? (lang === 'en' ? 'Manage' : 'Manage') : (lang === 'en' ? 'Login' : 'Login')}
-                  </button>
+                    )}
+                    
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsAuthModalOpen(true);
+                      }}
+                      className="px-2.5 py-1 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-lg text-[9px] font-bold transition-all cursor-pointer shadow-sm uppercase tracking-tight shrink-0"
+                    >
+                      {user ? (lang === 'en' ? 'Account' : 'Profile') : (lang === 'en' ? 'Login' : 'Login')}
+                    </button>
+                  </div>
+
+                  {/* Settings Category Links */}
+                  <div className="grid grid-cols-2 gap-2 text-left">
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsAuthModalOpen(true);
+                        // Open AuthModal and let user configure visual theme
+                      }}
+                      className="flex flex-col items-start gap-1 p-2 bg-white hover:bg-brand-sand/50 border border-brand-slate/10 rounded-xl transition-all cursor-pointer text-left"
+                    >
+                      <Palette className="w-4 h-4 text-brand-amber shrink-0" />
+                      <div>
+                        <span className="block text-[10.5px] font-bold text-brand-charcoal leading-tight">
+                          {lang === 'en' ? 'Visual Themes' : 'Theme Badlo'}
+                        </span>
+                        <span className="block text-[8px] text-brand-muted leading-none mt-0.5">
+                          {lang === 'en' ? 'Sand, Dark, Blue' : 'Website ka rang'}
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        setIsAuthModalOpen(true);
+                        // Open AuthModal and let user configure sounds
+                      }}
+                      className="flex flex-col items-start gap-1 p-2 bg-white hover:bg-brand-sand/50 border border-brand-slate/10 rounded-xl transition-all cursor-pointer text-left"
+                    >
+                      <Volume2 className="w-4 h-4 text-brand-amber shrink-0" />
+                      <div>
+                        <span className="block text-[10.5px] font-bold text-brand-charcoal leading-tight">
+                          {lang === 'en' ? 'Sound Settings' : 'Awaaz Settings'}
+                        </span>
+                        <span className="block text-[8px] text-brand-muted leading-none mt-0.5">
+                          {lang === 'en' ? 'Volume, rates, lo-fi' : 'Volume & crackle'}
+                        </span>
+                      </div>
+                    </button>
+                  </div>
                 </div>
 
                 {/* Mobile Quick Search Bar */}
