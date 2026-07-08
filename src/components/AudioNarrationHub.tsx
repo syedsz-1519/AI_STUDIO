@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, VolumeX, Play, Square, Headphones, ChevronUp, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { Volume2, VolumeX, Play, Square, Headphones, ChevronUp, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import { useLanguage } from '../hooks/useLanguage';
+import { sanitizeAudioText, validateLanguage, isAudioTextSafe } from '../lib/sanitize';
 import ClayLogo from './ClayLogo';
 
 interface SectionContent {
@@ -43,33 +44,45 @@ export default function AudioNarrationHub() {
   const sections: SectionContent[] = [
     {
       id: 'all',
-      title: 'Full Website Audio Guide',
-      text: "Welcome! I'm Clay, your tactile explainer. Let me guide you through everything on this website. Artificial Intelligence is the broad concept of teaching machines to learn from examples. Inside it, we find Machine Learning, which uses mathematical algorithms to recognize patterns. Nested even deeper is Deep Learning, utilizing layered neural networks inspired by human brains. At the very center lies Generative AI, creating brand new content, powered by Large Language Models like Gemini. We can use these tools via clever prompts and Retrieval-Augmented Generation to get precise, factual answers."
+      title: lang === 'en' ? 'Full Website Audio Guide' : 'Puri Website Ki Audio Guide',
+      text: lang === 'en' 
+        ? "Welcome! I'm Clay, your tactile explainer. Let me guide you through everything on this website. Artificial Intelligence is the broad concept of teaching machines to learn from examples. Inside it, we find Machine Learning, which uses mathematical algorithms to recognize patterns. Nested even deeper is Deep Learning, utilizing layered neural networks inspired by human brains. At the very center lies Generative AI, creating brand new content, powered by Large Language Models like Gemini. We can use these tools via clever prompts and Retrieval-Augmented Generation to get precise, factual answers."
+        : "Assalamu Alaikum! Main hoon Clay, tumhara tactile explainer. Mujhe dekho puri website ko samjhate hain. Artificial Intelligence matlab machine ko seekhana ki wo examples se patterns dhoondun. Usme Machine Learning hai jo ganit se patterns pehchhanta hai. Aur deeper jao to Deep Learning hai jo neural networks use karta hai. Bilkul center mein Generative AI hai jo nayi content banata hai, Large Language Models ki help se. Humm isko prompts aur RAG se use karke bilkul sahi jawab paa sakte hain."
     },
     {
       id: 'basics',
-      title: '1. What is AI?',
-      text: "Artificial Intelligence means designing computers that can learn and solve problems by recognizing patterns, rather than just executing manual rules written by programmers. In the traditional programming era, developers had to write step-by-step logic. Now, with AI, we feed the system thousands of examples, allowing it to calculate its own pathways to predict, classify, and create."
+      title: lang === 'en' ? '1. What is AI?' : '1. AI Kya Hai?',
+      text: lang === 'en'
+        ? "Artificial Intelligence means designing computers that can learn and solve problems by recognizing patterns, rather than just executing manual rules written by programmers. In the traditional programming era, developers had to write step-by-step logic. Now, with AI, we feed the system thousands of examples, allowing it to calculate its own pathways to predict, classify, and create."
+        : "Artificial Intelligence yaani computer ko seekhana ta wo examples se patterns dhoondun aur khud se decisions le saken. Pehle programmer ko hath se har rule likhna padta tha. Ab to humm hazaaron examples dete hain aur machine khud seekh jaata hai predict karne, sort karne, aur naye cheezen banane ke liye."
     },
     {
       id: 'family-tree',
-      title: '2. The AI Family Tree',
-      text: "To understand AI, we can picture nested Russian dolls. The outermost doll is Artificial Intelligence, the overall field. Inside is Machine Learning, which trains on data to make decisions. Nesting further is Deep Learning, which models multi-layered neural networks. Finally, at the core is Generative AI, which specializes in synthesizing new text, images, and creative media from instructions."
+      title: lang === 'en' ? '2. The AI Family Tree' : '2. AI Ka Parivaar',
+      text: lang === 'en'
+        ? "To understand AI, we can picture nested Russian dolls. The outermost doll is Artificial Intelligence, the overall field. Inside is Machine Learning, which trains on data to make decisions. Nesting further is Deep Learning, which models multi-layered neural networks. Finally, at the core is Generative AI, which specializes in synthesizing new text, images, and creative media from instructions."
+        : "AI ko samjhne ke liye Russian dolls socho, ek ke andar ek. Sabse bahar Artificial Intelligence hai, poora domain. Usme Machine Learning hai jo data se seekhta hai. Aur deeper Machine Learning ke andar Deep Learning hai jo neural networks use karta hai. Bilkul center mein Generative AI hai jo new content banata hai - likhi so baatain, tasveerein, sab kuch."
     },
     {
       id: 'gen-ai',
-      title: '3. Generative AI & LLMs',
-      text: "Generative AI can create original content. It is powered by Large Language Models which are trained on vast oceans of text. These models break language into small tokens, calculating which word or phrase is most likely to come next. It's a continuous, mathematical prediction loop of incredible scale."
+      title: lang === 'en' ? '3. Generative AI & LLMs' : '3. Generative AI aur Language Models',
+      text: lang === 'en'
+        ? "Generative AI can create original content. It is powered by Large Language Models which are trained on vast oceans of text. These models break language into small tokens, calculating which word or phrase is most likely to come next. It's a continuous, mathematical prediction loop of incredible scale."
+        : "Generative AI original content bana sakta hai - likhe so baatain, images, sab. Ye Large Language Models se chalte hain jo hazaaron kitaab aur websites par trained hain. Ye har word ko token banate hain aur calculate karte hain ki agle word kaun sa hona chahiye. Ye sab ganit aur probability ka khel hai."
     },
     {
       id: 'prompting',
-      title: '4. Prompting & RAG',
-      text: "We interact with LLMs using prompts. Prompting is a craft: giving context, roles, and instructions. To make answers highly accurate and prevent hallucinations, we use Retrieval-Augmented Generation, or RAG. It fetches fresh, reliable documents from a secure database and appends them to your prompt, so the AI reads the correct reference before drafting its reply."
+      title: lang === 'en' ? '4. Prompting & RAG' : '4. Prompts aur RAG',
+      text: lang === 'en'
+        ? "We interact with LLMs using prompts. Prompting is a craft: giving context, roles, and instructions. To make answers highly accurate and prevent hallucinations, we use Retrieval-Augmented Generation, or RAG. It fetches fresh, reliable documents from a secure database and appends them to your prompt, so the AI reads the correct reference before drafting its reply."
+        : "LLM ke saath hum prompts se baat karte hain. Prompt likha to context likhi, role likhi, instructions likhi. Sahi jawab pane ke liye hum RAG use karte hain - ye secure database se sahi documents nikalta hai aur AI ko dikhata hai, phir AI sahi jawab deta hai. Hallucinationz nahi aate iss tarah."
     },
     {
       id: 'glossary',
-      title: '5. Collapsible Glossary',
-      text: "Our interactive glossary breaks down core terms simply. Neural networks are layers of nodes that filter signals to recognize features. Hallucinations are confident but incorrect predictions made by models due to pattern gaps. Tokens are word fragments representing numerical semantic values."
+      title: lang === 'en' ? '5. Collapsible Glossary' : '5. Technical Shabdkosh',
+      text: lang === 'en'
+        ? "Our interactive glossary breaks down core terms simply. Neural networks are layers of nodes that filter signals to recognize features. Hallucinations are confident but incorrect predictions made by models due to pattern gaps. Tokens are word fragments representing numerical semantic values."
+        : "Humhara glossary technical words ko asaan karta hai. Neural networks matlab layers of nodes jo signals ko filter karte hain. Hallucinations yaani jab AI confident hote hue galat jawab de. Tokens yaani word ke pieces jo numbers represent karte hain."
     }
   ];
 
@@ -79,9 +92,24 @@ export default function AudioNarrationHub() {
       setIsPlaying(false);
     } else {
       const selected = sections.find(s => s.id === activeSectionId) || sections[0];
-      audioEngine.speak(selected.text, () => {
+      
+      // Security: Validate and sanitize text before audio narration
+      if (!selected || !selected.text) {
+        console.error('[AudioNarrationHub] No text content available');
+        return;
+      }
+
+      if (!isAudioTextSafe(selected.text)) {
+        console.error('[AudioNarrationHub] Text content failed security check');
+        return;
+      }
+
+      const sanitizedText = sanitizeAudioText(selected.text);
+      const validatedLang = validateLanguage(lang);
+
+      audioEngine.speak(sanitizedText, () => {
         setIsPlaying(false);
-      }, lang as 'en' | 'hyd');
+      }, validatedLang);
       setIsPlaying(true);
     }
   };

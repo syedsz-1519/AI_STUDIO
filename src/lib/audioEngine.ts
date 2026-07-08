@@ -412,13 +412,39 @@ class AudioEngine {
   speak(text: string, onEnd?: () => void, language: 'en' | 'hyd' = 'en') {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
+    // Security: Input validation
+    if (!text || typeof text !== 'string') {
+      console.error('[AudioEngine] Invalid text input');
+      return;
+    }
+
+    // Security: Limit text length to prevent abuse (max 5000 characters)
+    const MAX_TEXT_LENGTH = 5000;
+    if (text.length > MAX_TEXT_LENGTH) {
+      console.warn('[AudioEngine] Text exceeds maximum length, truncating');
+      text = text.substring(0, MAX_TEXT_LENGTH);
+    }
+
+    // Security: Validate language parameter
+    if (!['en', 'hyd'].includes(language)) {
+      console.error('[AudioEngine] Invalid language parameter');
+      language = 'en';
+    }
+
     window.speechSynthesis.cancel(); // Cancel any active speech
 
-    // Clean text of markdown
-    const cleanText = text
+    // Clean text of markdown and potentially harmful characters
+    let cleanText = text
       .replace(/[\*\_\#\`]/g, '')
       .replace(/claymorphic/gi, 'tactile')
+      .replace(/[<>{}[\]]/g, '') // Remove HTML/code characters
       .trim();
+    
+    // Validate cleaned text isn't empty
+    if (!cleanText) {
+      console.warn('[AudioEngine] Text is empty after cleaning');
+      return;
+    }
 
     this.activeUtterance = new SpeechSynthesisUtterance(cleanText);
     
@@ -463,12 +489,22 @@ class AudioEngine {
       if (onEnd) onEnd();
     };
 
-    this.activeUtterance.onerror = () => {
+    this.activeUtterance.onerror = (event) => {
+      // Enhanced error handling
+      const errorMsg = event.error || 'Unknown error';
+      console.error(`[AudioEngine] Speech synthesis error: ${errorMsg}`);
       if (this.onSpeakStateChange) this.onSpeakStateChange(false);
       if (onEnd) onEnd();
     };
 
-    window.speechSynthesis.speak(this.activeUtterance);
+    // Additional error handling: Check if voice synthesis starts successfully
+    try {
+      window.speechSynthesis.speak(this.activeUtterance);
+    } catch (error) {
+      console.error('[AudioEngine] Failed to start speech synthesis:', error);
+      if (this.onSpeakStateChange) this.onSpeakStateChange(false);
+      if (onEnd) onEnd();
+    }
   }
 
   stopSpeaking() {
