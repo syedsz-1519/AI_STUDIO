@@ -222,7 +222,7 @@ export default function CheckYourKnowledge({ sectionId }: CheckYourKnowledgeProp
         </div>
       </div>
 
-      {/* Clay bot asking questions animation */}
+      {/* Clay asking questions animation */}
       <div className="flex items-center gap-3 bg-brand-sand/20 border border-brand-slate/10 p-3.5 rounded-2xl select-none mb-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-16 h-16 bg-brand-amber/5 rounded-full blur-lg pointer-events-none" />
         <div className="relative shrink-0">
@@ -234,7 +234,7 @@ export default function CheckYourKnowledge({ sectionId }: CheckYourKnowledgeProp
         </div>
         <div className="space-y-0.5">
           <span className="block text-[9px] font-mono font-black text-brand-amber uppercase tracking-widest animate-pulse">
-            {lang === 'en' ? "CLAY BOT INQUIRY" : "CLAY BOT KA SAWAAL"}
+            {lang === 'en' ? "CLAY INQUIRY" : "CLAY KA SAWAAL"}
           </span>
           <p className="text-xs font-medium text-brand-charcoal italic">
             {lang === 'en' 

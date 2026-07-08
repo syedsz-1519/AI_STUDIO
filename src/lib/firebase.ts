@@ -142,20 +142,28 @@ export function setupAuthListener(
         let quizHighScores: Record<string, number> = {};
 
         let quizHistory: any[] = [];
+        let streakCount = 0;
+        let lastQuizDate = '';
         if (quizSnap.exists()) {
           const qData = quizSnap.data();
           quizScore = qData.score || 0;
           quizCompleted = qData.completedSections || {};
           quizHighScores = qData.highScores || {};
           quizHistory = qData.sessionHistory || [];
+          streakCount = qData.streakCount || 0;
+          lastQuizDate = qData.lastQuizDate || '';
         } else {
           const localScore = localStorage.getItem('clay_quiz_score');
           const localCompleted = localStorage.getItem('clay_quiz_completed');
           const localHighScores = localStorage.getItem('clay_quiz_high_scores');
           const localHistory = localStorage.getItem('clay_quiz_sessions');
+          const localStreak = localStorage.getItem('clay_quiz_streak_count');
+          const localLastDate = localStorage.getItem('clay_quiz_last_date');
           quizScore = localScore ? parseInt(localScore, 10) : 0;
           quizCompleted = localCompleted ? JSON.parse(localCompleted) : {};
           quizHighScores = localHighScores ? JSON.parse(localHighScores) : {};
+          streakCount = localStreak ? parseInt(localStreak, 10) : 0;
+          lastQuizDate = localLastDate || '';
           try {
             quizHistory = localHistory ? JSON.parse(localHistory) : [];
           } catch (_) {
@@ -168,6 +176,8 @@ export function setupAuthListener(
             completedSections: quizCompleted,
             highScores: quizHighScores,
             sessionHistory: quizHistory,
+            streakCount,
+            lastQuizDate,
             updatedAt: serverTimestamp()
           });
         }
@@ -176,6 +186,8 @@ export function setupAuthListener(
         localStorage.setItem('clay_quiz_completed', JSON.stringify(quizCompleted));
         localStorage.setItem('clay_quiz_high_scores', JSON.stringify(quizHighScores));
         localStorage.setItem('clay_quiz_sessions', JSON.stringify(quizHistory));
+        localStorage.setItem('clay_quiz_streak_count', streakCount.toString());
+        localStorage.setItem('clay_quiz_last_date', lastQuizDate);
       } catch (e) {
         console.error("Error loading quiz progress:", e);
       }
@@ -247,7 +259,9 @@ export async function syncQuizProgressToCloud(
   score: number, 
   completedSections: Record<string, boolean>, 
   highScores: Record<string, number>,
-  sessionHistory?: any[]
+  sessionHistory?: any[],
+  streakCount?: number,
+  lastQuizDate?: string
 ) {
   const currentUser = auth.currentUser;
   
@@ -257,6 +271,12 @@ export async function syncQuizProgressToCloud(
   localStorage.setItem('clay_quiz_high_scores', JSON.stringify(highScores));
   if (sessionHistory) {
     localStorage.setItem('clay_quiz_sessions', JSON.stringify(sessionHistory));
+  }
+  if (streakCount !== undefined) {
+    localStorage.setItem('clay_quiz_streak_count', streakCount.toString());
+  }
+  if (lastQuizDate !== undefined) {
+    localStorage.setItem('clay_quiz_last_date', lastQuizDate);
   }
   
   window.dispatchEvent(new Event('clay_auth_state_changed'));
@@ -274,6 +294,12 @@ export async function syncQuizProgressToCloud(
     };
     if (sessionHistory) {
       updateData.sessionHistory = sessionHistory;
+    }
+    if (streakCount !== undefined) {
+      updateData.streakCount = streakCount;
+    }
+    if (lastQuizDate !== undefined) {
+      updateData.lastQuizDate = lastQuizDate;
     }
     await setDoc(quizRef, updateData, { merge: true });
   } catch (error) {

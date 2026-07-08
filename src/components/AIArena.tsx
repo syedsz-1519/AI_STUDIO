@@ -29,7 +29,9 @@ import {
   Share2,
   History,
   Calendar,
-  Eye
+  Eye,
+  Search,
+  X
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { quizModules, QuizModule, QuizSection, Question } from '../data/quizQuestions';
@@ -136,6 +138,23 @@ export default function AIArena() {
   const [newlyUnlockedAchievement, setNewlyUnlockedAchievement] = useState<any | null>(null);
   const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
 
+  // Daily Streak Tracker
+  const [streakCount, setStreakCount] = useState<number>(() => {
+    const cached = localStorage.getItem('clay_quiz_streak_count');
+    return cached ? parseInt(cached, 10) : 0;
+  });
+  const [lastQuizDate, setLastQuizDate] = useState<string>(() => {
+    return localStorage.getItem('clay_quiz_last_date') || '';
+  });
+
+  // Avatar Customization style (Aqua Synth, Amber Nova, Cosmic Amethyst, Emerald Neural)
+  const [avatarStyle, setAvatarStyle] = useState<string>(() => {
+    return localStorage.getItem('clay_quiz_avatar_style') || 'Aqua Synth';
+  });
+
+  // Session search query
+  const [historySearchQuery, setHistorySearchQuery] = useState<string>('');
+
   const questionContainerRef = useRef<HTMLDivElement>(null);
   const explanationRef = useRef<HTMLDivElement>(null);
 
@@ -169,10 +188,14 @@ export default function AIArena() {
       const savedHighScores = localStorage.getItem('clay_quiz_high_scores') || '{}';
       const savedSessions = localStorage.getItem('clay_quiz_sessions') || '[]';
       const savedProfile = localStorage.getItem('clay_user_profile');
+      const savedStreak = localStorage.getItem('clay_quiz_streak_count') || '0';
+      const savedLastDate = localStorage.getItem('clay_quiz_last_date') || '';
       
       setScore(parseInt(savedScore, 10));
       setCompletedSections(JSON.parse(savedCompleted));
       setHighScores(JSON.parse(savedHighScores));
+      setStreakCount(parseInt(savedStreak, 10));
+      setLastQuizDate(savedLastDate);
       try {
         setSessionHistory(JSON.parse(savedSessions));
       } catch (_) {}
@@ -199,6 +222,33 @@ export default function AIArena() {
   };
 
   const rank = getRankBadge();
+
+  // Calculate mastery level for each module
+  const getModuleMastery = (mod: QuizModule) => {
+    const totalCount = mod.sections.length;
+    const completedCount = mod.sections.filter(sec => completedSections[sec.id]).length;
+    
+    // Status name
+    let levelName = { en: "Locked", ur: "Locked" };
+    let color = "from-brand-slate/5 to-brand-slate/10 text-brand-muted border-brand-slate/10";
+    let textGlow = "text-brand-muted/70";
+    
+    if (completedCount === 1) {
+      levelName = { en: "Novice", ur: "Novice" };
+      color = "from-amber-700/10 to-amber-600/5 text-amber-700 border-amber-600/20";
+      textGlow = "text-amber-700/80";
+    } else if (completedCount === 2) {
+      levelName = { en: "Adept", ur: "Adept" };
+      color = "from-slate-400/10 to-slate-300/5 text-slate-500 border-slate-400/20";
+      textGlow = "text-slate-500";
+    } else if (completedCount === 3) {
+      levelName = { en: "Master", ur: "Master" };
+      color = "from-yellow-500/10 to-amber-500/5 text-brand-amber border-brand-amber/30 shadow-sm";
+      textGlow = "text-brand-amber animate-pulse font-bold";
+    }
+    
+    return { completedCount, totalCount, levelName, color, textGlow };
+  };
 
   const [lobbyTab, setLobbyTab] = useState<'modules' | 'achievements' | 'leaderboard' | 'history'>('modules');
 
@@ -393,10 +443,6 @@ export default function AIArena() {
     } else {
       if (soundEnabled) playWrongSFX();
     }
-
-    setTimeout(() => {
-      explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
   };
 
   // Countdown timer effect
@@ -438,10 +484,6 @@ export default function AIArena() {
     setGameState('playing');
     
     if (soundEnabled) playTone(440, 'sine', 0.1, 0.05);
-    
-    setTimeout(() => {
-      questionContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }, 100);
   };
 
   const handleOptionClick = (idx: number) => {
@@ -467,10 +509,6 @@ export default function AIArena() {
     } else {
       if (soundEnabled) playWrongSFX();
     }
-
-    setTimeout(() => {
-      explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
   };
 
   const handleNextQuestion = () => {
@@ -480,9 +518,6 @@ export default function AIArena() {
       setCurrentQuestionIdx(p => p + 1);
       setSelectedIdx(null);
       setIsAnswerChecked(false);
-      setTimeout(() => {
-        questionContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 50);
     } else {
       // Completed last question of the 5-MCQ batch! Let's trigger Victory
       handleCompleteSectionRun();
@@ -502,6 +537,35 @@ export default function AIArena() {
       finalSelectedLog.push(selectedIdx);
     }
     
+    // Daily Streak Tracker calculation
+    const todayStr = new Date().toLocaleDateString('en-CA'); // "YYYY-MM-DD"
+    let newStreak = streakCount;
+    if (!lastQuizDate) {
+      newStreak = 1;
+    } else if (lastQuizDate === todayStr) {
+      // Already did a quiz today, streak remains unchanged
+    } else {
+      const lastDate = new Date(lastQuizDate);
+      const todayDate = new Date(todayStr);
+      const msPerDay = 24 * 60 * 60 * 1000;
+      const lastUtc = Date.UTC(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+      const todayUtc = Date.UTC(todayDate.getFullYear(), todayDate.getMonth(), todayDate.getDate());
+      const diffDays = Math.round((todayUtc - lastUtc) / msPerDay);
+      if (diffDays === 1) {
+        newStreak = streakCount + 1;
+      } else {
+        newStreak = 1;
+      }
+    }
+
+    setStreakCount(newStreak);
+    setLastQuizDate(todayStr);
+    localStorage.setItem('clay_quiz_streak_count', newStreak.toString());
+    localStorage.setItem('clay_quiz_last_date', todayStr);
+
+    const multiplier = 1 + Math.min((newStreak - 1) * 0.1, 0.5);
+    const finalPointsWithMultiplier = Math.round(runPointsEarned * multiplier);
+
     const newSessionItem = {
       id: `session-${Date.now()}`,
       sectionId: activeSection.id,
@@ -511,9 +575,11 @@ export default function AIArena() {
       },
       timestamp: new Date().toISOString(),
       practiceMode,
-      scoreEarned: runPointsEarned,
+      scoreEarned: finalPointsWithMultiplier,
       correctCount: runCorrectCount,
       totalCount: activeSection.questions.length,
+      streakApplied: newStreak,
+      multiplierApplied: multiplier,
       questions: activeSection.questions.map((q, qIdx) => ({
         question: {
           en: q.question.en,
@@ -545,14 +611,14 @@ export default function AIArena() {
     }
     
     const prevHighScore = highScores[activeSection.id] || 0;
-    const isNewHigh = runPointsEarned > prevHighScore;
+    const isNewHigh = finalPointsWithMultiplier > prevHighScore;
     
     // Calculate new high score and global score delta
-    const scoreDiff = isNewHigh ? (runPointsEarned - prevHighScore) : 0;
+    const scoreDiff = isNewHigh ? (finalPointsWithMultiplier - prevHighScore) : 0;
     const updatedGlobalScore = score + scoreDiff;
     
     const updatedCompleted = { ...completedSections, [activeSection.id]: true };
-    const updatedHighScores = { ...highScores, [activeSection.id]: Math.max(prevHighScore, runPointsEarned) };
+    const updatedHighScores = { ...highScores, [activeSection.id]: Math.max(prevHighScore, finalPointsWithMultiplier) };
     
     // Write state
     setScore(updatedGlobalScore);
@@ -575,7 +641,7 @@ export default function AIArena() {
     setGameState('victory');
     
     // Sync back to Firebase Cloud
-    await syncQuizProgressToCloud(updatedGlobalScore, updatedCompleted, updatedHighScores, updatedSessions);
+    await syncQuizProgressToCloud(updatedGlobalScore, updatedCompleted, updatedHighScores, updatedSessions, newStreak, todayStr);
   };
 
   const handleExitToLobby = () => {
@@ -590,10 +656,14 @@ export default function AIArena() {
       setCompletedSections({});
       setHighScores({});
       setSessionHistory([]);
+      setStreakCount(0);
+      setLastQuizDate('');
       setGameState('lobby');
       setActiveSection(null);
       
-      await syncQuizProgressToCloud(0, {}, {}, []);
+      localStorage.setItem('clay_quiz_streak_count', '0');
+      localStorage.setItem('clay_quiz_last_date', '');
+      await syncQuizProgressToCloud(0, {}, {}, [], 0, '');
     }
   };
 
@@ -748,34 +818,123 @@ export default function AIArena() {
               className="p-6 md:p-8 space-y-8 text-left"
             >
               {/* Profile Card & Global Rank Indicator */}
-              <div className="p-5 bg-brand-sand/20 border border-brand-slate/10 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="space-y-1">
-                  <span className="block text-[9px] font-mono uppercase text-brand-muted font-bold">
-                    {lang === 'en' ? "ACTIVE COMBATANT STATUS" : "Aapka Active Status"}
-                  </span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-brand-charcoal">
-                      {lang === 'en' ? "Your Level:" : "Aapka Level:"}
-                    </span>
-                    <span className={`px-3 py-0.5 rounded-full text-xs font-bold border font-mono ${rank.color}`}>
-                      {lang === 'en' ? rank.title.en : rank.title.ur}
-                    </span>
+              <div className="p-6 bg-brand-sand/15 border border-brand-slate/10 rounded-2xl flex flex-col lg:flex-row justify-between items-stretch gap-6 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-brand-amber/5 rounded-full blur-2xl pointer-events-none" />
+                
+                {/* Left Panel: Custom Avatar and Profile Controls */}
+                <div className="flex flex-col sm:flex-row items-center gap-5">
+                  {/* Dynamic Glowing Avatar Container */}
+                  <div className="relative shrink-0 select-none group">
+                    <div className={`absolute -inset-1 rounded-full blur-md opacity-75 transition duration-1000 group-hover:duration-200 animate-pulse bg-gradient-to-r ${
+                      avatarStyle === 'Aqua Synth' ? 'from-cyan-400 via-teal-400 to-blue-500' :
+                      avatarStyle === 'Amber Nova' ? 'from-amber-400 via-orange-400 to-red-500' :
+                      avatarStyle === 'Cosmic Amethyst' ? 'from-purple-400 via-fuchsia-400 to-indigo-600' :
+                      'from-emerald-400 via-green-400 to-teal-500'
+                    }`} />
+                    <div className="relative w-20 h-20 rounded-full bg-brand-charcoal flex items-center justify-center border-2 border-brand-sand shadow-inner overflow-hidden">
+                      <div className={`absolute inset-0 opacity-25 bg-gradient-to-tr ${
+                        avatarStyle === 'Aqua Synth' ? 'from-cyan-500 to-blue-600' :
+                        avatarStyle === 'Amber Nova' ? 'from-amber-400 to-orange-600' :
+                        avatarStyle === 'Cosmic Amethyst' ? 'from-purple-500 to-indigo-600' :
+                        'from-emerald-400 to-teal-600'
+                      }`} />
+                      <Cpu className={`w-10 h-10 relative z-10 text-white ${
+                        avatarStyle === 'Aqua Synth' ? 'text-cyan-200' :
+                        avatarStyle === 'Amber Nova' ? 'text-amber-200' :
+                        avatarStyle === 'Cosmic Amethyst' ? 'text-purple-200' :
+                        'text-emerald-200'
+                      }`} />
+                    </div>
+                    {/* Level number overlay badge */}
+                    <div className="absolute -bottom-1 -right-1 bg-brand-amber text-brand-charcoal font-mono font-black text-[10px] w-6 h-6 rounded-full flex items-center justify-center border-2 border-brand-sand shadow-sm">
+                      {Math.floor(score / 50) + 1}
+                    </div>
+                  </div>
+
+                  {/* Identity and Streak status */}
+                  <div className="text-center sm:text-left space-y-1.5 flex-1">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <span className="text-sm font-bold text-brand-charcoal">
+                        {leaderboardName ? leaderboardName : (lang === 'en' ? "AI Combatant" : "AI Mujahid")}
+                      </span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${rank.color}`}>
+                        {lang === 'en' ? rank.title.en : rank.title.ur}
+                      </span>
+                    </div>
+
+                    {/* Streak HUD */}
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 text-xs text-brand-muted select-none">
+                      <div className="flex items-center gap-1.5 bg-brand-amber/10 border border-brand-amber/20 px-2 py-0.5 rounded-full text-brand-charcoal font-mono font-bold">
+                        <Flame className="w-3.5 h-3.5 fill-current text-brand-amber animate-bounce" />
+                        <span>{streakCount} {lang === 'en' ? "Day Streak" : "Rooz Streak"}</span>
+                      </div>
+                      <span className="font-mono text-brand-amber font-bold">
+                        ({(1 + Math.min((streakCount - 1) * 0.1, 0.5)).toFixed(1)}x {lang === 'en' ? "Multiplier" : "Multiplier"})
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={() => {
+                        const styles = ['Aqua Synth', 'Amber Nova', 'Cosmic Amethyst', 'Emerald Neural'];
+                        const nextIdx = (styles.indexOf(avatarStyle) + 1) % styles.length;
+                        const nextStyle = styles[nextIdx];
+                        setAvatarStyle(nextStyle);
+                        localStorage.setItem('clay_quiz_avatar_style', nextStyle);
+                        if (soundEnabled) playTone(500 + nextIdx * 100, 'sine', 0.08, 0.08);
+                      }}
+                      className="inline-flex items-center gap-1 text-[10px] font-mono font-black text-brand-amber hover:text-brand-charcoal bg-brand-sand/50 hover:bg-brand-sand px-2 py-1 rounded-md border border-brand-slate/10 cursor-pointer uppercase transition-colors"
+                    >
+                      <Sparkles className="w-3 h-3 text-brand-amber" />
+                      <span>{lang === 'en' ? `Style: ${avatarStyle}` : `Design: ${avatarStyle}`}</span>
+                    </button>
                   </div>
                 </div>
-                
-                {/* Stats Breakdown Row */}
-                <div className="flex flex-wrap gap-5 text-left font-mono">
-                  <div className="space-y-0.5">
-                    <span className="block text-[9px] uppercase text-brand-muted font-bold">{lang === 'en' ? "COMPLETED SECTIONS" : "MUKAMMAL SECTIONS"}</span>
-                    <span className="block text-base font-black text-brand-charcoal">
-                      {Object.values(completedSections).filter(Boolean).length} / 15
-                    </span>
-                  </div>
-                  <div className="space-y-0.5 border-l border-brand-slate/15 pl-5">
-                    <span className="block text-[9px] uppercase text-brand-muted font-bold">{lang === 'en' ? "ARENA LEVEL COMPOSITE" : "TOTAL ARENA SCORE"}</span>
-                    <span className="block text-base font-black text-brand-amber">
-                      {score} XP
-                    </span>
+
+                {/* Right Panel: Evolving Module Mastery Badges */}
+                <div className="border-t lg:border-t-0 lg:border-l border-brand-slate/15 pt-5 lg:pt-0 lg:pl-6 flex flex-col justify-center space-y-3 flex-1 lg:max-w-md">
+                  <span className="block text-[10px] font-mono uppercase text-brand-muted font-extrabold text-center lg:text-left select-none tracking-widest">
+                    {lang === 'en' ? "EVOLVING MODULE MASTERY BADGES" : "EVOLVING MODULE KI MAHAARAT"}
+                  </span>
+                  
+                  <div className="grid grid-cols-5 gap-2">
+                    {quizModules.slice(0, 5).map((mod, mIdx) => {
+                      const mastery = getModuleMastery(mod);
+                      return (
+                        <div 
+                          key={mod.id} 
+                          className="flex flex-col items-center group relative cursor-help select-none"
+                          title={`${mod.title.en}: ${mastery.completedCount}/${mastery.totalCount} ${lang === 'en' ? "completed" : "mukammal"}`}
+                        >
+                          {/* Circle badge */}
+                          <div className={`w-10 h-10 rounded-full border bg-gradient-to-br flex items-center justify-center transition-all duration-300 ${mastery.color} ${
+                            mastery.completedCount > 0 ? 'scale-105 shadow-md' : 'opacity-40 scale-95'
+                          }`}>
+                            <span className="text-[10px] font-mono font-black">
+                              M{mIdx + 1}
+                            </span>
+                          </div>
+                          
+                          {/* Miniature Stars representing progress level */}
+                          <div className="flex justify-center gap-0.5 mt-1.5 h-2">
+                            {Array.from({ length: 3 }).map((_, sIdx) => (
+                              <div 
+                                key={sIdx} 
+                                className={`w-1.5 h-1.5 rounded-full ${
+                                  sIdx < mastery.completedCount 
+                                    ? 'bg-brand-amber shadow shadow-brand-amber/30' 
+                                    : 'bg-brand-slate/20'
+                                }`} 
+                              />
+                            ))}
+                          </div>
+                          
+                          {/* Micro indicator label */}
+                          <span className={`text-[8px] font-mono font-black mt-1 ${mastery.textGlow}`}>
+                            {lang === 'en' ? mastery.levelName.en : mastery.levelName.ur}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -1371,157 +1530,227 @@ export default function AIArena() {
                           </p>
                         </div>
                       </div>
-                    ) : (
-                      <div className="space-y-4">
-                        {sessionHistory.map((sess) => {
-                          const isExpanded = expandedSessionId === sess.id;
-                          const dateStr = new Date(sess.timestamp).toLocaleDateString(undefined, {
-                            month: 'short',
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          });
+                    ) : (() => {
+                      const filteredSessions = sessionHistory.filter((sess: any) => {
+                        if (!historySearchQuery) return true;
+                        const query = historySearchQuery.toLowerCase();
+                        const titleMatch = (sess.sectionTitle.en || '').toLowerCase().includes(query) || 
+                                           (sess.sectionTitle.ur || '').toLowerCase().includes(query);
+                        const questionMatch = sess.questions?.some((q: any) => {
+                          const qEn = q.question?.en || '';
+                          const qUr = q.question?.ur || '';
+                          const optsEn = (q.options?.en || []).join(' ');
+                          const optsUr = (q.options?.ur || []).join(' ');
+                          const explEn = q.explanation?.en || '';
+                          const explUr = q.explanation?.ur || '';
+                          return qEn.toLowerCase().includes(query) || 
+                                 qUr.toLowerCase().includes(query) ||
+                                 optsEn.toLowerCase().includes(query) ||
+                                 optsUr.toLowerCase().includes(query) ||
+                                 explEn.toLowerCase().includes(query) ||
+                                 explUr.toLowerCase().includes(query);
+                        });
+                        return titleMatch || questionMatch;
+                      });
 
-                          return (
-                            <div key={sess.id} className="bg-white border border-brand-slate/15 rounded-2xl overflow-hidden transition-all duration-300">
-                              {/* Summary Row */}
-                              <div className="p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-brand-sand/10 border-b border-brand-slate/5">
-                                <div className="space-y-1.5 text-left">
-                                  <div className="flex flex-wrap items-center gap-2">
-                                    <h4 className="font-sans font-black text-sm text-brand-charcoal">
-                                      {lang === 'en' ? sess.sectionTitle.en : sess.sectionTitle.ur}
-                                    </h4>
-                                    
-                                    {sess.practiceMode ? (
-                                      <span className="text-[9px] font-mono font-black bg-blue-500/10 border border-blue-500/20 text-blue-700 px-2 py-0.5 rounded uppercase">
-                                        {lang === 'en' ? "PRACTICE" : "PRACTICE RUN"}
-                                      </span>
-                                    ) : (
-                                      <span className="text-[9px] font-mono font-black bg-green-500/10 border border-green-500/20 text-green-700 px-2 py-0.5 rounded uppercase">
-                                        {lang === 'en' ? "OFFICIAL" : "ASLI TEST"}
-                                      </span>
-                                    )}
-                                  </div>
-                                  
-                                  <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-brand-muted">
-                                    <span className="flex items-center gap-1">
-                                      <Calendar className="w-3.5 h-3.5" />
-                                      <span>{dateStr}</span>
-                                    </span>
-                                    <span>•</span>
-                                    <span>
-                                      {lang === 'en' ? `Score: +${sess.scoreEarned} PTS` : `Points: +${sess.scoreEarned} PTS`}
-                                    </span>
-                                  </div>
-                                </div>
+                      return (
+                        <div className="space-y-4">
+                          {/* Search Bar Input */}
+                          <div className="relative flex items-center bg-white border border-brand-slate/15 hover:border-brand-slate/25 focus-within:border-brand-amber rounded-2xl px-4 py-3 shadow-sm transition-all duration-200">
+                            <Search className="w-4 h-4 text-brand-muted shrink-0 mr-2.5" />
+                            <input
+                              type="text"
+                              value={historySearchQuery}
+                              onChange={(e) => setHistorySearchQuery(e.target.value)}
+                              placeholder={lang === 'en' ? "Search past questions, modules, or correct explanations..." : "Purane sawaalat, sabaq ya wazahat talaash karein..."}
+                              className="w-full bg-transparent border-none text-brand-charcoal text-sm focus:outline-none placeholder-brand-muted"
+                            />
+                            {historySearchQuery && (
+                              <button
+                                onClick={() => {
+                                  setHistorySearchQuery('');
+                                  if (soundEnabled) playTone(300, 'sine', 0.05, 0.05);
+                                }}
+                                className="p-1 hover:bg-brand-sand rounded-full transition-colors cursor-pointer text-brand-muted hover:text-brand-charcoal"
+                                title={lang === 'en' ? "Clear search" : "Saaf karein"}
+                              >
+                                <X className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
 
-                                <div className="flex items-center gap-3.5 self-end sm:self-auto shrink-0">
-                                  {/* Compact check circles timeline visualization */}
-                                  <div className="flex gap-1.5 items-center">
-                                    {sess.questions.map((q: any, idx: number) => (
-                                      <div 
-                                        key={idx} 
-                                        className={`w-2.5 h-2.5 rounded-full ${
-                                          q.isCorrect ? 'bg-green-500' : 'bg-red-500'
-                                        }`}
-                                        title={q.isCorrect ? "Correct" : "Incorrect"}
-                                      />
-                                    ))}
-                                    <span className="text-xs font-mono font-black text-brand-charcoal ml-1">
-                                      {sess.correctCount} / {sess.totalCount}
-                                    </span>
-                                  </div>
-
-                                  <button
-                                    onClick={() => {
-                                      setExpandedSessionId(isExpanded ? null : sess.id);
-                                      if (soundEnabled) playTone(500, 'sine', 0.04, 0.04);
-                                    }}
-                                    className="p-2 border border-brand-slate/15 hover:border-brand-slate/30 bg-white hover:bg-brand-sand rounded-xl text-brand-muted hover:text-brand-charcoal transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold font-mono"
-                                  >
-                                    <Eye className="w-3.5 h-3.5" />
-                                    <span>{isExpanded ? (lang === 'en' ? "Collapse" : "Chupayein") : (lang === 'en' ? "Review" : "Jaiza lein")}</span>
-                                  </button>
-                                </div>
+                          {filteredSessions.length === 0 ? (
+                            <div className="p-10 text-center bg-brand-sand/10 border border-brand-slate/10 rounded-2xl space-y-3">
+                              <Search className="w-8 h-8 text-brand-muted mx-auto animate-pulse" />
+                              <div className="space-y-1">
+                                <p className="font-bold text-sm text-brand-charcoal">
+                                  {lang === 'en' ? "No matching search results" : "Koi matching nateeja nahi mila"}
+                                </p>
+                                <p className="text-xs text-brand-muted max-w-xs mx-auto leading-relaxed">
+                                  {lang === 'en' 
+                                    ? "Try checking your spelling or search for another topic (e.g. 'history', 'unsupervised', 'precision')."
+                                    : "Apne spelling check karein ya koi aur term search karein (jaise 'history', 'precision')."}
+                                </p>
                               </div>
+                              <button
+                                onClick={() => setHistorySearchQuery('')}
+                                className="px-4 py-2 bg-brand-charcoal text-brand-cream hover:bg-brand-charcoal/90 text-xs font-mono font-bold rounded-xl transition-colors cursor-pointer"
+                              >
+                                {lang === 'en' ? "Reset Search Filter" : "Talaash Saaf Karein"}
+                              </button>
+                            </div>
+                          ) : (
+                            filteredSessions.map((sess) => {
+                              const isExpanded = expandedSessionId === sess.id;
+                              const dateStr = new Date(sess.timestamp).toLocaleDateString(undefined, {
+                                month: 'short',
+                                day: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              });
 
-                              {/* Expanded Questions Breakdown */}
-                              {isExpanded && (
-                                <div className="p-4 md:p-6 space-y-6 bg-brand-sand/5 text-left divide-y divide-brand-slate/10">
-                                  {sess.questions.map((q: any, qIdx: number) => (
-                                    <div key={qIdx} className={`pt-6 first:pt-0 space-y-4`}>
-                                      <div className="flex items-start gap-2.5">
-                                        <span className={`p-1 rounded-lg shrink-0 mt-0.5 text-white ${
-                                          q.isCorrect ? 'bg-green-500' : 'bg-red-500'
-                                        }`}>
-                                          {q.isCorrect ? (
-                                            <CheckCircle2 className="w-4 h-4" />
-                                          ) : (
-                                            <XCircle className="w-4 h-4" />
-                                          )}
+                              return (
+                                <div key={sess.id} className="bg-white border border-brand-slate/15 rounded-2xl overflow-hidden transition-all duration-300">
+                                  {/* Summary Row */}
+                                  <div className="p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-brand-sand/10 border-b border-brand-slate/5">
+                                    <div className="space-y-1.5 text-left">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <h4 className="font-sans font-black text-sm text-brand-charcoal">
+                                          {lang === 'en' ? sess.sectionTitle.en : sess.sectionTitle.ur}
+                                        </h4>
+                                        
+                                        {sess.practiceMode ? (
+                                          <span className="text-[9px] font-mono font-black bg-blue-500/10 border border-blue-500/20 text-blue-700 px-2 py-0.5 rounded uppercase">
+                                            {lang === 'en' ? "PRACTICE" : "PRACTICE RUN"}
+                                          </span>
+                                        ) : (
+                                          <span className="text-[9px] font-mono font-black bg-green-500/10 border border-green-500/20 text-green-700 px-2 py-0.5 rounded uppercase">
+                                            {lang === 'en' ? "OFFICIAL" : "ASLI TEST"}
+                                          </span>
+                                        )}
+                                      </div>
+                                      
+                                      <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-brand-muted">
+                                        <span className="flex items-center gap-1">
+                                          <Calendar className="w-3.5 h-3.5" />
+                                          <span>{dateStr}</span>
                                         </span>
-                                        <div className="space-y-1">
-                                          <span className="block text-[9px] font-mono font-black text-brand-slate uppercase tracking-wider">
-                                            {lang === 'en' ? `QUESTION ${qIdx + 1}` : `SAWAAL ${qIdx + 1}`}
-                                          </span>
-                                          <h5 className="font-sans font-bold text-sm text-brand-charcoal leading-relaxed">
-                                            {lang === 'en' ? q.question.en : q.question.ur}
-                                          </h5>
-                                        </div>
-                                      </div>
-
-                                      {/* Options list */}
-                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pl-7">
-                                        {q.options[lang === 'en' ? 'en' : 'ur']?.map((opt: string, oIdx: number) => {
-                                          const isSelectedByUser = q.userAnswerIndex === oIdx;
-                                          const isRightIndex = q.answerIndex === oIdx;
-                                          
-                                          let cardStyle = "bg-white border-brand-slate/10 text-brand-charcoal";
-                                          if (isRightIndex) {
-                                            cardStyle = "bg-green-50 border-green-500/30 text-green-800 font-medium";
-                                          } else if (isSelectedByUser && !q.isCorrect) {
-                                            cardStyle = "bg-red-50 border-red-500/30 text-red-800";
-                                          }
-
-                                          return (
-                                            <div 
-                                              key={oIdx} 
-                                              className={`p-3 rounded-xl border text-xs leading-relaxed flex items-center justify-between gap-2.5 ${cardStyle}`}
-                                            >
-                                              <span>{opt}</span>
-                                              <div className="shrink-0 font-mono text-[9px] font-black uppercase tracking-wider">
-                                                {isRightIndex && (
-                                                  <span className="text-green-600 font-bold">{lang === 'en' ? "CORRECT" : "SAHI"}</span>
-                                                )}
-                                                {isSelectedByUser && !q.isCorrect && (
-                                                  <span className="text-red-500 font-bold">{lang === 'en' ? "YOUR SELECTION" : "AAPKA JAWAB"}</span>
-                                                )}
-                                              </div>
-                                            </div>
-                                          );
-                                        })}
-                                      </div>
-
-                                      {/* Explanation Box */}
-                                      <div className="pl-7 pt-1.5">
-                                        <div className="p-4 bg-brand-sand/30 border border-brand-slate/10 rounded-xl space-y-1">
-                                          <span className="block text-[9px] font-mono font-black text-brand-amber uppercase tracking-widest">
-                                            {lang === 'en' ? "EXPLANATION / WAZAHAT" : "WAZAHAT / EXPLANATION"}
-                                          </span>
-                                          <p className="text-xs text-brand-muted leading-relaxed">
-                                            {lang === 'en' ? q.explanation.en : q.explanation.ur}
-                                          </p>
-                                        </div>
+                                        <span>•</span>
+                                        <span>
+                                          {lang === 'en' ? `Score: +${sess.scoreEarned} PTS` : `Points: +${sess.scoreEarned} PTS`}
+                                        </span>
                                       </div>
                                     </div>
-                                  ))}
+
+                                    <div className="flex items-center gap-3.5 self-end sm:self-auto shrink-0">
+                                      {/* Compact check circles timeline visualization */}
+                                      <div className="flex gap-1.5 items-center">
+                                        {sess.questions.map((q: any, idx: number) => (
+                                          <div 
+                                            key={idx} 
+                                            className={`w-2.5 h-2.5 rounded-full ${
+                                              q.isCorrect ? 'bg-green-500' : 'bg-red-500'
+                                            }`}
+                                            title={q.isCorrect ? "Correct" : "Incorrect"}
+                                          />
+                                        ))}
+                                        <span className="text-xs font-mono font-black text-brand-charcoal ml-1">
+                                          {sess.correctCount} / {sess.totalCount}
+                                        </span>
+                                      </div>
+
+                                      <button
+                                        onClick={() => {
+                                          setExpandedSessionId(isExpanded ? null : sess.id);
+                                          if (soundEnabled) playTone(500, 'sine', 0.04, 0.04);
+                                        }}
+                                        className="p-2 border border-brand-slate/15 hover:border-brand-slate/30 bg-white hover:bg-brand-sand rounded-xl text-brand-muted hover:text-brand-charcoal transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold font-mono"
+                                      >
+                                        <Eye className="w-3.5 h-3.5" />
+                                        <span>{isExpanded ? (lang === 'en' ? "Collapse" : "Chupayein") : (lang === 'en' ? "Review" : "Jaiza lein")}</span>
+                                      </button>
+                                    </div>
+                                  </div>
+
+                                  {/* Expanded Questions Breakdown */}
+                                  {isExpanded && (
+                                    <div className="p-4 md:p-6 space-y-6 bg-brand-sand/5 text-left divide-y divide-brand-slate/10">
+                                      {sess.questions.map((q: any, qIdx: number) => (
+                                        <div key={qIdx} className={`pt-6 first:pt-0 space-y-4`}>
+                                          <div className="flex items-start gap-2.5">
+                                            <span className={`p-1 rounded-lg shrink-0 mt-0.5 text-white ${
+                                              q.isCorrect ? 'bg-green-500' : 'bg-red-500'
+                                            }`}>
+                                              {q.isCorrect ? (
+                                                <CheckCircle2 className="w-4 h-4" />
+                                              ) : (
+                                                <XCircle className="w-4 h-4" />
+                                              )}
+                                            </span>
+                                            <div className="space-y-1">
+                                              <span className="block text-[9px] font-mono font-black text-brand-slate uppercase tracking-wider">
+                                                {lang === 'en' ? `QUESTION ${qIdx + 1}` : `SAWAAL ${qIdx + 1}`}
+                                              </span>
+                                              <h5 className="font-sans font-bold text-sm text-brand-charcoal leading-relaxed">
+                                                {lang === 'en' ? q.question.en : q.question.ur}
+                                              </h5>
+                                            </div>
+                                          </div>
+
+                                          {/* Options list */}
+                                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pl-7">
+                                            {q.options[lang === 'en' ? 'en' : 'ur']?.map((opt: string, oIdx: number) => {
+                                              const isSelectedByUser = q.userAnswerIndex === oIdx;
+                                              const isRightIndex = q.answerIndex === oIdx;
+                                              
+                                              let cardStyle = "bg-white border-brand-slate/10 text-brand-charcoal";
+                                              if (isRightIndex) {
+                                                cardStyle = "bg-green-50 border-green-500/30 text-green-800 font-medium";
+                                              } else if (isSelectedByUser && !q.isCorrect) {
+                                                cardStyle = "bg-red-50 border-red-500/30 text-red-800";
+                                              }
+
+                                              return (
+                                                <div 
+                                                  key={oIdx} 
+                                                  className={`p-3 rounded-xl border text-xs leading-relaxed flex items-center justify-between gap-2.5 ${cardStyle}`}
+                                                >
+                                                  <span>{opt}</span>
+                                                  <div className="shrink-0 font-mono text-[9px] font-black uppercase tracking-wider">
+                                                    {isRightIndex && (
+                                                      <span className="text-green-600 font-bold">{lang === 'en' ? "CORRECT" : "SAHI"}</span>
+                                                    )}
+                                                    {isSelectedByUser && !q.isCorrect && (
+                                                      <span className="text-red-500 font-bold">{lang === 'en' ? "YOUR SELECTION" : "AAPKA JAWAB"}</span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+
+                                          {/* Explanation Box */}
+                                          <div className="pl-7 pt-1.5">
+                                            <div className="p-4 bg-brand-sand/30 border border-brand-slate/10 rounded-xl space-y-1">
+                                              <span className="block text-[9px] font-mono font-black text-brand-amber uppercase tracking-widest">
+                                                {lang === 'en' ? "EXPLANATION / WAZAHAT" : "WAZAHAT / EXPLANATION"}
+                                              </span>
+                                              <p className="text-xs text-brand-muted leading-relaxed">
+                                                {lang === 'en' ? q.explanation.en : q.explanation.ur}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
                                 </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
+                              );
+                            })
+                          )}
+                        </div>
+                      );
+                    })()}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1631,7 +1860,7 @@ export default function AIArena() {
               {/* Question Core Area */}
               <div ref={questionContainerRef} className="space-y-6">
                 
-                {/* Clay bot asking questions animation */}
+                {/* Clay asking questions animation */}
                 <div className="flex items-center gap-4 bg-brand-sand/20 border border-brand-slate/10 p-4 md:p-5 rounded-2xl select-none relative overflow-hidden">
                   <div className="absolute top-0 right-0 w-24 h-24 bg-brand-amber/5 rounded-full blur-xl pointer-events-none" />
                   <div className="relative shrink-0">
@@ -1644,7 +1873,7 @@ export default function AIArena() {
                   <div className="space-y-1">
                     <div className="flex items-center gap-2">
                       <span className="text-[10px] font-mono font-black text-brand-amber uppercase tracking-widest animate-pulse">
-                        {lang === 'en' ? "CLAY BOT TRANSMISSION" : "CLAY BOT KI GUFTAGU"}
+                        {lang === 'en' ? "CLAY TRANSMISSION" : "CLAY KI GUFTAGU"}
                       </span>
                       <span className="h-1.5 w-1.5 bg-brand-amber rounded-full animate-ping" />
                     </div>

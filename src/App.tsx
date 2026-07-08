@@ -21,53 +21,6 @@ export default function App() {
   const { lang } = useLanguage();
 
   useEffect(() => {
-    let isInitialized = false;
-
-    // Handle hash jumping or restoring scroll position on page mount
-    const handleHashAndScrollRestore = () => {
-      const hash = window.location.hash;
-      if (hash) {
-        const targetId = hash.replace('#', '');
-        const element = document.getElementById(targetId);
-        if (element) {
-          setTimeout(() => {
-            element.scrollIntoView({ behavior: 'smooth' });
-            isInitialized = true;
-          }, 350);
-          return;
-        }
-      }
-
-      // If no hash, restore previous scroll location from localStorage
-      const savedScrollY = localStorage.getItem('ai-learning-scroll-y');
-      if (savedScrollY) {
-        const y = parseFloat(savedScrollY);
-        if (!isNaN(y) && y > 0) {
-          setTimeout(() => {
-            window.scrollTo({ top: y, behavior: 'auto' });
-            isInitialized = true;
-          }, 250);
-          return;
-        }
-      }
-      isInitialized = true;
-    };
-
-    // Delay slightly to ensure component children are mounted
-    const initTimer = setTimeout(handleHashAndScrollRestore, 150);
-
-    // Save scroll position with a slight debounce
-    let saveTimeout: NodeJS.Timeout;
-    const handleScroll = () => {
-      if (!isInitialized) return;
-      clearTimeout(saveTimeout);
-      saveTimeout = setTimeout(() => {
-        localStorage.setItem('ai-learning-scroll-y', window.scrollY.toString());
-      }, 200);
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-
     // Smoothly scroll to elements when the hash in the address bar changes dynamically
     const handleHashChange = () => {
       const hash = window.location.hash;
@@ -82,9 +35,6 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
 
     return () => {
-      clearTimeout(initTimer);
-      clearTimeout(saveTimeout);
-      window.removeEventListener('scroll', handleScroll);
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
