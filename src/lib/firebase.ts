@@ -133,6 +133,43 @@ export function setupAuthListener(
       localStorage.setItem('clay_bookmarks', JSON.stringify(progress.bookmarks));
       onProgressChanged(progress);
 
+      // 3. Fetch Quiz Progress
+      try {
+        const quizRef = doc(db, 'quizProgress', user.uid);
+        const quizSnap = await getDoc(quizRef);
+        let quizScore = 0;
+        let quizCompleted: Record<string, boolean> = {};
+        let quizHighScores: Record<string, number> = {};
+
+        if (quizSnap.exists()) {
+          const qData = quizSnap.data();
+          quizScore = qData.score || 0;
+          quizCompleted = qData.completedSections || {};
+          quizHighScores = qData.highScores || {};
+        } else {
+          const localScore = localStorage.getItem('clay_quiz_score');
+          const localCompleted = localStorage.getItem('clay_quiz_completed');
+          const localHighScores = localStorage.getItem('clay_quiz_high_scores');
+          quizScore = localScore ? parseInt(localScore, 10) : 0;
+          quizCompleted = localCompleted ? JSON.parse(localCompleted) : {};
+          quizHighScores = localHighScores ? JSON.parse(localHighScores) : {};
+
+          await setDoc(quizRef, {
+            userId: user.uid,
+            score: quizScore,
+            completedSections: quizCompleted,
+            highScores: quizHighScores,
+            updatedAt: serverTimestamp()
+          });
+        }
+
+        localStorage.setItem('clay_quiz_score', quizScore.toString());
+        localStorage.setItem('clay_quiz_completed', JSON.stringify(quizCompleted));
+        localStorage.setItem('clay_quiz_high_scores', JSON.stringify(quizHighScores));
+      } catch (e) {
+        console.error("Error loading quiz progress:", e);
+      }
+
       // Trigger global state updates across elements
       window.dispatchEvent(new Event('clay_auth_state_changed'));
     } else {
@@ -193,4 +230,31 @@ export async function toggleSectionBookmarked(sectionId: string, isBookmarked: b
   await syncProgressToCloud(completedTerms, current);
 
   window.dispatchEvent(new Event('clay_auth_state_changed'));
+}
+
+// 5. Sync Quiz progress to Firestore
+export async function syncQuizProgressToCloud(score: number, completedSections: Record<string, boolean>, highScores: Record<string, number>) {
+  const currentUser = auth.currentUser;
+  
+  // Save locally first
+  localStorage.setItem('clay_quiz_score', score.toString());
+  localStorage.setItem('clay_quiz_completed', JSON.stringify(completedSections));
+  localStorage.setItem('clay_quiz_high_scores', JSON.stringify(highScores));
+  
+  window.dispatchEvent(new Event('clay_auth_state_changed'));
+
+  if (!currentUser) return;
+
+  try {
+    const quizRef = doc(db, 'quizProgress', currentUser.uid);
+    await setDoc(quizRef, {
+      userId: currentUser.uid,
+      score,
+      completedSections,
+      highScores,
+      updatedAt: serverTimestamp()
+    }, { merge: true });
+  } catch (error) {
+    console.error("Failed to sync quiz progress to Firebase Firestore:", error);
+  }
 }

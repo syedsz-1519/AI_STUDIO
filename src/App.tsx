@@ -10,6 +10,8 @@ import AIToolsList from './components/AIToolsList';
 import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
 import FloatingLanguageBubble from './components/FloatingLanguageBubble';
+import CheckYourKnowledge from './components/CheckYourKnowledge';
+import AIArena from './components/AIArena';
 import { Compass, Sparkles, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import ClayLogo from './components/ClayLogo';
@@ -132,6 +134,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <WhatIsAI />
+          <CheckYourKnowledge sectionId="basics" />
         </motion.div>
 
         {/* Interactive Host: Clay, the AI Explainer Bot */}
@@ -152,6 +155,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <AIFamilyTree />
+          <CheckYourKnowledge sectionId="family-tree" />
         </motion.div>
 
         {/* Layer 2: Generative AI & Large Language Models */}
@@ -172,6 +176,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <PromptingAndRAG />
+          <CheckYourKnowledge sectionId="prompting-rag" />
         </motion.div>
 
         {/* Curated AI Tools Directory */}
@@ -192,6 +197,17 @@ export default function App() {
           variants={sectionAnimation}
         >
           <ClosingAndDeeper />
+          <CheckYourKnowledge sectionId="deeper" />
+        </motion.div>
+
+        {/* AI Arena - Gamified Battleground Section (Moved to the last section) */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={sectionAnimation}
+        >
+          <AIArena />
         </motion.div>
 
       </main>
