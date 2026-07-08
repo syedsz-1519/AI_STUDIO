@@ -408,8 +408,8 @@ class AudioEngine {
     }, intervalMs);
   }
 
-  // --- TEXT TO SPEECH NARRATION ---
-  speak(text: string, onEnd?: () => void) {
+  // --- TEXT TO SPEECH NARRATION WITH LANGUAGE SUPPORT ---
+  speak(text: string, onEnd?: () => void, language: 'en' | 'hyd' | 'tel' = 'en') {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel(); // Cancel any active speech
@@ -417,36 +417,48 @@ class AudioEngine {
     // Clean text of markdown
     const cleanText = text
       .replace(/[\*\_\#\`]/g, '')
-      .replace(/claymorphic/gi, 'tactile') // Just in case
+      .replace(/claymorphic/gi, 'tactile')
       .trim();
 
     this.activeUtterance = new SpeechSynthesisUtterance(cleanText);
     
-    // Choose voice
+    // Language-specific voice selection
     const voices = window.speechSynthesis.getVoices();
-    // Prefer English male or youthful vocal profiles for a friendly teen boy sound
-    const preferredVoice = voices.find(v => 
-      v.lang.startsWith('en') && (
-        v.name.toLowerCase().includes('male') || 
-        v.name.toLowerCase().includes('guy') || 
-        v.name.toLowerCase().includes('david') || 
-        v.name.toLowerCase().includes('natural') || 
-        v.name.toLowerCase().includes('standard-b')
-      )
-    ) || voices.find(v => 
-      v.name.toLowerCase().includes('google us english') ||
-      v.name.toLowerCase().includes('microsoft david') ||
-      v.lang.startsWith('en')
-    );
+    let preferredVoice = null;
+
+    if (language === 'en') {
+      // English: Prefer English male voice
+      preferredVoice = voices.find(v => 
+        v.lang.startsWith('en-US') && (
+          v.name.toLowerCase().includes('male') || 
+          v.name.toLowerCase().includes('guy') || 
+          v.name.toLowerCase().includes('david') || 
+          v.name.toLowerCase().includes('natural') || 
+          v.name.toLowerCase().includes('standard-b')
+        )
+      ) || voices.find(v => v.lang.startsWith('en'));
+    } else if (language === 'hyd') {
+      // Hyderabadi/Urdu: Use Urdu voice or Hindi as fallback
+      preferredVoice = voices.find(v => v.lang.startsWith('ur')) ||
+                       voices.find(v => v.lang.startsWith('hi')) ||
+                       voices.find(v => v.lang.startsWith('en'));
+    } else if (language === 'tel') {
+      // Telugu: Use Telugu voice
+      preferredVoice = voices.find(v => v.lang.startsWith('te')) ||
+                       voices.find(v => v.lang.includes('Telugu')) ||
+                       voices.find(v => v.lang.startsWith('en'));
+    }
 
     if (preferredVoice) {
       this.activeUtterance.voice = preferredVoice;
+      this.activeUtterance.lang = language === 'en' ? 'en-US' : 
+                                   language === 'hyd' ? 'ur-IN' : 'te-IN';
     }
 
     // Set properties for a soft, precise, and highly listenable narrator voice
-    this.activeUtterance.pitch = this.userPitch;  // Custom speaking pitch
-    this.activeUtterance.rate = this.userSpeechRate;   // Soft, clear, and perfectly paced for high listenability
-    this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100)); // Gentle and comfortable volume presence
+    this.activeUtterance.pitch = this.userPitch;
+    this.activeUtterance.rate = this.userSpeechRate;
+    this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100));
 
     this.activeUtterance.onstart = () => {
       if (this.onSpeakStateChange) this.onSpeakStateChange(true);
