@@ -44,10 +44,8 @@ export default function FloatingLanguageBubble() {
                   </span>
                   <p className="text-[11.5px] font-medium text-brand-charcoal leading-relaxed pr-2">
                     {lang === 'en' 
-                      ? "Choose: English, Hyderabadi, or Telugu! Tap below!" 
-                      : lang === 'hyd'
-                      ? "Telangana ki language dekho! Tap karo!"
-                      : "ఇంగ్లీష్ లేదా ఉర్దూ చేయండి!"}
+                      ? "Arey Miya, Hyderabadi mein parhna hai? Tap below!" 
+                      : "Miya, English mein parhna hai? Tap karo!"}
                   </p>
                 </div>
               </div>
@@ -58,12 +56,10 @@ export default function FloatingLanguageBubble() {
           )}
         </AnimatePresence>
 
-        {/* Floating Bubble Action Button - 3-Way Language Toggle */}
+        {/* Floating Bubble Action Button */}
         <motion.button
           onClick={() => {
-            // Cycle through languages: EN → HYD → TEL → EN
-            const nextLang = lang === 'en' ? 'hyd' : lang === 'hyd' ? 'tel' : 'en';
-            setLang(nextLang);
+            setLang(lang === 'en' ? 'hyd' : 'en');
             setShowSpeechBubble(true);
           }}
           whileHover={{ scale: 1.1, rotate: 12 }}
@@ -79,13 +75,13 @@ export default function FloatingLanguageBubble() {
             }
           }}
           className="w-12 h-12 bg-white hover:bg-brand-sand/30 border-2 border-[#E07A5F] text-[#E07A5F] rounded-full flex items-center justify-center shadow-lg transition-colors cursor-pointer relative group"
-          title={lang === 'en' ? "Switch to Hyderabadi" : lang === 'hyd' ? "Switch to Telugu" : "Switch to English"}
+          title={lang === 'en' ? "Switch to Hyderabadi" : "English mein badlo"}
         >
           <Languages className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
           
-          {/* Quick Language Indicator Tag - 3-Way */}
+          {/* Quick Language Indicator Tag */}
           <span className="absolute -top-1.5 -right-1.5 bg-[#E07A5F] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full border border-white shadow-sm font-mono uppercase">
-            {lang === 'en' ? 'EN' : lang === 'hyd' ? 'HYD' : 'TEL'}
+            {lang === 'en' ? 'EN' : 'HYD'}
           </span>
         </motion.button>
       </div>
