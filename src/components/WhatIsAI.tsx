@@ -34,8 +34,8 @@ export default function WhatIsAI() {
       iconName: 'Tv',
       description: lang === 'en' ? 'Finds your next movie obsession.' : 'Tumhein agli film bolta.',
       explanation: lang === 'en' 
-        ? 'Instead of choosing blindly, it compares your exact viewing history with millions of other users to spot similar taste patterns.'
-        : 'Blindly select karne ke bajaye, ye tumhari watched films ko baaqi hazaaro logon se compare karke dhang ke patterns nikalta hai.'
+        ? 'Instead of choosing blindly, Netflix compares your viewing history with millions of other users to spot similar taste patterns. If you watched sci-fi thrillers and so did 50,000 others who also loved indie dramas, it will recommend those dramas to you. This pattern-matching happens in milliseconds!'
+        : 'Blindly select karne ke bajaye, Netflix tumhari watched films ko baaqi hazaaro logon se compare karke dekhe to, agar 50,000 logon ne tumhe jaisa movies dekhe aur unhonn ek aur film dekhi, to wo recommendation aayegi. Ye sab milliseconds mein hota!'
     },
     {
       id: 'maps',
@@ -43,8 +43,8 @@ export default function WhatIsAI() {
       iconName: 'MapPin',
       description: lang === 'en' ? 'Predicts traffic patterns.' : 'Traffic patterns dhoondta.',
       explanation: lang === 'en'
-        ? 'Looks at historical road congestion alongside real-time speeds of active drivers to forecast your arrival down to the minute.'
-        : 'Purani traffic congestion aur abhi chalre so gaadiyon ki speed dekh ke bilkul minute to minute sahi rasta aur ETA batata hai.'
+        ? 'Google Maps looks at historical traffic patterns from thousands of routes plus real-time data from millions of active drivers. It learns that Tuesday mornings on Highway 5 are always congested, or that rain slows traffic by 30%. By combining these patterns, it predicts your exact arrival time.'
+        : 'Google Maps purane traffic patterns aur abhi chalre millions ki gaadiyon ki real-time speed dekh ke patterns samajhta hai. Agar har Tuesday ko Highway 5 jam hota hai, ya agar baarish se traffic 30% slow hota hai, to ye sab seekh leta. Is tarah exact ETA batata hai!'
     },
     {
       id: 'chatgpt',
@@ -157,8 +157,11 @@ export default function WhatIsAI() {
                   <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mb-4">
                     So, What actually is AI?
                   </h2>
-                  <p className="font-sans text-brand-charcoal leading-relaxed mb-6 text-[15px]">
+                  <p className="font-sans text-brand-charcoal leading-relaxed mb-4 text-[15px]">
                     <TechTooltip term="Artificial Intelligence">Artificial Intelligence</TechTooltip> — <span className="text-brand-slate italic">the capability of computer systems to perform tasks that historically required human thinking or reasoning</span> — is not an independent thinking creature. Instead, it is a tool that detects recurring structures in huge sets of data.
+                  </p>
+                  <p className="font-sans text-brand-charcoal leading-relaxed mb-6 text-[15px]">
+                    Think of it this way: <strong>you don't need to program every rule</strong>. Instead, you show the computer thousands of examples, and it learns to spot patterns automatically. A child learns what a dog is by seeing many dogs, not by reading a definition. AI learns the same way — through exposure and pattern recognition.
                   </p>
                 </>
               ) : (
@@ -166,8 +169,11 @@ export default function WhatIsAI() {
                   <h2 className="font-display text-3xl font-extrabold text-brand-charcoal mb-4">
                     Arey Yaaron, AI Bole to Asal mein kya hai?
                   </h2>
+                  <p className="font-sans text-brand-charcoal leading-relaxed mb-4 text-[15px]">
+                    <strong className="text-brand-amber">AI yaane Artificial Intelligence</strong> bole to <span className="text-brand-slate italic">computer'aa ko dimaag dena</span>. Iska matlab ye nahi hai ki computer khud ba khud sochra. Khali usko bohot saara data (jaise photo'aa, likhe so baataan) dikha ke seekha dete. Uske baad, computer naye cheezon ko pehchanta aur jawaab deta, bilkul ek dimaag wale ke jaisa!
+                  </p>
                   <p className="font-sans text-brand-charcoal leading-relaxed mb-6 text-[15px]">
-                    <strong className="text-brand-amber">AI yaane Artificial Intelligence</strong> bole to <span className="text-brand-slate italic">computer'aa ko dimaag dena</span>. Iska matlab ye nahi hai ki computer khud ba khud sochra. Khali usko bohot saara data (jaise photo’aa, likhe so baataan) dikha ke seekha dete. Uske baad, computer naye cheezon ko pehchanta aur jawaab deta, bilkul ek dimaag wale ke jaisa! Asal mein ye khali ek tool hai jo bade data mein se patterns dhoond leta hai.
+                    Samjho na, ek balak ko "kutta" kaunse likhe so kitaab se sikhayi na jata. Usko hazaaron kutton dikha dete aur usne khud hi samajh jaata ki kutte kaisa hote hain. AI bhi aisi hi tarah kaam karta! Humne computer ko hazaaron examples dikha dete aur wo khud patterns samajh leta. Asal mein ye ek tool hi hai jo bade data mein se important patterns dhoond-nikalta hai.
                   </p>
                 </>
               )}
@@ -401,6 +407,66 @@ export default function WhatIsAI() {
               </div>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      {/* Key Takeaways Section */}
+      <section className="py-16 max-w-5xl mx-auto px-6 bg-gradient-to-r from-brand-amber/5 to-brand-slate/5 rounded-3xl border border-brand-amber/10">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center gap-3 mb-6">
+            <BookOpen className="w-6 h-6 text-brand-amber" />
+            <h3 className="font-display text-2xl font-extrabold text-brand-charcoal">
+              {lang === 'en' ? 'Key Takeaways' : 'Mukhya Baatain'}
+            </h3>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[
+              {
+                title: lang === 'en' ? '1. AI learns from examples' : '1. AI examples se seekhta hai',
+                desc: lang === 'en' ? 'Not from hand-coded rules, but from patterns in data.' : 'Likhe so niyamon se nahi, data ke patterns se.'
+              },
+              {
+                title: lang === 'en' ? '2. Pattern matching is core' : '2. Patterns se sab kaam',
+                desc: lang === 'en' ? 'Every AI application boils down to finding and using patterns.' : 'Har AI tool patterns ko dhoondta aur use karta hai.'
+              },
+              {
+                title: lang === 'en' ? '3. AI is everywhere' : '3. AI sab jagah hai',
+                desc: lang === 'en' ? 'From recommendations to traffic predictions to voice assistants.' : 'Netflix se maps tak, siri tak, sab mein AI hai.'
+              },
+              {
+                title: lang === 'en' ? '4. Levels matter' : '4. Levels alag alag hain',
+                desc: lang === 'en' ? 'Narrow AI exists today. General and Super AI are still theoretical.' : 'Aaj ka AI ek kaam ke liye; kal shayad sab kaam karega.'
+              }
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.5, delay: i * 0.1 }}
+                className="p-4 bg-white rounded-2xl border border-brand-slate/10 hover:border-brand-amber/20 transition-all"
+              >
+                <p className="font-semibold text-sm text-brand-charcoal mb-2">{item.title}</p>
+                <p className="text-xs text-brand-muted leading-relaxed">{item.desc}</p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+            className="mt-6 p-4 bg-brand-amber/10 border border-brand-amber/20 rounded-2xl"
+          >
+            <p className="text-sm text-brand-charcoal leading-relaxed">
+              <strong>{lang === 'en' ? '💡 Remember:' : '💡 Yaad Rakho:'}</strong> {lang === 'en' 
+                ? ' AI is a powerful tool for recognizing patterns in data. It is not magic, not conscious, and not sentient. It\'s mathematics and statistics at scale.'
+                : ' AI ek powerful tool hai data mein se patterns nikalne ke liye. Ye magic nahi, na hi chetna rakhne wala. Bas ganit aur stats ko large scale par use karna.'
+              }
+            </p>
+          </motion.div>
         </div>
       </section>
     </div>

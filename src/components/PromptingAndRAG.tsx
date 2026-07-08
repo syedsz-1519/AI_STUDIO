@@ -32,15 +32,15 @@ export default function PromptingAndRAG() {
     {
       title: lang === 'en' ? 'Zero-shot' : 'Zero-shot (Seedha Sawaal)',
       definition: lang === 'en' 
-        ? 'Directly asking for something without giving any background context or guidelines.'
-        : 'Bina koi example ya rules bataye, seedha direct computer se pooch lena.',
+        ? 'Directly asking for something without giving any background context or guidelines. The AI tries to answer based on general knowledge, but results can be unpredictable.'
+        : 'Bina koi example ya rules bataye, seedha direct computer se pooch lena. AI apni general knowledge se answer deta hai, lekin sometimes galat ho sakta hai.',
       example: lang === 'en' ? '"Translate \'Good Morning\' into French."' : '"Bolo \'Aadaab\' ko French mein kya bolte?"'
     },
     {
       title: lang === 'en' ? 'Few-shot' : 'Few-shot (Misalein Dena)',
       definition: lang === 'en'
-        ? 'Providing 1 to 3 written examples first so the machine understands the format you want.'
-        : 'Pehle 1-2 examples samjhana ke tumko kaisa format chahiye, phir sawaal puchna.',
+        ? 'Providing 1 to 3 written examples first so the machine understands the format you want. This dramatically improves accuracy by showing patterns you expect.'
+        : 'Pehle 1-2 examples samjhana ke tumko kaisa format chahiye, phir sawaal puchna. Isse AI ko pattern samajh aata hai aur bilkul sahi answer deta hai.',
       example: lang === 'en' 
         ? '"Happy -> Positive, Angry -> Negative, Relaxed -> ?"'
         : '"Khush -> Positive, Gusse -> Negative, Sukoon -> ?"'
