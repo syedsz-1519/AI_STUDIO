@@ -15,8 +15,7 @@ import {
   Compass,
   Target,
   History,
-  Languages,
-  BookOpen
+  Languages
 } from 'lucide-react';
 import { PocketExample, AIType } from '../types';
 import TechTooltip from './TechTooltip';
@@ -415,7 +414,7 @@ export default function WhatIsAI() {
       <section className="py-16 max-w-5xl mx-auto px-6 bg-gradient-to-r from-brand-amber/5 to-brand-slate/5 rounded-3xl border border-brand-amber/10">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-3 mb-6">
-            <BookOpen className="w-6 h-6 text-brand-amber" />
+            <Sparkles className="w-6 h-6 text-brand-amber" />
             <h3 className="font-display text-2xl font-extrabold text-brand-charcoal">
               {lang === 'en' ? 'Key Takeaways' : 'Mukhya Baatain'}
             </h3>
