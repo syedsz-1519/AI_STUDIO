@@ -8,6 +8,7 @@ import PromptingAndRAG from './components/PromptingAndRAG';
 import AIToolsList from './components/AIToolsList';
 import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
+import FloatingLanguageBubble from './components/FloatingLanguageBubble';
 import { Compass, Sparkles, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import ClayLogo from './components/ClayLogo';
@@ -35,6 +36,9 @@ export default function App() {
 
       {/* Floating Audio Guide for Clay */}
       <AudioNarrationHub />
+
+      {/* Floating Language Change Bubble (Bottom Left) */}
+      <FloatingLanguageBubble />
 
       {/* Main Narrative Scroll Flow */}
       <main className="relative z-10 flex flex-col gap-4">

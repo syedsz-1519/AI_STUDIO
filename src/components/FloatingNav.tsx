@@ -3,7 +3,6 @@ import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX } from 'lu
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
 import { useLanguage } from '../hooks/useLanguage';
-import LanguageToggle from './LanguageToggle';
 
 export default function FloatingNav() {
   const { lang, t } = useLanguage();
@@ -119,7 +118,7 @@ export default function FloatingNav() {
 
           {/* Small Glassmorphic Reading Time Badge with interactive details */}
           <div 
-            className="group relative glass-panel px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold text-brand-amber border border-brand-amber/30 flex items-center gap-1.5 shadow-sm shrink-0 cursor-help transition-all duration-300 hover:border-brand-amber/60 hover:bg-white/60"
+            className="group relative glass-panel px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold text-brand-amber border border-brand-amber/30 hidden min-[400px]:flex items-center gap-1.5 shadow-sm shrink-0 cursor-help transition-all duration-300 hover:border-brand-amber/60 hover:bg-white/60"
             title={`${wordCount.toLocaleString()} words on page`}
           >
             <BookOpen className="w-3 h-3 text-brand-amber shrink-0 group-hover:scale-110 transition-transform" />
@@ -133,35 +132,60 @@ export default function FloatingNav() {
         </div>
 
         {/* Desktop Links */}
-        <div className="hidden md:flex items-center gap-6 text-sm font-medium">
+        <div className="hidden lg:flex items-center gap-3.5 text-sm font-medium">
           <button 
             onClick={() => scrollToSection('what-is-ai')} 
-            className={`cursor-pointer transition-colors ${activeSection === 'what-is-ai' ? 'text-brand-amber' : 'text-brand-slate hover:text-brand-charcoal'}`}
+            className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 border ${
+              activeSection === 'what-is-ai' 
+                ? 'bg-brand-amber/10 text-brand-amber border-brand-amber/20 shadow-sm' 
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50 border-transparent'
+            }`}
           >
+            <span className="opacity-50 text-[10px] font-mono">01.</span>
             {t('nav.intro')}
           </button>
           <button 
             onClick={() => scrollToSection('family-tree')} 
-            className={`cursor-pointer transition-colors ${activeSection === 'family-tree' ? 'text-brand-amber' : 'text-brand-slate hover:text-brand-charcoal'}`}
+            className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 border ${
+              activeSection === 'family-tree' 
+                ? 'bg-brand-amber/10 text-brand-amber border-brand-amber/20 shadow-sm' 
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50 border-transparent'
+            }`}
           >
+            <span className="opacity-50 text-[10px] font-mono">02.</span>
             {t('nav.family')}
           </button>
           <button 
             onClick={() => scrollToSection('prompting-rag')} 
-            className={`cursor-pointer transition-colors ${activeSection === 'prompting-rag' ? 'text-brand-amber' : 'text-brand-slate hover:text-brand-charcoal'}`}
+            className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 border ${
+              activeSection === 'prompting-rag' 
+                ? 'bg-brand-amber/10 text-brand-amber border-brand-amber/20 shadow-sm' 
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50 border-transparent'
+            }`}
           >
+            <span className="opacity-50 text-[10px] font-mono">03.</span>
             {t('nav.how')}
           </button>
           <button 
             onClick={() => scrollToSection('ai-tools-directory')} 
-            className={`cursor-pointer transition-colors ${activeSection === 'ai-tools-directory' ? 'text-brand-amber font-semibold' : 'text-brand-slate hover:text-brand-charcoal'}`}
+            className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all duration-200 border ${
+              activeSection === 'ai-tools-directory' 
+                ? 'bg-brand-amber/10 text-brand-amber border-brand-amber/20 shadow-sm font-extrabold' 
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50 border-transparent'
+            }`}
           >
+            <span className="opacity-50 text-[10px] font-mono">04.</span>
             {t('nav.toolbox')}
           </button>
           <button 
             onClick={() => scrollToSection('deeper')} 
-            className="px-3 py-1 bg-brand-amber/10 hover:bg-brand-amber/20 text-brand-amber rounded-full text-xs font-semibold cursor-pointer transition-all border border-brand-amber/20"
+            className={`cursor-pointer flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 border ${
+              activeSection === 'deeper' 
+                ? 'bg-brand-amber text-white border-brand-amber shadow-md shadow-brand-amber/10' 
+                : 'bg-brand-amber/10 hover:bg-brand-amber/20 text-brand-amber border border-brand-amber/25'
+            }`}
           >
+            <span className="opacity-70 text-[10px] font-mono">05.</span>
             {t('nav.close')}
           </button>
         </div>
@@ -182,13 +206,8 @@ export default function FloatingNav() {
           )}
         </div>
 
-        {/* Subtle Ambient Sound Toggle & Language Toggle */}
+        {/* Subtle Ambient Sound Toggle */}
         <div className="flex items-center gap-2">
-          {/* Global Language Toggle placed ON THE TOP RIGHT SIDE */}
-          <div className="hidden sm:block">
-            <LanguageToggle />
-          </div>
-
           <button
             onClick={toggleAmbient}
             className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer select-none ${isAmbientOn ? 'bg-brand-amber/15 text-brand-amber border-brand-amber/30 shadow-[0_0_12px_rgba(217,119,6,0.15)]' : 'bg-brand-sand/60 hover:bg-brand-sand text-brand-slate border-brand-slate/10'}`}
@@ -202,7 +221,7 @@ export default function FloatingNav() {
           {/* Mobile Menu Trigger */}
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)} 
-            className="md:hidden p-1 text-brand-slate hover:text-brand-charcoal transition-colors cursor-pointer"
+            className="lg:hidden p-1 text-brand-slate hover:text-brand-charcoal transition-colors cursor-pointer"
           >
             {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
           </button>
@@ -211,12 +230,7 @@ export default function FloatingNav() {
 
       {/* Mobile Drawer (Glassmorphic) */}
       {isMenuOpen && (
-        <div className="md:hidden absolute top-16 left-0 right-0 glass-panel py-4 px-6 flex flex-col gap-4 border-t border-brand-amber/10 animate-fade-in shadow-xl">
-          {/* Mobile view Language Switcher inside menu drawer */}
-          <div className="sm:hidden self-center pb-2 border-b border-brand-slate/5 w-full flex justify-center">
-            <LanguageToggle />
-          </div>
-
+        <div className="lg:hidden absolute top-16 left-0 right-0 glass-panel py-4 px-6 flex flex-col gap-4 border-t border-brand-amber/10 animate-fade-in shadow-xl">
           <button 
             onClick={() => scrollToSection('what-is-ai')} 
             className="text-left py-2 font-medium text-brand-slate hover:text-brand-amber transition-colors cursor-pointer"
