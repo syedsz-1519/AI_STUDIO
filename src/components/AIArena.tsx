@@ -26,10 +26,14 @@ import {
   Globe,
   Crown,
   User,
-  Share2
+  Share2,
+  History,
+  Calendar,
+  Eye
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { quizModules, QuizModule, QuizSection, Question } from '../data/quizQuestions';
+import { weeklyChallengeSection } from '../data/weeklyChallenge';
 import { syncQuizProgressToCloud } from '../lib/firebase';
 import ClayLogo from './ClayLogo';
 import Confetti from './Confetti';
@@ -81,6 +85,19 @@ const playVictorySFX = () => {
   });
 };
 
+const playTickSFX = (urgent: boolean) => {
+  playTone(urgent ? 1000 : 650, 'sine', 0.02, urgent ? 0.04 : 0.015);
+};
+
+const playAchievementSFX = () => {
+  const notes = [440, 554.37, 659.25, 880, 1108.73, 1318.51]; // A major arpeggio
+  notes.forEach((freq, idx) => {
+    setTimeout(() => {
+      playTone(freq, 'sine', 0.25, 0.08);
+    }, idx * 70);
+  });
+};
+
 export default function AIArena() {
   const { lang } = useLanguage();
   const currentLang = lang === 'hyd' ? 'ur' : 'en';
@@ -102,7 +119,36 @@ export default function AIArena() {
   const [runCorrectCount, setRunCorrectCount] = useState<number>(0);
   const [runPointsEarned, setRunPointsEarned] = useState<number>(0);
   const [answersLog, setAnswersLog] = useState<boolean[]>([]); // Track correct/incorrect for current 5 questions
+  const [selectedAnswersLog, setSelectedAnswersLog] = useState<(number | null)[]>([]); // Track exact index selected for history
   const [timeLeft, setTimeLeft] = useState<number>(20); // 20s per question
+  const [practiceMode, setPracticeMode] = useState<boolean>(() => {
+    return localStorage.getItem('clay_quiz_practice_mode') === 'true';
+  });
+
+  const [sessionHistory, setSessionHistory] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem('clay_quiz_sessions');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+  const [newlyUnlockedAchievement, setNewlyUnlockedAchievement] = useState<any | null>(null);
+  const [expandedSessionId, setExpandedSessionId] = useState<string | null>(null);
+
+  const questionContainerRef = useRef<HTMLDivElement>(null);
+  const explanationRef = useRef<HTMLDivElement>(null);
+
+  const togglePracticeMode = () => {
+    setPracticeMode(prev => {
+      const newVal = !prev;
+      localStorage.setItem('clay_quiz_practice_mode', String(newVal));
+      if (soundEnabled) {
+        playTone(newVal ? 580 : 380, 'triangle', 0.1, 0.05);
+      }
+      return newVal;
+    });
+  };
 
   const selectedIdxRef = useRef<number | null>(null);
   useEffect(() => {
@@ -121,11 +167,15 @@ export default function AIArena() {
       const savedScore = localStorage.getItem('clay_quiz_score') || '0';
       const savedCompleted = localStorage.getItem('clay_quiz_completed') || '{}';
       const savedHighScores = localStorage.getItem('clay_quiz_high_scores') || '{}';
+      const savedSessions = localStorage.getItem('clay_quiz_sessions') || '[]';
       const savedProfile = localStorage.getItem('clay_user_profile');
       
       setScore(parseInt(savedScore, 10));
       setCompletedSections(JSON.parse(savedCompleted));
       setHighScores(JSON.parse(savedHighScores));
+      try {
+        setSessionHistory(JSON.parse(savedSessions));
+      } catch (_) {}
 
       if (savedProfile) {
         setUserProfile(JSON.parse(savedProfile));
@@ -150,15 +200,18 @@ export default function AIArena() {
 
   const rank = getRankBadge();
 
-  const [lobbyTab, setLobbyTab] = useState<'modules' | 'achievements' | 'leaderboard'>('modules');
+  const [lobbyTab, setLobbyTab] = useState<'modules' | 'achievements' | 'leaderboard' | 'history'>('modules');
 
   // Dynamic Achievements & Badge System
-  const getAchievements = () => {
+  const getAchievements = (
+    completed = completedSections,
+    scoresMap = highScores
+  ) => {
     // 1. First Steps: Unlock 1 section
-    const completedCount = Object.values(completedSections).filter(Boolean).length;
+    const completedCount = Object.values(completed).filter(Boolean).length;
     
     // 2. High Scorer: score >= 10 on any section
-    const scores = Object.values(highScores) as number[];
+    const scores = Object.values(scoresMap) as number[];
     const hasHighScore = scores.some(s => s >= 10);
     const maxScoreVal = scores.length > 0 ? Math.max(...scores) : 0;
 
@@ -167,22 +220,25 @@ export default function AIArena() {
 
     // 4. Module 1 Conqueror: Complete all 3 sections of Mod 1
     const m1Secs = ['intro', 'reg', 'cls'];
-    const m1DoneCount = m1Secs.filter(id => completedSections[id]).length;
+    const m1DoneCount = m1Secs.filter(id => completed[id]).length;
     
     // 5. Module 2 Conqueror: Complete all 3 sections of Mod 2
     const m2Secs = ['dt', 'pre', 'opt'];
-    const m2DoneCount = m2Secs.filter(id => completedSections[id]).length;
+    const m2DoneCount = m2Secs.filter(id => completed[id]).length;
 
     // 6. Module 3 Conqueror: Complete all 3 of Mod 3
     const m3Secs = ['over', 'regu', 'eval'];
-    const m3DoneCount = m3Secs.filter(id => completedSections[id]).length;
+    const m3DoneCount = m3Secs.filter(id => completed[id]).length;
 
     // 7. Speed Demon: high score of 15 (perfect) on any of Module 4 or 5 sections
     const advancedSecs = ['cnn', 'rnn', 'tf', 'prompt', 'rag', 'llm'];
-    const advancedHighScores = advancedSecs.map(id => highScores[id] || 0);
+    const advancedHighScores = advancedSecs.map(id => scoresMap[id] || 0);
     const hasAdvancedPerfect = advancedHighScores.some(s => s >= 15);
 
-    // 8. Grandmaster of Silicon: Complete all 15 sections
+    // 8. Weekly Champion
+    const hasWeeklyCompleted = Object.keys(completed).some(key => key.startsWith('weekly-challenge-') && completed[key]);
+
+    // 9. Grandmaster of Silicon: Complete all 15 sections
     const totalSectionsCount = 15; // 5 modules * 3 sections
 
     return [
@@ -223,6 +279,19 @@ export default function AIArena() {
         color: 'yellow',
         unlocked: hasPerfectRun,
         currentProgress: hasPerfectRun ? 1 : 0,
+        maxProgress: 1
+      },
+      {
+        id: 'weekly_champion',
+        title: { en: "Weekly Champion", ur: "Haftawar Fateh" },
+        desc: { 
+          en: "Successfully complete a Weekly Challenge quiz module to earn a rare badge and bonus XP.", 
+          ur: "Rare badge aur bonus XP haasil karne ke liye Haftawar Challenge mukammal karein." 
+        },
+        icon: 'Crown',
+        color: 'yellow',
+        unlocked: hasWeeklyCompleted,
+        currentProgress: hasWeeklyCompleted ? 1 : 0,
         maxProgress: 1
       },
       {
@@ -315,6 +384,7 @@ export default function AIArena() {
     
     setIsAnswerChecked(true);
     setAnswersLog(prev => [...prev, correct]);
+    setSelectedAnswersLog(prev => [...prev, currentSelected]);
     
     if (correct) {
       setRunCorrectCount(p => p + 1);
@@ -323,11 +393,15 @@ export default function AIArena() {
     } else {
       if (soundEnabled) playWrongSFX();
     }
+
+    setTimeout(() => {
+      explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   };
 
   // Countdown timer effect
   useEffect(() => {
-    if (gameState !== 'playing' || isAnswerChecked || !activeSection) return;
+    if (gameState !== 'playing' || isAnswerChecked || !activeSection || practiceMode) return;
 
     const interval = setInterval(() => {
       setTimeLeft(prev => {
@@ -336,12 +410,13 @@ export default function AIArena() {
           handleTimeout();
           return 0;
         }
+        if (soundEnabled) playTickSFX(prev - 1 <= 5);
         return prev - 1;
       });
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [gameState, isAnswerChecked, currentQuestionIdx, activeSection, soundEnabled]);
+  }, [gameState, isAnswerChecked, currentQuestionIdx, activeSection, soundEnabled, practiceMode]);
 
   // Reset timer on question change
   useEffect(() => {
@@ -359,9 +434,14 @@ export default function AIArena() {
     setRunCorrectCount(0);
     setRunPointsEarned(0);
     setAnswersLog([]);
+    setSelectedAnswersLog([]);
     setGameState('playing');
     
     if (soundEnabled) playTone(440, 'sine', 0.1, 0.05);
+    
+    setTimeout(() => {
+      questionContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   };
 
   const handleOptionClick = (idx: number) => {
@@ -378,6 +458,7 @@ export default function AIArena() {
     
     setIsAnswerChecked(true);
     setAnswersLog(prev => [...prev, correct]);
+    setSelectedAnswersLog(prev => [...prev, selectedIdx]);
     
     if (correct) {
       setRunCorrectCount(p => p + 1);
@@ -386,6 +467,10 @@ export default function AIArena() {
     } else {
       if (soundEnabled) playWrongSFX();
     }
+
+    setTimeout(() => {
+      explanationRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 100);
   };
 
   const handleNextQuestion = () => {
@@ -395,6 +480,9 @@ export default function AIArena() {
       setCurrentQuestionIdx(p => p + 1);
       setSelectedIdx(null);
       setIsAnswerChecked(false);
+      setTimeout(() => {
+        questionContainerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 50);
     } else {
       // Completed last question of the 5-MCQ batch! Let's trigger Victory
       handleCompleteSectionRun();
@@ -403,6 +491,58 @@ export default function AIArena() {
 
   const handleCompleteSectionRun = async () => {
     if (!activeSection) return;
+    
+    // Ensure final logs are complete
+    let finalAnswersLog = [...answersLog];
+    let finalSelectedLog = [...selectedAnswersLog];
+    if (finalAnswersLog.length < activeSection.questions.length) {
+      const question = activeSection.questions[currentQuestionIdx];
+      const correct = selectedIdx !== null && selectedIdx === question.answerIndex;
+      finalAnswersLog.push(correct);
+      finalSelectedLog.push(selectedIdx);
+    }
+    
+    const newSessionItem = {
+      id: `session-${Date.now()}`,
+      sectionId: activeSection.id,
+      sectionTitle: {
+        en: activeSection.title.en,
+        ur: activeSection.title.ur
+      },
+      timestamp: new Date().toISOString(),
+      practiceMode,
+      scoreEarned: runPointsEarned,
+      correctCount: runCorrectCount,
+      totalCount: activeSection.questions.length,
+      questions: activeSection.questions.map((q, qIdx) => ({
+        question: {
+          en: q.question.en,
+          ur: q.question.ur
+        },
+        options: {
+          en: q.options.en,
+          ur: q.options.ur
+        },
+        answerIndex: q.answerIndex,
+        explanation: {
+          en: q.explanation.en,
+          ur: q.explanation.ur
+        },
+        userAnswerIndex: finalSelectedLog[qIdx] !== undefined ? finalSelectedLog[qIdx] : null,
+        isCorrect: finalAnswersLog[qIdx] !== undefined ? finalAnswersLog[qIdx] : false,
+      }))
+    };
+
+    const updatedSessions = [newSessionItem, ...sessionHistory].slice(0, 50);
+    setSessionHistory(updatedSessions);
+    localStorage.setItem('clay_quiz_sessions', JSON.stringify(updatedSessions));
+
+    if (practiceMode) {
+      // In practice mode, we do NOT save score, completed state, or sync to Firebase
+      setGameState('victory');
+      if (soundEnabled) playVictorySFX();
+      return;
+    }
     
     const prevHighScore = highScores[activeSection.id] || 0;
     const isNewHigh = runPointsEarned > prevHighScore;
@@ -418,12 +558,24 @@ export default function AIArena() {
     setScore(updatedGlobalScore);
     setCompletedSections(updatedCompleted);
     setHighScores(updatedHighScores);
+
+    // Check achievements
+    const prevAchievements = getAchievements(completedSections, highScores);
+    const prevUnlockedIds = new Set(prevAchievements.filter(a => a.unlocked).map(a => a.id));
+    const nextAchievements = getAchievements(updatedCompleted, updatedHighScores);
+    const newlyUnlocked = nextAchievements.filter(a => a.unlocked && !prevUnlockedIds.has(a.id));
+
+    if (newlyUnlocked.length > 0) {
+      setNewlyUnlockedAchievement(newlyUnlocked[0]);
+      if (soundEnabled) playAchievementSFX();
+    } else {
+      if (soundEnabled) playVictorySFX();
+    }
+
     setGameState('victory');
     
-    if (soundEnabled) playVictorySFX();
-
     // Sync back to Firebase Cloud
-    await syncQuizProgressToCloud(updatedGlobalScore, updatedCompleted, updatedHighScores);
+    await syncQuizProgressToCloud(updatedGlobalScore, updatedCompleted, updatedHighScores, updatedSessions);
   };
 
   const handleExitToLobby = () => {
@@ -433,14 +585,15 @@ export default function AIArena() {
 
   // Reset progress confirmation
   const handleResetProgress = async () => {
-    if (window.confirm(lang === 'en' ? "Are you sure you want to reset your AI Arena high scores and points to 0?" : "Kya aap such me apne saare points aur high scores reset karna chahte hain?")) {
+    if (window.confirm(lang === 'en' ? "Are you sure you want to reset your AI Arena high scores, points, and sessions to 0?" : "Kya aap such me apne saare points, high scores aur sabaq records reset karna chahte hain?")) {
       setScore(0);
       setCompletedSections({});
       setHighScores({});
+      setSessionHistory([]);
       setGameState('lobby');
       setActiveSection(null);
       
-      await syncQuizProgressToCloud(0, {}, {});
+      await syncQuizProgressToCloud(0, {}, {}, []);
     }
   };
 
@@ -657,7 +810,7 @@ export default function AIArena() {
                   <Trophy className="w-4 h-4 text-brand-amber" />
                   <span>{lang === 'en' ? "Achievements & Badges" : "Kamyabiyan aur Badges"}</span>
                   <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-brand-amber/15 text-brand-charcoal font-mono font-bold">
-                    {achievements.filter(a => a.unlocked).length}/8
+                    {achievements.filter(a => a.unlocked).length}/9
                   </span>
                 </button>
                 <button
@@ -674,6 +827,20 @@ export default function AIArena() {
                   <Crown className="w-4 h-4 text-brand-amber" />
                   <span>{lang === 'en' ? "Global Leaderboard" : "Aalmi Rankings"}</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setLobbyTab('history');
+                    if (soundEnabled) playTone(850, 'sine', 0.05, 0.05);
+                  }}
+                  className={`flex items-center gap-2 px-5 py-3 font-display font-bold text-sm tracking-tight border-b-2 transition-all duration-200 cursor-pointer ${
+                    lobbyTab === 'history'
+                      ? 'border-brand-amber text-brand-charcoal'
+                      : 'border-transparent text-brand-muted hover:text-brand-charcoal'
+                  }`}
+                >
+                  <History className="w-4 h-4 text-brand-amber" />
+                  <span>{lang === 'en' ? "Session History" : "Sabaq Records"}</span>
+                </button>
               </div>
 
               <AnimatePresence mode="wait">
@@ -685,6 +852,98 @@ export default function AIArena() {
                     exit={{ opacity: 0, y: -10 }}
                     className="space-y-8"
                   >
+                    {/* Practice Mode Toggle Banner */}
+                    <div className="p-4 md:p-5 bg-gradient-to-r from-brand-sand/45 via-brand-sand/30 to-brand-amber/5 border border-brand-slate/10 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-start gap-3">
+                        <div className={`p-2.5 rounded-xl transition-colors duration-200 ${practiceMode ? 'bg-green-500/10 text-green-600' : 'bg-brand-sand text-brand-muted'}`}>
+                          <BookOpen className="w-5 h-5" />
+                        </div>
+                        <div className="space-y-1">
+                          <h4 className="font-sans font-bold text-sm text-brand-charcoal flex flex-wrap items-center gap-2">
+                            <span>{lang === 'en' ? "Practice Mode" : "Practice Mode"}</span>
+                            {practiceMode && (
+                              <span className="text-[9px] font-mono font-black bg-green-500/15 text-green-700 px-2 py-0.5 rounded border border-green-500/20 uppercase tracking-wider animate-pulse">
+                                {lang === 'en' ? "ACTIVE (No Timer)" : "CHALU HAI (Bina Timer)"}
+                              </span>
+                            )}
+                          </h4>
+                          <p className="text-xs text-brand-muted max-w-xl leading-relaxed">
+                            {lang === 'en' 
+                              ? "Removes the countdown timer from quiz sessions, allowing you to learn the material without pressure. Progress & high scores are not recorded in this mode."
+                              : "Quiz sessions se countdown timer ko khatam karta hai taake aap bina kisi dhabao ke seekh sakein. Is mode me progress save nahi hoti."}
+                          </p>
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={togglePracticeMode}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 focus:outline-none cursor-pointer self-end sm:self-auto shrink-0 ${
+                          practiceMode ? 'bg-green-500' : 'bg-brand-slate/20'
+                        }`}
+                        title={lang === 'en' ? "Toggle Practice Mode" : "Practice Mode On/Off Karein"}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${
+                            practiceMode ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
+                      </button>
+                    </div>
+
+                    {/* Weekly Challenge Quiz Module Card */}
+                    <div className="p-5 md:p-6 bg-gradient-to-br from-brand-charcoal to-neutral-900 text-brand-cream border border-brand-charcoal/20 rounded-2xl relative overflow-hidden shadow-lg select-none">
+                      {/* Animated decorative circles */}
+                      <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-brand-amber/15 rounded-full blur-3xl pointer-events-none" />
+                      <div className="absolute left-1/3 top-0 w-32 h-32 bg-yellow-500/5 rounded-full blur-2xl pointer-events-none" />
+
+                      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-5 relative z-10">
+                        <div className="space-y-2 max-w-xl text-left">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-brand-amber/15 border border-brand-amber/35 rounded-full text-[9px] font-mono font-black text-brand-amber uppercase tracking-wider">
+                            <Crown className="w-3 h-3 text-brand-amber animate-pulse" />
+                            <span>{lang === 'en' ? "ACTIVE WEEKLY CHALLENGE" : "IS HAFTE KA KHAS TEST"}</span>
+                          </span>
+                          <h3 className="font-display text-xl md:text-2xl font-extrabold tracking-tight">
+                            {lang === 'en' ? weeklyChallengeSection.title.en : weeklyChallengeSection.title.ur}
+                          </h3>
+                          <p className="text-xs text-brand-cream/80 leading-relaxed">
+                            {lang === 'en' ? weeklyChallengeSection.subtitle.en : weeklyChallengeSection.subtitle.ur}
+                          </p>
+                          
+                          <div className="flex flex-wrap items-center gap-4 pt-1.5 text-[11px] font-mono font-bold text-brand-cream/70">
+                            <span className="flex items-center gap-1">
+                              <Star className="w-3.5 h-3.5 text-brand-amber fill-brand-amber" />
+                              <span>{lang === 'en' ? "Reward: 50 PTS per Question (250 PTS Max)" : "Inam: Har Sawaal Par 50 PTS (250 PTS Max)"}</span>
+                            </span>
+                            <span className="flex items-center gap-1 bg-white/10 px-2 py-0.5 rounded-md text-brand-amber">
+                              <Crown className="w-3.5 h-3.5" />
+                              <span>{lang === 'en' ? "Weekly Champion Badge" : "Haftawar Champion Badge"}</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex flex-col items-stretch sm:items-start md:items-end gap-3 shrink-0 w-full md:w-auto">
+                          {completedSections[weeklyChallengeSection.id] ? (
+                            <div className="flex items-center gap-2 bg-green-500/20 border border-green-500/35 text-green-400 px-4 py-2.5 rounded-xl text-xs font-mono font-black w-full justify-center">
+                              <CheckCircle2 className="w-4 h-4 text-green-400" />
+                              <span>{lang === 'en' ? "COMPLETED" : "KAMYABI SE MUKAMMAL"}</span>
+                            </div>
+                          ) : (
+                            <motion.button
+                              whileHover={{ scale: 1.02 }}
+                              whileTap={{ scale: 0.98 }}
+                              onClick={() => {
+                                handleStartSectionQuiz(weeklyChallengeSection);
+                              }}
+                              className="px-6 py-3 bg-brand-amber hover:bg-brand-amber/95 text-brand-charcoal rounded-xl text-xs font-bold font-mono tracking-wider transition-all duration-200 cursor-pointer shadow-md flex items-center justify-center gap-2 w-full md:w-auto"
+                            >
+                              <Play className="w-4 h-4 fill-current" />
+                              <span>{lang === 'en' ? "LAUNCH CHALLENGE" : "CHALLENGE SHURU KAREIN"}</span>
+                            </motion.button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
                     {/* Modules Roadmap */}
                     <div className="space-y-4 text-left">
                       <div className="flex items-center justify-between">
@@ -1056,7 +1315,7 @@ export default function AIArena() {
                       })}
                     </div>
                   </motion.div>
-                ) : (
+                ) : lobbyTab === 'leaderboard' ? (
                   <motion.div
                     key="leaderboard-view"
                     initial={{ opacity: 0, y: 10 }}
@@ -1071,6 +1330,198 @@ export default function AIArena() {
                       soundEnabled={soundEnabled}
                       playTone={playTone}
                     />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="history-view"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    className="space-y-6 text-left"
+                  >
+                    {/* Session History Header */}
+                    <div className="p-6 bg-brand-charcoal text-brand-cream rounded-2xl relative overflow-hidden shadow-lg border border-brand-slate/15 select-none">
+                      <div className="absolute top-0 right-0 w-48 h-48 bg-brand-amber/10 rounded-full blur-2xl pointer-events-none" />
+                      <div className="space-y-1 relative z-10">
+                        <span className="block text-[10px] font-mono uppercase font-black text-brand-amber tracking-wider">
+                          {lang === 'en' ? "ACADEMIC LEDGER & RECORDS" : "SABAQ KA MUKAMMAL RECORD"}
+                        </span>
+                        <h3 className="font-display text-2xl font-extrabold tracking-tight">
+                          {lang === 'en' ? "Session History Review" : "Sabaq Records & Explanation"}
+                        </h3>
+                        <p className="text-xs text-brand-cream/70 max-w-xl leading-relaxed">
+                          {lang === 'en' 
+                            ? "Review your past quiz attempts, inspect which questions you missed, and read the corrective explanations to solidify your weights."
+                            : "Apne purane tests ka jaiza lein, ghalat sawaalat ki nishandahi karein aur behtareen samjh ke liye unki wazahat parhein."}
+                        </p>
+                      </div>
+                    </div>
+
+                    {sessionHistory.length === 0 ? (
+                      <div className="p-12 text-center bg-brand-sand/15 border border-dashed border-brand-slate/20 rounded-2xl space-y-3">
+                        <History className="w-10 h-10 text-brand-slate/30 mx-auto animate-pulse" />
+                        <div className="space-y-1">
+                          <p className="font-bold text-sm text-brand-charcoal">
+                            {lang === 'en' ? "No session history recorded" : "Koi records majood nahi hain"}
+                          </p>
+                          <p className="text-xs text-brand-muted max-w-xs mx-auto leading-relaxed">
+                            {lang === 'en' 
+                              ? "Complete a quiz module or the Weekly Challenge to populate your personalized revision workspace."
+                              : "Revision workspace ko shuru karne ke liye koi bhi quiz module ya Weekly Challenge mukammal karein."}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {sessionHistory.map((sess) => {
+                          const isExpanded = expandedSessionId === sess.id;
+                          const dateStr = new Date(sess.timestamp).toLocaleDateString(undefined, {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+
+                          return (
+                            <div key={sess.id} className="bg-white border border-brand-slate/15 rounded-2xl overflow-hidden transition-all duration-300">
+                              {/* Summary Row */}
+                              <div className="p-4 md:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-brand-sand/10 border-b border-brand-slate/5">
+                                <div className="space-y-1.5 text-left">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h4 className="font-sans font-black text-sm text-brand-charcoal">
+                                      {lang === 'en' ? sess.sectionTitle.en : sess.sectionTitle.ur}
+                                    </h4>
+                                    
+                                    {sess.practiceMode ? (
+                                      <span className="text-[9px] font-mono font-black bg-blue-500/10 border border-blue-500/20 text-blue-700 px-2 py-0.5 rounded uppercase">
+                                        {lang === 'en' ? "PRACTICE" : "PRACTICE RUN"}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] font-mono font-black bg-green-500/10 border border-green-500/20 text-green-700 px-2 py-0.5 rounded uppercase">
+                                        {lang === 'en' ? "OFFICIAL" : "ASLI TEST"}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  <div className="flex items-center gap-3 text-[11px] font-mono font-bold text-brand-muted">
+                                    <span className="flex items-center gap-1">
+                                      <Calendar className="w-3.5 h-3.5" />
+                                      <span>{dateStr}</span>
+                                    </span>
+                                    <span>•</span>
+                                    <span>
+                                      {lang === 'en' ? `Score: +${sess.scoreEarned} PTS` : `Points: +${sess.scoreEarned} PTS`}
+                                    </span>
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center gap-3.5 self-end sm:self-auto shrink-0">
+                                  {/* Compact check circles timeline visualization */}
+                                  <div className="flex gap-1.5 items-center">
+                                    {sess.questions.map((q: any, idx: number) => (
+                                      <div 
+                                        key={idx} 
+                                        className={`w-2.5 h-2.5 rounded-full ${
+                                          q.isCorrect ? 'bg-green-500' : 'bg-red-500'
+                                        }`}
+                                        title={q.isCorrect ? "Correct" : "Incorrect"}
+                                      />
+                                    ))}
+                                    <span className="text-xs font-mono font-black text-brand-charcoal ml-1">
+                                      {sess.correctCount} / {sess.totalCount}
+                                    </span>
+                                  </div>
+
+                                  <button
+                                    onClick={() => {
+                                      setExpandedSessionId(isExpanded ? null : sess.id);
+                                      if (soundEnabled) playTone(500, 'sine', 0.04, 0.04);
+                                    }}
+                                    className="p-2 border border-brand-slate/15 hover:border-brand-slate/30 bg-white hover:bg-brand-sand rounded-xl text-brand-muted hover:text-brand-charcoal transition-colors cursor-pointer flex items-center gap-1.5 text-xs font-bold font-mono"
+                                  >
+                                    <Eye className="w-3.5 h-3.5" />
+                                    <span>{isExpanded ? (lang === 'en' ? "Collapse" : "Chupayein") : (lang === 'en' ? "Review" : "Jaiza lein")}</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              {/* Expanded Questions Breakdown */}
+                              {isExpanded && (
+                                <div className="p-4 md:p-6 space-y-6 bg-brand-sand/5 text-left divide-y divide-brand-slate/10">
+                                  {sess.questions.map((q: any, qIdx: number) => (
+                                    <div key={qIdx} className={`pt-6 first:pt-0 space-y-4`}>
+                                      <div className="flex items-start gap-2.5">
+                                        <span className={`p-1 rounded-lg shrink-0 mt-0.5 text-white ${
+                                          q.isCorrect ? 'bg-green-500' : 'bg-red-500'
+                                        }`}>
+                                          {q.isCorrect ? (
+                                            <CheckCircle2 className="w-4 h-4" />
+                                          ) : (
+                                            <XCircle className="w-4 h-4" />
+                                          )}
+                                        </span>
+                                        <div className="space-y-1">
+                                          <span className="block text-[9px] font-mono font-black text-brand-slate uppercase tracking-wider">
+                                            {lang === 'en' ? `QUESTION ${qIdx + 1}` : `SAWAAL ${qIdx + 1}`}
+                                          </span>
+                                          <h5 className="font-sans font-bold text-sm text-brand-charcoal leading-relaxed">
+                                            {lang === 'en' ? q.question.en : q.question.ur}
+                                          </h5>
+                                        </div>
+                                      </div>
+
+                                      {/* Options list */}
+                                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pl-7">
+                                        {q.options[lang === 'en' ? 'en' : 'ur']?.map((opt: string, oIdx: number) => {
+                                          const isSelectedByUser = q.userAnswerIndex === oIdx;
+                                          const isRightIndex = q.answerIndex === oIdx;
+                                          
+                                          let cardStyle = "bg-white border-brand-slate/10 text-brand-charcoal";
+                                          if (isRightIndex) {
+                                            cardStyle = "bg-green-50 border-green-500/30 text-green-800 font-medium";
+                                          } else if (isSelectedByUser && !q.isCorrect) {
+                                            cardStyle = "bg-red-50 border-red-500/30 text-red-800";
+                                          }
+
+                                          return (
+                                            <div 
+                                              key={oIdx} 
+                                              className={`p-3 rounded-xl border text-xs leading-relaxed flex items-center justify-between gap-2.5 ${cardStyle}`}
+                                            >
+                                              <span>{opt}</span>
+                                              <div className="shrink-0 font-mono text-[9px] font-black uppercase tracking-wider">
+                                                {isRightIndex && (
+                                                  <span className="text-green-600 font-bold">{lang === 'en' ? "CORRECT" : "SAHI"}</span>
+                                                )}
+                                                {isSelectedByUser && !q.isCorrect && (
+                                                  <span className="text-red-500 font-bold">{lang === 'en' ? "YOUR SELECTION" : "AAPKA JAWAB"}</span>
+                                                )}
+                                              </div>
+                                            </div>
+                                          );
+                                        })}
+                                      </div>
+
+                                      {/* Explanation Box */}
+                                      <div className="pl-7 pt-1.5">
+                                        <div className="p-4 bg-brand-sand/30 border border-brand-slate/10 rounded-xl space-y-1">
+                                          <span className="block text-[9px] font-mono font-black text-brand-amber uppercase tracking-widest">
+                                            {lang === 'en' ? "EXPLANATION / WAZAHAT" : "WAZAHAT / EXPLANATION"}
+                                          </span>
+                                          <p className="text-xs text-brand-muted leading-relaxed">
+                                            {lang === 'en' ? q.explanation.en : q.explanation.ur}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -1096,13 +1547,18 @@ export default function AIArena() {
                 </button>
 
                 <div className="flex flex-wrap items-center gap-3">
+                  {practiceMode && (
+                    <span className="text-[10px] font-mono font-bold bg-green-500/15 text-green-700 px-2.5 py-1 rounded-lg border border-green-500/20 uppercase tracking-wide">
+                      {lang === 'en' ? "Practice Mode" : "Practice Mode"}
+                    </span>
+                  )}
                   <span className="text-xs font-mono font-bold text-brand-muted bg-brand-sand border border-brand-slate/10 px-2.5 py-1 rounded-lg">
                     {lang === 'en' ? "Section:" : "Section:"} <span className="text-brand-charcoal font-black">{lang === 'en' ? activeSection.title.en : activeSection.title.ur}</span>
                   </span>
                   
                   <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-brand-charcoal text-brand-amber border border-brand-charcoal/25 rounded-lg text-xs font-mono font-black">
                     <Flame className="w-3.5 h-3.5 text-brand-amber animate-pulse" />
-                    <span>+{activeSection.questions[currentQuestionIdx]?.points} PTS</span>
+                    <span>+{activeSection.questions[currentQuestionIdx]?.points} PTS{practiceMode && "*"}</span>
                   </span>
                 </div>
               </div>
@@ -1136,35 +1592,70 @@ export default function AIArena() {
 
                 {/* Countdown Timer HUD */}
                 <div className="flex items-center gap-3 self-start sm:self-auto">
-                  <div className={`relative flex items-center gap-2 px-4 py-1.5 border rounded-2xl font-mono text-xs font-bold transition-all duration-300 ${
-                    isAnswerChecked 
-                      ? 'bg-brand-sand/30 border-brand-slate/5 text-brand-muted opacity-60' 
-                      : timeLeft <= 5 
-                        ? 'bg-red-500/10 border-red-500/35 text-red-600 animate-pulse scale-105' 
-                        : 'bg-brand-sand/50 border-brand-slate/10 text-brand-charcoal'
-                  }`}>
-                    <Timer className={`w-4 h-4 ${timeLeft <= 5 && !isAnswerChecked ? 'text-red-500 animate-spin-slow' : 'text-brand-amber'}`} />
-                    <span className="tabular-nums">
-                      {isAnswerChecked 
-                        ? (lang === 'en' ? "RESOLVED" : "HAL SHUDA") 
-                        : `${timeLeft}s`}
-                    </span>
-                  </div>
-
-                  {/* Horizontal visual indicator bar */}
-                  {!isAnswerChecked && (
-                    <div className="w-16 h-1.5 bg-brand-sand border border-brand-slate/5 rounded-full overflow-hidden">
-                      <div 
-                        className={`h-full transition-all duration-1000 rounded-full ${timeLeft <= 5 ? 'bg-red-500' : 'bg-brand-amber'}`}
-                        style={{ width: `${(timeLeft / 20) * 100}%` }}
-                      />
+                  {practiceMode ? (
+                    <div className="flex items-center gap-2 px-4 py-1.5 border border-green-500/20 bg-green-500/5 text-green-700 font-mono text-xs font-bold rounded-2xl select-none">
+                      <Sparkles className="w-4 h-4 text-green-600 animate-pulse" />
+                      <span>{lang === 'en' ? "PRACTICE (∞ TIME)" : "PRACTICE (Bina Limit)"}</span>
                     </div>
+                  ) : (
+                    <>
+                      <div className={`relative flex items-center gap-2 px-4 py-1.5 border rounded-2xl font-mono text-xs font-bold transition-all duration-300 ${
+                        isAnswerChecked 
+                          ? 'bg-brand-sand/30 border-brand-slate/5 text-brand-muted opacity-60' 
+                          : timeLeft <= 5 
+                            ? 'bg-red-500/10 border-red-500/35 text-red-600 animate-pulse scale-105' 
+                            : 'bg-brand-sand/50 border-brand-slate/10 text-brand-charcoal'
+                      }`}>
+                        <Timer className={`w-4 h-4 ${timeLeft <= 5 && !isAnswerChecked ? 'text-red-500 animate-spin-slow' : 'text-brand-amber'}`} />
+                        <span className="tabular-nums">
+                          {isAnswerChecked 
+                            ? (lang === 'en' ? "RESOLVED" : "HAL SHUDA") 
+                            : `${timeLeft}s`}
+                        </span>
+                      </div>
+
+                      {/* Horizontal visual indicator bar */}
+                      {!isAnswerChecked && (
+                        <div className="w-16 h-1.5 bg-brand-sand border border-brand-slate/5 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-1000 rounded-full ${timeLeft <= 5 ? 'bg-red-500' : 'bg-brand-amber'}`}
+                            style={{ width: `${(timeLeft / 20) * 100}%` }}
+                          />
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
 
               {/* Question Core Area */}
-              <div className="space-y-6">
+              <div ref={questionContainerRef} className="space-y-6">
+                
+                {/* Clay bot asking questions animation */}
+                <div className="flex items-center gap-4 bg-brand-sand/20 border border-brand-slate/10 p-4 md:p-5 rounded-2xl select-none relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-24 h-24 bg-brand-amber/5 rounded-full blur-xl pointer-events-none" />
+                  <div className="relative shrink-0">
+                    <ClayLogo size={42} className="animate-bounce" />
+                    <span className="absolute -bottom-1 -right-1 flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-black text-brand-amber uppercase tracking-widest animate-pulse">
+                        {lang === 'en' ? "CLAY BOT TRANSMISSION" : "CLAY BOT KI GUFTAGU"}
+                      </span>
+                      <span className="h-1.5 w-1.5 bg-brand-amber rounded-full animate-ping" />
+                    </div>
+                    <p className="text-xs font-semibold text-brand-charcoal italic leading-relaxed">
+                      {lang === 'en' 
+                        ? `"I am active and presenting this neural inquiry. Answer wisely!"`
+                        : `"Main active hoon aur ye sawal pooch raha hoon. Sahi jawab chunye!"`}
+                    </p>
+                  </div>
+                </div>
+
                 <div className="space-y-1 text-left">
                   <span className="text-[10px] font-mono font-black text-brand-amber uppercase tracking-widest">
                     {lang === 'en' ? `LIVE SYSTEM QUERY 0${currentQuestionIdx + 1}` : `MASHINI QUERY SHUMAR 0${currentQuestionIdx + 1}`}
@@ -1177,7 +1668,7 @@ export default function AIArena() {
                 </div>
 
                 {/* 4 options buttons */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-4xl">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 max-w-4xl">
                   {activeSection.questions[currentQuestionIdx]?.options[currentLang]?.map((opt, idx) => {
                     const isSelected = selectedIdx === idx;
                     const isCorrectOption = idx === activeSection.questions[currentQuestionIdx].answerIndex;
@@ -1197,11 +1688,13 @@ export default function AIArena() {
                     }
 
                     return (
-                      <button
+                      <motion.button
                         key={`playing-opt-${idx}`}
+                        whileHover={!isAnswerChecked ? { scale: 1.01 } : undefined}
+                        whileTap={!isAnswerChecked ? { scale: 0.97 } : undefined}
                         onClick={() => handleOptionClick(idx)}
                         disabled={isAnswerChecked}
-                        className={`p-4 md:p-5 rounded-2xl border text-left text-sm font-medium transition-all duration-200 flex items-start gap-3 select-none cursor-pointer ${buttonStyle}`}
+                        className={`p-4 md:p-5 min-h-[3.5rem] rounded-2xl border text-left text-sm font-medium transition-all duration-200 flex items-start gap-3 select-none cursor-pointer w-full focus:outline-hidden touch-manipulation ${buttonStyle}`}
                       >
                         <span className={`w-6 h-6 rounded-lg border flex items-center justify-center text-xs font-mono font-black shrink-0 ${
                           isSelected 
@@ -1211,7 +1704,7 @@ export default function AIArena() {
                           {String.fromCharCode(65 + idx)}
                         </span>
                         <span className="leading-tight pt-0.5">{opt}</span>
-                      </button>
+                      </motion.button>
                     );
                   })}
                 </div>
@@ -1225,6 +1718,7 @@ export default function AIArena() {
                   <AnimatePresence>
                     {isAnswerChecked && (
                       <motion.div
+                        ref={explanationRef}
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0 }}
@@ -1294,21 +1788,35 @@ export default function AIArena() {
                 className="p-8 text-center space-y-8 select-none text-left"
               >
               <div className="max-w-md mx-auto space-y-6 text-center">
-                <div className="inline-flex p-4 bg-brand-amber/15 border border-brand-amber/25 rounded-3xl text-brand-amber animate-bounce">
-                  <Award className="w-12 h-12" />
+                <div className={`inline-flex p-4 rounded-3xl animate-bounce ${
+                  practiceMode 
+                    ? "bg-green-500/10 border border-green-500/25 text-green-600" 
+                    : "bg-brand-amber/15 border border-brand-amber/25 text-brand-amber"
+                }`}>
+                  {practiceMode ? <BookOpen className="w-12 h-12" /> : <Award className="w-12 h-12" />}
                 </div>
 
                 <div className="space-y-1.5">
                   <span className="block text-[10px] font-mono font-black text-brand-amber uppercase tracking-widest">
-                    {lang === 'en' ? "ARENA EXCURSION COMPLETED" : "ARENA CHIP VICTORY"}
+                    {practiceMode 
+                      ? (lang === 'en' ? "PRACTICE RUN COMPLETED" : "PRACTICE TEST MUKAMMAL")
+                      : (lang === 'en' ? "ARENA EXCURSION COMPLETED" : "ARENA CHIP VICTORY")}
                   </span>
                   <h3 className="font-display text-2xl md:text-3xl font-extrabold text-brand-charcoal">
-                    {lang === 'en' ? "Victory Achieved!" : "Fatah Hasil Hui!"}
+                    {practiceMode 
+                      ? (lang === 'en' ? "Practice Complete!" : "Practice Mukammal!")
+                      : (lang === 'en' ? "Victory Achieved!" : "Fatah Hasil Hui!")}
                   </h3>
                   <p className="text-xs text-brand-muted leading-relaxed max-w-sm mx-auto">
-                    {lang === 'en'
-                      ? `You completed the '${activeSection.title.en}' battle arena safely and synchronized progress.`
-                      : `Aapne '${activeSection.title.ur}' battle arena ka test safalata ke sath poora kar liya.`}
+                    {practiceMode ? (
+                      lang === 'en'
+                        ? `You completed the '${activeSection.title.en}' learning arena in Practice Mode. Toggle Practice Mode off to take the Timed Challenge for XP!`
+                        : `Aapne '${activeSection.title.ur}' learning arena ka test Practice Mode me safalata ke sath poora kar liya. Asli high score ke liye Practice Mode band karein!`
+                    ) : (
+                      lang === 'en'
+                        ? `You completed the '${activeSection.title.en}' battle arena safely and synchronized progress.`
+                        : `Aapne '${activeSection.title.ur}' battle arena ka test safalata ke sath poora kar liya.`
+                    )}
                   </p>
                 </div>
 
@@ -1323,17 +1831,34 @@ export default function AIArena() {
                   
                   <div className="space-y-0.5 border-l border-brand-slate/10 pl-4">
                     <span className="block text-[10px] font-mono text-brand-muted uppercase">{lang === 'en' ? "EARNED SCORE" : "POINTS MILE"}</span>
-                    <span className="block text-xl font-black text-brand-amber">
-                      +{runPointsEarned} PTS
-                    </span>
+                    {practiceMode ? (
+                      <div className="flex flex-col items-center">
+                        <span className="block text-sm font-bold text-green-600">
+                          {lang === 'en' ? "Practice" : "Practice"}
+                        </span>
+                        <span className="block text-[9px] font-mono text-brand-muted font-bold leading-none">
+                          {lang === 'en' ? "XP Not Registered" : "XP Register nahi hui"}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="block text-xl font-black text-brand-amber">
+                        +{runPointsEarned} PTS
+                      </span>
+                    )}
                   </div>
                 </div>
 
                 {/* Interactive Feedback message from Clay */}
                 <p className="text-xs font-semibold text-brand-charcoal italic bg-brand-sand/15 p-4 border border-brand-slate/10 rounded-xl leading-relaxed">
-                  "{runCorrectCount === 5 
-                    ? (lang === 'en' ? "PERFECT RESPONSE ALIGNMENT! Flawless backpropagation achieved, all weights matching 100%!" : "LA-JAWAB JAWABAT! Har dimaagi weight bilkul sahi point par fit ho chuka hai!")
-                    : (lang === 'en' ? `Solid run! You got ${runCorrectCount} correct. Retake the test anytime to maximize points.` : `Acha koshish! Aapne ${runCorrectCount} sahi kiye. Points behtar karne ke liye aap jab chahein dubara khel sakte hain.`)}"
+                  {practiceMode ? (
+                    lang === 'en'
+                      ? `"Excellent practice! You answered ${runCorrectCount} questions correctly without any clock pressure. When you're ready, take the timed challenge!"`
+                      : `"Acha practice! Aapne bina kisi timer ke dhabao ke ${runCorrectCount} sahi jawab diye. Jab aap tayyar hon, toh timed challenge zaroor khelein!"`
+                  ) : (
+                    `"${runCorrectCount === 5 
+                      ? (lang === 'en' ? "PERFECT RESPONSE ALIGNMENT! Flawless backpropagation achieved, all weights matching 100%!" : "LA-JAWAB JAWABAT! Har dimaagi weight bilkul sahi point par fit ho chuka hai!")
+                      : (lang === 'en' ? `Solid run! You got ${runCorrectCount} correct. Retake the test anytime to maximize points.` : `Acha koshish! Aapne ${runCorrectCount} sahi kiye. Points behtar karne ke liye aap jab chahein dubara khel sakte hain.`)}"`
+                  )}
                 </p>
 
                 {/* Action Buttons */}
@@ -1373,6 +1898,85 @@ export default function AIArena() {
               soundEnabled={soundEnabled}
               playTone={playTone}
             />
+          )}
+        </AnimatePresence>
+
+        {/* Achievement Unlocked Celebration Modal overlay */}
+        <AnimatePresence>
+          {newlyUnlockedAchievement && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-brand-charcoal/80 backdrop-blur-md z-50 flex items-center justify-center p-4"
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                className="bg-white border-2 border-brand-amber rounded-3xl p-6 md:p-8 max-w-md w-full text-center relative overflow-hidden shadow-2xl"
+              >
+                {/* Confetti-like ambient bursts */}
+                <div className="absolute -top-12 -left-12 w-32 h-32 bg-brand-amber/15 rounded-full blur-2xl animate-pulse pointer-events-none" />
+                <div className="absolute -bottom-12 -right-12 w-32 h-32 bg-yellow-500/10 rounded-full blur-2xl animate-pulse pointer-events-none" />
+
+                <div className="space-y-6 relative z-10">
+                  <div className="w-20 h-20 rounded-2xl bg-brand-amber/10 border-2 border-brand-amber flex items-center justify-center text-brand-amber mx-auto animate-bounce shadow-lg shadow-brand-amber/10">
+                    <Trophy className="w-10 h-10" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-mono font-black text-brand-amber uppercase tracking-widest block">
+                      {lang === 'en' ? "ACHIEVEMENT UNLOCKED!" : "NAYI KAMYABI HASIL!"}
+                    </span>
+                    <h3 className="font-display text-xl md:text-2xl font-extrabold text-brand-charcoal tracking-tight">
+                      {lang === 'en' ? newlyUnlockedAchievement.name.en : newlyUnlockedAchievement.name.ur}
+                    </h3>
+                    <p className="text-xs text-brand-muted max-w-sm mx-auto leading-relaxed">
+                      {lang === 'en' ? newlyUnlockedAchievement.desc.en : newlyUnlockedAchievement.desc.ur}
+                    </p>
+                  </div>
+
+                  {/* Badge card visualization */}
+                  <div className="p-4 bg-brand-sand/30 border border-brand-slate/10 rounded-2xl flex items-center gap-3.5 text-left">
+                    <div className="w-11 h-11 rounded-xl bg-brand-amber border border-brand-amber/30 flex items-center justify-center text-brand-charcoal font-bold shrink-0">
+                      <Crown className="w-6 h-6" />
+                    </div>
+                    <div className="space-y-0.5">
+                      <span className="block text-[9px] font-mono font-bold text-brand-slate uppercase tracking-wider">
+                        {lang === 'en' ? "PERMANENT BADGE AWARDED" : "HAMESHA K LIYE SHAMIL"}
+                      </span>
+                      <span className="block text-xs font-black text-brand-charcoal">
+                        {lang === 'en' ? newlyUnlockedAchievement.title.en : newlyUnlockedAchievement.title.ur}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <button
+                      onClick={() => {
+                        setSharingAchievement(newlyUnlockedAchievement);
+                        setNewlyUnlockedAchievement(null);
+                        if (soundEnabled) playTone(600, 'sine', 0.05, 0.05);
+                      }}
+                      className="flex-1 px-5 py-3 bg-brand-amber hover:bg-brand-amber/95 text-brand-charcoal rounded-xl text-xs font-bold font-mono tracking-wider transition-colors cursor-pointer flex items-center justify-center gap-2"
+                    >
+                      <Share2 className="w-4 h-4" />
+                      <span>{lang === 'en' ? "SHARE BADGE" : "BADGE SHARE KAREIN"}</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        setNewlyUnlockedAchievement(null);
+                        if (soundEnabled) playTone(350, 'sine', 0.05, 0.05);
+                      }}
+                      className="flex-1 px-5 py-3 bg-brand-sand hover:bg-brand-sand/85 text-brand-charcoal rounded-xl text-xs font-bold font-mono tracking-wider border border-brand-slate/10 transition-colors cursor-pointer"
+                    >
+                      <span>{lang === 'en' ? "CLOSE" : "BAND KAREIN"}</span>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>

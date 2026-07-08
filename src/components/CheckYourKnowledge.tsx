@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { HelpCircle, CheckCircle2, AlertTriangle, Sparkles, Award } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { syncQuizProgressToCloud } from '../lib/firebase';
+import ClayLogo from './ClayLogo';
 
 interface CheckYourKnowledgeProps {
   sectionId: 'basics' | 'family-tree' | 'prompting-rag' | 'deeper';
@@ -218,6 +219,28 @@ export default function CheckYourKnowledge({ sectionId }: CheckYourKnowledgeProp
         <div className="flex items-center gap-1.5 self-start sm:self-auto px-3 py-1 bg-brand-charcoal text-brand-cream border border-brand-charcoal/10 rounded-full text-xs font-mono font-bold">
           <Sparkles className="w-3 h-3 text-brand-amber animate-pulse" />
           <span>+20 PTS</span>
+        </div>
+      </div>
+
+      {/* Clay bot asking questions animation */}
+      <div className="flex items-center gap-3 bg-brand-sand/20 border border-brand-slate/10 p-3.5 rounded-2xl select-none mb-4 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-16 h-16 bg-brand-amber/5 rounded-full blur-lg pointer-events-none" />
+        <div className="relative shrink-0">
+          <ClayLogo size={36} className="animate-bounce" />
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+          </span>
+        </div>
+        <div className="space-y-0.5">
+          <span className="block text-[9px] font-mono font-black text-brand-amber uppercase tracking-widest animate-pulse">
+            {lang === 'en' ? "CLAY BOT INQUIRY" : "CLAY BOT KA SAWAAL"}
+          </span>
+          <p className="text-xs font-medium text-brand-charcoal italic">
+            {lang === 'en' 
+              ? `"Let's test your memory on this section!"`
+              : `"Aayein is section par aapke dimaag ka test lein!"`}
+          </p>
         </div>
       </div>
 

@@ -141,24 +141,33 @@ export function setupAuthListener(
         let quizCompleted: Record<string, boolean> = {};
         let quizHighScores: Record<string, number> = {};
 
+        let quizHistory: any[] = [];
         if (quizSnap.exists()) {
           const qData = quizSnap.data();
           quizScore = qData.score || 0;
           quizCompleted = qData.completedSections || {};
           quizHighScores = qData.highScores || {};
+          quizHistory = qData.sessionHistory || [];
         } else {
           const localScore = localStorage.getItem('clay_quiz_score');
           const localCompleted = localStorage.getItem('clay_quiz_completed');
           const localHighScores = localStorage.getItem('clay_quiz_high_scores');
+          const localHistory = localStorage.getItem('clay_quiz_sessions');
           quizScore = localScore ? parseInt(localScore, 10) : 0;
           quizCompleted = localCompleted ? JSON.parse(localCompleted) : {};
           quizHighScores = localHighScores ? JSON.parse(localHighScores) : {};
+          try {
+            quizHistory = localHistory ? JSON.parse(localHistory) : [];
+          } catch (_) {
+            quizHistory = [];
+          }
 
           await setDoc(quizRef, {
             userId: user.uid,
             score: quizScore,
             completedSections: quizCompleted,
             highScores: quizHighScores,
+            sessionHistory: quizHistory,
             updatedAt: serverTimestamp()
           });
         }
@@ -166,6 +175,7 @@ export function setupAuthListener(
         localStorage.setItem('clay_quiz_score', quizScore.toString());
         localStorage.setItem('clay_quiz_completed', JSON.stringify(quizCompleted));
         localStorage.setItem('clay_quiz_high_scores', JSON.stringify(quizHighScores));
+        localStorage.setItem('clay_quiz_sessions', JSON.stringify(quizHistory));
       } catch (e) {
         console.error("Error loading quiz progress:", e);
       }
@@ -233,13 +243,21 @@ export async function toggleSectionBookmarked(sectionId: string, isBookmarked: b
 }
 
 // 5. Sync Quiz progress to Firestore
-export async function syncQuizProgressToCloud(score: number, completedSections: Record<string, boolean>, highScores: Record<string, number>) {
+export async function syncQuizProgressToCloud(
+  score: number, 
+  completedSections: Record<string, boolean>, 
+  highScores: Record<string, number>,
+  sessionHistory?: any[]
+) {
   const currentUser = auth.currentUser;
   
   // Save locally first
   localStorage.setItem('clay_quiz_score', score.toString());
   localStorage.setItem('clay_quiz_completed', JSON.stringify(completedSections));
   localStorage.setItem('clay_quiz_high_scores', JSON.stringify(highScores));
+  if (sessionHistory) {
+    localStorage.setItem('clay_quiz_sessions', JSON.stringify(sessionHistory));
+  }
   
   window.dispatchEvent(new Event('clay_auth_state_changed'));
 
@@ -247,13 +265,17 @@ export async function syncQuizProgressToCloud(score: number, completedSections: 
 
   try {
     const quizRef = doc(db, 'quizProgress', currentUser.uid);
-    await setDoc(quizRef, {
+    const updateData: any = {
       userId: currentUser.uid,
       score,
       completedSections,
       highScores,
       updatedAt: serverTimestamp()
-    }, { merge: true });
+    };
+    if (sessionHistory) {
+      updateData.sessionHistory = sessionHistory;
+    }
+    await setDoc(quizRef, updateData, { merge: true });
   } catch (error) {
     console.error("Failed to sync quiz progress to Firebase Firestore:", error);
   }
