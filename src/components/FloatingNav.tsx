@@ -3,6 +3,7 @@ import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX } from 'lu
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
 import { useLanguage } from '../hooks/useLanguage';
+import { motion } from 'motion/react';
 
 export default function FloatingNav() {
   const { lang, t } = useLanguage();
@@ -102,7 +103,23 @@ export default function FloatingNav() {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300">
       {/* Dynamic Progress Bar */}
-      <div className="absolute top-0 left-0 h-[4px] bg-brand-amber progress-fill" style={{ width: `${scrollProgress}%` }} />
+      <motion.div 
+        className="absolute top-0 left-0 h-[4px] bg-brand-amber origin-left" 
+        initial={{ scaleX: 0, scaleY: 0, opacity: 0 }}
+        animate={{ 
+          scaleX: scrollProgress / 100,
+          scaleY: scrollProgress > 0 ? 1 : 0,
+          opacity: scrollProgress > 0 ? 1 : 0
+        }}
+        transition={{ 
+          type: "spring", 
+          stiffness: 120, 
+          damping: 18, 
+          mass: 0.4,
+          restDelta: 0.001 
+        }}
+        style={{ width: '100%' }}
+      />
 
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Brand Name & Reading Badge Container */}
