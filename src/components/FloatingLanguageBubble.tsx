@@ -17,41 +17,42 @@ export default function FloatingLanguageBubble() {
   }, [lang]);
 
   return (
-    <div className="fixed bottom-6 left-6 z-40 flex items-end gap-3 pointer-events-none select-none">
-      <div className="pointer-events-auto flex items-end gap-3">
-        {/* Animated Speech Bubble */}
+    <div className="fixed bottom-6 right-24 z-40 flex items-center gap-3 pointer-events-none select-none">
+      <div className="pointer-events-auto flex items-center gap-3 relative">
+        
+        {/* Animated Speech Bubble - positioning on the left of the button */}
         <AnimatePresence>
           {showSpeechBubble && (
             <motion.div
-              initial={{ opacity: 0, scale: 0.8, x: -20 }}
+              initial={{ opacity: 0, scale: 0.8, x: 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.8, x: -20 }}
-              className="bg-[#FDFBF7] border-2 border-brand-charcoal/10 rounded-2xl p-3.5 shadow-xl max-w-[220px] text-left relative pointer-events-auto border-brand-amber/20"
+              exit={{ opacity: 0, scale: 0.8, x: 20 }}
+              className="absolute right-14 bg-[#FDFBF7] border-2 border-brand-amber/20 rounded-2xl p-3.5 shadow-xl w-48 sm:w-56 text-right pointer-events-auto"
             >
               {/* Close Button */}
               <button 
                 onClick={() => setShowSpeechBubble(false)}
-                className="absolute top-1.5 right-1.5 p-0.5 text-brand-muted hover:text-brand-charcoal rounded-full bg-brand-sand/30 hover:bg-brand-sand/60 transition-colors cursor-pointer"
+                className="absolute top-1.5 left-1.5 p-0.5 text-brand-muted hover:text-brand-charcoal rounded-full bg-brand-sand/30 hover:bg-brand-sand/60 transition-colors cursor-pointer"
               >
                 <X className="w-3 h-3" />
               </button>
 
-              <div className="flex gap-2 items-start mt-1">
-                <Sparkles className="w-4.5 h-4.5 text-brand-amber shrink-0 mt-0.5 animate-pulse" />
-                <div>
+              <div className="flex gap-2 items-start mt-1 justify-end">
+                <div className="text-right">
                   <span className="block font-mono text-[9px] font-bold text-brand-amber uppercase tracking-wider">
                     {lang === 'en' ? "Clay says:" : "Clay bolra:"}
                   </span>
-                  <p className="text-[11.5px] font-medium text-brand-charcoal leading-relaxed pr-2">
+                  <p className="text-[11px] font-bold text-brand-charcoal leading-relaxed">
                     {lang === 'en' 
-                      ? "Arey Miya, Hyderabadi mein parhna hai? Tap below!" 
+                      ? "Arey Miya, Hyderabadi mein parhna hai? Tap karo!" 
                       : "Miya, English mein parhna hai? Tap karo!"}
                   </p>
                 </div>
+                <Sparkles className="w-4.5 h-4.5 text-brand-amber shrink-0 mt-0.5 animate-pulse" />
               </div>
 
-              {/* Speech arrow */}
-              <div className="absolute bottom-4 -left-1.5 w-3 h-3 bg-[#FDFBF7] border-l-2 border-b-2 border-brand-charcoal/10 rotate-[45deg]" />
+              {/* Speech arrow pointing to the right (the button is to the right) */}
+              <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-2.5 h-2.5 bg-[#FDFBF7] border-r-2 border-t-2 border-brand-amber/20 rotate-[45deg]" />
             </motion.div>
           )}
         </AnimatePresence>
@@ -65,7 +66,7 @@ export default function FloatingLanguageBubble() {
           whileHover={{ scale: 1.1, rotate: 12 }}
           whileTap={{ scale: 0.95 }}
           animate={{ 
-            y: [0, -6, 0],
+            y: [0, -4, 0],
           }}
           transition={{ 
             y: {

@@ -426,33 +426,64 @@ class AudioEngine {
     const voices = window.speechSynthesis.getVoices();
     let preferredVoice = null;
 
-    if (langCode === 'hyd') {
-      // Find regional Indian voices (Hindi or Urdu or Indian English as fallback)
-      preferredVoice = voices.find(v => 
-        (v.lang.startsWith('hi') || v.lang.startsWith('ur')) && (
-          v.name.toLowerCase().includes('india') ||
+    // Helper to find premium / natural / neural voices
+    const findBestVoice = (lang: string, fallbackPrefixes: string[]): SpeechSynthesisVoice | null => {
+      const lowerLang = lang.toLowerCase();
+      
+      // Tier 1: Natural, Neural, Premium or Google/Microsoft modern voices
+      let found = voices.find(v => 
+        v.lang.toLowerCase().replace('_', '-').startsWith(lowerLang) && (
+          v.name.toLowerCase().includes('natural') || 
+          v.name.toLowerCase().includes('neural') || 
+          v.name.toLowerCase().includes('premium') ||
+          v.name.toLowerCase().includes('siri') ||
           v.name.toLowerCase().includes('google')
         )
-      ) || voices.find(v => 
-        v.lang.startsWith('hi') || v.lang.startsWith('ur') || v.lang.startsWith('en-in')
       );
-    }
+      if (found) return found;
 
-    if (!preferredVoice) {
-      // Prefer English male or youthful vocal profiles for a friendly teen boy sound
-      preferredVoice = voices.find(v => 
-        v.lang.startsWith('en') && (
-          v.name.toLowerCase().includes('male') || 
-          v.name.toLowerCase().includes('guy') || 
-          v.name.toLowerCase().includes('david') || 
-          v.name.toLowerCase().includes('natural') || 
-          v.name.toLowerCase().includes('standard-b')
+      // Tier 2: Specific matching voice names
+      found = voices.find(v => 
+        v.lang.toLowerCase().replace('_', '-').startsWith(lowerLang) && (
+          v.name.toLowerCase().includes('david') ||
+          v.name.toLowerCase().includes('ravi') ||
+          v.name.toLowerCase().includes('heera') ||
+          v.name.toLowerCase().includes('harsh')
         )
-      ) || voices.find(v => 
-        v.name.toLowerCase().includes('google us english') ||
-        v.name.toLowerCase().includes('microsoft david') ||
-        v.lang.startsWith('en')
       );
+      if (found) return found;
+
+      // Tier 3: General language match
+      found = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(lowerLang));
+      if (found) return found;
+
+      // Tier 4: Fallbacks
+      for (const prefix of fallbackPrefixes) {
+        const lowerPrefix = prefix.toLowerCase();
+        found = voices.find(v => 
+          v.lang.toLowerCase().replace('_', '-').startsWith(lowerPrefix) && (
+            v.name.toLowerCase().includes('natural') || 
+            v.name.toLowerCase().includes('google')
+          )
+        );
+        if (found) return found;
+
+        found = voices.find(v => v.lang.toLowerCase().replace('_', '-').startsWith(lowerPrefix));
+        if (found) return found;
+      }
+
+      return null;
+    };
+
+    if (langCode === 'hyd') {
+      // For Hyderabadi: ur-IN or hi-IN, fallback en-IN
+      preferredVoice = findBestVoice('ur-in', ['ur', 'hi-in', 'hi', 'en-in']);
+      if (!preferredVoice) {
+        preferredVoice = findBestVoice('hi', ['ur', 'en-in']);
+      }
+    } else {
+      // English
+      preferredVoice = findBestVoice('en-us', ['en', 'en-gb']);
     }
 
     if (preferredVoice) {
@@ -460,9 +491,14 @@ class AudioEngine {
     }
 
     // Set properties for a soft, precise, and highly listenable narrator voice
-    this.activeUtterance.pitch = this.userPitch;  // Custom speaking pitch
-    this.activeUtterance.rate = this.userSpeechRate;   // Soft, clear, and perfectly paced for high listenability
-    this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100)); // Gentle and comfortable volume presence
+    if (langCode === 'hyd') {
+      this.activeUtterance.pitch = 1.05; // Warm, friendly regional tone
+      this.activeUtterance.rate = 0.94;  // Slower, clear pacing for regional dialect readability
+    } else {
+      this.activeUtterance.pitch = 1.1;  // Crisp, engaging youthful English voice
+      this.activeUtterance.rate = 0.96;  // Paced beautifully for easy listening
+    }
+    this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100)); // Comfortable volume level
 
     this.activeUtterance.onstart = () => {
       if (this.onSpeakStateChange) this.onSpeakStateChange(true);

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Sparkles, 
@@ -290,6 +290,8 @@ export default function AITimeline() {
   const currentEvent = historyEvents[selectedIdx];
   const CurrentIcon = currentEvent.icon;
 
+  const timelineRef = useRef<HTMLDivElement>(null);
+
   const handleSelectMilestone = (idx: number) => {
     setSelectedIdx(idx);
     playTone(300 + idx * 40, 'sine', 0.1, 0.05);
@@ -307,10 +309,66 @@ export default function AITimeline() {
     }
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (viewMode === 'carousel') {
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        if (selectedIdx > 0) {
+          const nextIdx = selectedIdx - 1;
+          handleSelectMilestone(nextIdx);
+          setTimeout(() => {
+            const buttons = timelineRef.current?.querySelectorAll('.timeline-node-btn');
+            (buttons?.[nextIdx] as HTMLElement)?.focus();
+          }, 10);
+        }
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        if (selectedIdx < historyEvents.length - 1) {
+          const nextIdx = selectedIdx + 1;
+          handleSelectMilestone(nextIdx);
+          setTimeout(() => {
+            const buttons = timelineRef.current?.querySelectorAll('.timeline-node-btn');
+            (buttons?.[nextIdx] as HTMLElement)?.focus();
+          }, 10);
+        }
+      }
+    } else {
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (selectedIdx > 0) {
+          const nextIdx = selectedIdx - 1;
+          setSelectedIdx(nextIdx);
+          playTone(300 + nextIdx * 40, 'sine', 0.1, 0.05);
+          setTimeout(() => {
+            const buttons = timelineRef.current?.querySelectorAll('.timeline-list-btn');
+            (buttons?.[nextIdx] as HTMLElement)?.focus();
+          }, 10);
+        }
+      } else if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (selectedIdx < historyEvents.length - 1) {
+          const nextIdx = selectedIdx + 1;
+          setSelectedIdx(nextIdx);
+          playTone(300 + nextIdx * 40, 'sine', 0.1, 0.05);
+          setTimeout(() => {
+            const buttons = timelineRef.current?.querySelectorAll('.timeline-list-btn');
+            (buttons?.[nextIdx] as HTMLElement)?.focus();
+          }, 10);
+        }
+      }
+    }
+  };
+
   return (
     <div className="relative mt-4 mb-8 text-left">
       {/* Container Frame (Bento Card style matching section index layout) */}
-      <div className="bg-[#FAF8F5]/90 dark:bg-white/[0.02] border-2 border-brand-slate/15 dark:border-white/5 rounded-3xl p-6 sm:p-8 skeuo-raised relative overflow-hidden transition-all">
+      <div 
+        ref={timelineRef}
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
+        aria-label={lang === 'en' ? "History of AI Timeline, use arrow keys to navigate milestones" : "اے آئی کی تاریخ، میل کے پتھروں کے درمیان نیویگیٹ کرنے کے لیے تیر والے بٹنوں کا استعمال کریں"}
+        className="bg-[#FAF8F5]/90 dark:bg-white/[0.02] border-2 border-brand-slate/15 dark:border-white/5 rounded-3xl p-6 sm:p-8 skeuo-raised relative overflow-hidden transition-all focus:ring-2 focus:ring-[#E07A5F]/40 focus:outline-none"
+      >
         
         {/* Top Accent Strip */}
         <div className="absolute top-0 left-0 right-0 h-1.5 bg-[#E07A5F]/20" />
@@ -379,7 +437,7 @@ export default function AITimeline() {
                     key={idx}
                     type="button"
                     onClick={() => handleSelectMilestone(idx)}
-                    className="flex flex-col items-center gap-1.5 shrink-0 z-10 relative cursor-pointer group focus:outline-none"
+                    className="timeline-node-btn flex flex-col items-center gap-1.5 shrink-0 z-10 relative cursor-pointer group focus:outline-none focus:ring-2 focus:ring-[#E07A5F]/50 rounded-lg p-0.5"
                     style={{ minWidth: '70px' }}
                   >
                     {/* Clay Raised Node */}
@@ -515,7 +573,7 @@ export default function AITimeline() {
                         setViewMode('carousel');
                         playTone(300 + idx * 40, 'sine', 0.1, 0.05);
                       }}
-                      className="w-8 h-8 rounded-full bg-[#E07A5F] border-2 border-[#C55937] shadow-[2px_2px_4px_rgba(0,0,0,0.1),_inset_1px_1.5px_2px_rgba(255,255,255,0.4)] flex items-center justify-center text-white shrink-0 z-10 transition-transform hover:scale-110 active:scale-95 cursor-pointer"
+                      className="timeline-list-btn w-8 h-8 rounded-full bg-[#E07A5F] border-2 border-[#C55937] shadow-[2px_2px_4px_rgba(0,0,0,0.1),_inset_1px_1.5px_2px_rgba(255,255,255,0.4)] flex items-center justify-center text-white shrink-0 z-10 transition-transform hover:scale-110 active:scale-95 cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#E07A5F]/50"
                     >
                       <ItemIcon className="w-3.5 h-3.5" />
                     </button>

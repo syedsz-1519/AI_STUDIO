@@ -10,7 +10,6 @@ import AIToolsList from './components/AIToolsList';
 import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
 import FloatingLanguageBubble from './components/FloatingLanguageBubble';
-import AskClayButton from './components/AskClayButton';
 // Floating Theme Toggle is now bundled inside Settings Control Center
 import CheckYourKnowledge from './components/CheckYourKnowledge';
 import AIArena from './components/AIArena';
@@ -62,9 +61,6 @@ export default function App() {
 
       {/* Floating Audio Guide for Clay */}
       <AudioNarrationHub />
-
-      {/* Floating Interactive "Ask Clay" Question Button */}
-      <AskClayButton />
 
       {/* Floating Language Change Bubble (Bottom Left) */}
       <FloatingLanguageBubble />
