@@ -24,13 +24,85 @@ export default function Hero() {
       <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-brand-amber/5 blur-[100px] pointer-events-none" />
       <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-brand-slate/5 blur-[120px] pointer-events-none" />
 
-      <div className="max-w-4xl mx-auto text-center z-10 flex flex-col items-center">
+      <div className="max-w-6xl mx-auto z-10 flex flex-col items-center">
         {/* Subtle Pill Badge */}
         <motion.div
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
           className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-brand-amber/15 rounded-full text-xs font-semibold text-brand-amber shadow-sm mb-8"
+        >
+          <ClayLogo size={20} />
+          <span>{t('hero.badge')}</span>
+        </motion.div>
+
+        {/* Two-Column Layout: Text + Hero Image */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center w-full px-6">
+          {/* Left: Text Content */}
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.1 }}
+          >
+            {/* Master Hook Heading */}
+            <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-brand-charcoal leading-[1.1] tracking-tight mb-6 text-balance">
+              {lang === 'en' ? (
+                <>AI is not magic. It's <span className="text-brand-amber relative">pattern-matching</span> at massive scale.</>
+              ) : (
+                <>AI koi jaadu nahi hai yaaron. Ye bade paimane par <span className="text-brand-amber relative">pattern matching</span> hai.</>
+              )}
+            </h1>
+
+            {/* Elegant Sub-intro */}
+            <p className="font-sans text-lg md:text-xl text-brand-muted leading-relaxed mb-10">
+              {t('hero.subtitle')}
+            </p>
+
+            {/* Scroll Indicator - Moved here for better layout */}
+            <motion.button
+              onClick={() => {
+                const el = document.getElementById('what-is-ai');
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.9, duration: 0.5 }}
+              className="flex items-center gap-3 text-sm font-semibold text-brand-amber hover:text-brand-amber/80 transition-colors group cursor-pointer"
+            >
+              <span>{t('hero.button')}</span>
+              <motion.div
+                animate={{ y: [0, 4, 0] }}
+                transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+                className="w-6 h-6 rounded-full bg-brand-amber/10 border border-brand-amber/30 flex items-center justify-center group-hover:bg-brand-amber/20 transition-all"
+              >
+                <ArrowDown className="w-3 h-3" />
+              </motion.div>
+            </motion.button>
+          </motion.div>
+
+          {/* Right: Hero Image */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, x: 20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+            className="relative hidden lg:block"
+          >
+            <img
+              src="/hero-pattern-matching.png"
+              alt="AI Pattern Matching Visualization"
+              className="w-full h-auto rounded-3xl shadow-2xl border border-brand-amber/10"
+            />
+            {/* Glow effect behind image */}
+            <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-brand-amber/20 to-transparent blur-3xl -z-10 scale-110" />
+          </motion.div>
+        </div>
+
+        {/* Tactile Interactive Pattern Canvas - Below content on mobile, optional on desktop */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.8, delay: 0.5 }}
+          className="relative w-full max-w-2xl h-56 bg-white/50 border border-brand-slate/10 rounded-2xl p-6 mt-16 shadow-sm flex flex-col justify-between overflow-hidden backdrop-blur-sm"
         >
           <ClayLogo size={20} />
           <span>{t('hero.badge')}</span>
@@ -131,26 +203,7 @@ export default function Hero() {
           </div>
         </motion.div>
 
-        {/* Scroll Indicator */}
-        <motion.button
-          onClick={() => {
-            const el = document.getElementById('what-is-ai');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9, duration: 0.5 }}
-          className="flex flex-col items-center gap-2 text-xs font-semibold text-brand-slate hover:text-brand-amber transition-colors group cursor-pointer"
-        >
-          <span>{t('hero.button')}</span>
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-            className="w-7 h-7 rounded-full bg-white border border-brand-slate/10 flex items-center justify-center shadow-sm group-hover:border-brand-amber/30 group-hover:shadow-md transition-all"
-          >
-            <ArrowDown className="w-3.5 h-3.5" />
-          </motion.div>
-        </motion.button>
+
       </div>
     </section>
   );
