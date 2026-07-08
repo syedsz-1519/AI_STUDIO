@@ -46,6 +46,7 @@ export interface UserProfile {
   joinedDate: string;
   streak: number;
   linkedPlatforms: string[];
+  phoneNumber?: string;
 }
 
 export interface UserProgress {
@@ -53,147 +54,398 @@ export interface UserProgress {
   bookmarks: Record<string, boolean>;
 }
 
-// 1. Listen to Auth state changes and sync
+// ==========================================
+// MANUAL LOCAL MULTI-USER AUTH SYSTEM
+// ==========================================
+
+export interface LocalUser {
+  uid: string;
+  email: string;
+  phoneNumber?: string;
+  fullName: string;
+  password?: string;
+  avatar: string;
+  joinedDate: string;
+  streak: number;
+  linkedPlatforms: string[];
+}
+
+export function getLocalUsers(): LocalUser[] {
+  try {
+    const saved = localStorage.getItem('clay_local_users');
+    return saved ? JSON.parse(saved) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalUsers(users: LocalUser[]) {
+  localStorage.setItem('clay_local_users', JSON.stringify(users));
+}
+
+export function getActiveLocalUser(): LocalUser | null {
+  const activeId = localStorage.getItem('clay_current_user_id');
+  if (!activeId) return null;
+  const users = getLocalUsers();
+  return users.find(u => u.uid === activeId) || null;
+}
+
+export function registerUserManually(
+  email: string,
+  phoneNumber: string,
+  fullName: string,
+  password?: string
+): UserProfile {
+  const users = getLocalUsers();
+  
+  // Clean checks
+  const normEmail = email.toLowerCase().trim();
+  const normPhone = phoneNumber.trim();
+
+  if (normEmail && users.some(u => u.email.toLowerCase() === normEmail)) {
+    throw new Error('Email is already registered.');
+  }
+
+  if (normPhone && users.some(u => u.phoneNumber === normPhone)) {
+    throw new Error('Phone number is already registered.');
+  }
+
+  const joinedDate = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(fullName || email)}`;
+
+  const newUser: LocalUser = {
+    uid: `local_${Date.now()}`,
+    email: normEmail,
+    phoneNumber: normPhone || undefined,
+    fullName: fullName || 'Explorer',
+    password: password || '',
+    avatar,
+    joinedDate,
+    streak: 1,
+    linkedPlatforms: []
+  };
+
+  users.push(newUser);
+  saveLocalUsers(users);
+
+  // Set active
+  localStorage.setItem('clay_current_user_id', newUser.uid);
+  window.dispatchEvent(new Event('clay_local_auth_changed'));
+
+  return {
+    uid: newUser.uid,
+    email: newUser.email,
+    fullName: newUser.fullName,
+    avatar: newUser.avatar,
+    joinedDate: newUser.joinedDate,
+    streak: newUser.streak,
+    linkedPlatforms: newUser.linkedPlatforms,
+    phoneNumber: newUser.phoneNumber
+  };
+}
+
+export function loginUserManually(identifier: string, password?: string): UserProfile {
+  const users = getLocalUsers();
+  const normIdent = identifier.toLowerCase().trim();
+
+  const matched = users.find(u => 
+    u.email.toLowerCase() === normIdent || 
+    (u.phoneNumber && u.phoneNumber.trim() === normIdent)
+  );
+
+  if (!matched) {
+    throw new Error('Account not found with this email or phone number.');
+  }
+
+  if (password !== undefined && matched.password !== password) {
+    throw new Error('Incorrect password.');
+  }
+
+  // Set active
+  localStorage.setItem('clay_current_user_id', matched.uid);
+  window.dispatchEvent(new Event('clay_local_auth_changed'));
+
+  return {
+    uid: matched.uid,
+    email: matched.email,
+    fullName: matched.fullName,
+    avatar: matched.avatar,
+    joinedDate: matched.joinedDate,
+    streak: matched.streak,
+    linkedPlatforms: matched.linkedPlatforms,
+    phoneNumber: matched.phoneNumber
+  };
+}
+
+export function logoutUserManually() {
+  localStorage.removeItem('clay_current_user_id');
+  window.dispatchEvent(new Event('clay_local_auth_changed'));
+}
+
+export function linkSocialPlatformManually(platform: string, platformUsername?: string): UserProfile {
+  const activeUser = getActiveLocalUser();
+  
+  if (activeUser) {
+    // 1. Link platform to active local user
+    const users = getLocalUsers();
+    const updatedUsers = users.map(u => {
+      if (u.uid === activeUser.uid) {
+        const platforms = u.linkedPlatforms.includes(platform)
+          ? u.linkedPlatforms.filter(p => p !== platform)
+          : [...u.linkedPlatforms, platform];
+        return { ...u, linkedPlatforms: platforms };
+      }
+      return u;
+    });
+
+    saveLocalUsers(updatedUsers);
+    window.dispatchEvent(new Event('clay_local_auth_changed'));
+
+    const updated = updatedUsers.find(u => u.uid === activeUser.uid)!;
+    return {
+      uid: updated.uid,
+      email: updated.email,
+      fullName: updated.fullName,
+      avatar: updated.avatar,
+      joinedDate: updated.joinedDate,
+      streak: updated.streak,
+      linkedPlatforms: updated.linkedPlatforms,
+      phoneNumber: updated.phoneNumber
+    };
+  } else {
+    // 2. Sign up/Log in using social account if not already logged in!
+    const users = getLocalUsers();
+    const username = platformUsername || `${platform} Explorer`;
+    const normEmail = `${platform.toLowerCase()}_${Date.now()}@social.com`;
+    
+    const newUser: LocalUser = {
+      uid: `local_${Date.now()}`,
+      email: normEmail,
+      fullName: username,
+      avatar: `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(username)}`,
+      joinedDate: new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+      streak: 1,
+      linkedPlatforms: [platform]
+    };
+
+    users.push(newUser);
+    saveLocalUsers(users);
+
+    localStorage.setItem('clay_current_user_id', newUser.uid);
+    window.dispatchEvent(new Event('clay_local_auth_changed'));
+
+    return {
+      uid: newUser.uid,
+      email: newUser.email,
+      fullName: newUser.fullName,
+      avatar: newUser.avatar,
+      joinedDate: newUser.joinedDate,
+      streak: newUser.streak,
+      linkedPlatforms: newUser.linkedPlatforms
+    };
+  }
+}
+
+// 1. Listen to Auth state changes and sync (HYBRID: supports local manual + firebase fallback)
 export function setupAuthListener(
   onUserChanged: (profile: UserProfile | null) => void,
   onProgressChanged: (progress: UserProgress | null) => void
 ) {
-  return onAuthStateChanged(auth, async (user) => {
-    if (user) {
-      // 1. Fetch profile from Firestore or local storage fallback
-      const userRef = doc(db, 'users', user.uid);
-      const userSnap = await getDoc(userRef);
+  const syncLocalOrFirebaseState = async (firebaseUser: FirebaseUser | null) => {
+    const localUser = getActiveLocalUser();
+    
+    if (localUser) {
+      // 1. Convert to UserProfile
+      const profile: UserProfile = {
+        uid: localUser.uid,
+        email: localUser.email,
+        fullName: localUser.fullName,
+        avatar: localUser.avatar,
+        joinedDate: localUser.joinedDate,
+        streak: localUser.streak,
+        linkedPlatforms: localUser.linkedPlatforms,
+        phoneNumber: localUser.phoneNumber
+      };
       
-      let profile: UserProfile;
-
-      if (userSnap.exists()) {
-        profile = { uid: user.uid, ...userSnap.data() } as UserProfile;
-      } else {
-        // Create new profile
-        const joinedDate = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-        const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(user.email || user.uid)}`;
-        const fullName = user.displayName || user.email?.split('@')[0].toUpperCase() || 'Explorer';
-        
-        profile = {
-          uid: user.uid,
-          email: user.email || '',
-          fullName,
-          avatar,
-          joinedDate,
-          streak: 1,
-          linkedPlatforms: user.providerData.map(p => p.providerId === 'google.com' ? 'Google' : '').filter(Boolean)
-        };
-        
-        await setDoc(userRef, {
-          email: profile.email,
-          fullName: profile.fullName,
-          avatar: profile.avatar,
-          joinedDate: profile.joinedDate,
-          streak: profile.streak,
-          linkedPlatforms: profile.linkedPlatforms
-        });
-      }
-
-      // Save to local storage for quick cache
       localStorage.setItem('clay_user_profile', JSON.stringify(profile));
       onUserChanged(profile);
 
-      // 2. Fetch Progress (bookmarks and completed terms)
-      const progressRef = doc(db, 'progress', user.uid);
-      const progressSnap = await getDoc(progressRef);
+      // 2. Load user's progress
+      const savedCompleted = localStorage.getItem(`clay_completed_terms_${localUser.uid}`);
+      const savedBookmarks = localStorage.getItem(`clay_bookmarks_${localUser.uid}`);
       
-      let progress: UserProgress = { completedTerms: {}, bookmarks: {} };
-
-      if (progressSnap.exists()) {
-        const data = progressSnap.data();
-        progress = {
-          completedTerms: data.completedTerms || {},
-          bookmarks: data.bookmarks || {}
-        };
-      } else {
-        // Try importing from local storage if available to avoid data loss
-        const localCompleted = localStorage.getItem('clay_completed_terms');
-        const localBookmarks = localStorage.getItem('clay_bookmarks');
-        
-        progress = {
-          completedTerms: localCompleted ? JSON.parse(localCompleted) : {},
-          bookmarks: localBookmarks ? JSON.parse(localBookmarks) : {}
-        };
-
-        await setDoc(progressRef, {
-          userId: user.uid,
-          completedTerms: progress.completedTerms,
-          bookmarks: progress.bookmarks,
-          updatedAt: serverTimestamp()
-        });
-      }
-
-      // Update local storage
+      const progress: UserProgress = {
+        completedTerms: savedCompleted ? JSON.parse(savedCompleted) : {},
+        bookmarks: savedBookmarks ? JSON.parse(savedBookmarks) : {}
+      };
+      
       localStorage.setItem('clay_completed_terms', JSON.stringify(progress.completedTerms));
       localStorage.setItem('clay_bookmarks', JSON.stringify(progress.bookmarks));
       onProgressChanged(progress);
 
-      // 3. Fetch Quiz Progress
+      // 3. Load user's quiz
+      const savedQuiz = localStorage.getItem(`clay_quiz_${localUser.uid}`);
+      if (savedQuiz) {
+        try {
+          const q = JSON.parse(savedQuiz);
+          localStorage.setItem('clay_quiz_score', (q.score || 0).toString());
+          localStorage.setItem('clay_quiz_completed', JSON.stringify(q.completedSections || {}));
+          localStorage.setItem('clay_quiz_high_scores', JSON.stringify(q.highScores || {}));
+          localStorage.setItem('clay_quiz_sessions', JSON.stringify(q.sessionHistory || []));
+          localStorage.setItem('clay_quiz_streak_count', (q.streakCount || 0).toString());
+          localStorage.setItem('clay_quiz_last_date', q.lastQuizDate || '');
+        } catch (_) {}
+      } else {
+        localStorage.setItem('clay_quiz_score', '0');
+        localStorage.setItem('clay_quiz_completed', '{}');
+        localStorage.setItem('clay_quiz_high_scores', '{}');
+        localStorage.setItem('clay_quiz_sessions', '[]');
+        localStorage.setItem('clay_quiz_streak_count', '0');
+        localStorage.setItem('clay_quiz_last_date', '');
+      }
+
+      window.dispatchEvent(new Event('clay_auth_state_changed'));
+      return;
+    }
+
+    if (firebaseUser) {
+      // Fetch profile from Firestore or local storage fallback
       try {
-        const quizRef = doc(db, 'quizProgress', user.uid);
-        const quizSnap = await getDoc(quizRef);
-        let quizScore = 0;
-        let quizCompleted: Record<string, boolean> = {};
-        let quizHighScores: Record<string, number> = {};
+        const userRef = doc(db, 'users', firebaseUser.uid);
+        const userSnap = await getDoc(userRef);
+        
+        let profile: UserProfile;
 
-        let quizHistory: any[] = [];
-        let streakCount = 0;
-        let lastQuizDate = '';
-        if (quizSnap.exists()) {
-          const qData = quizSnap.data();
-          quizScore = qData.score || 0;
-          quizCompleted = qData.completedSections || {};
-          quizHighScores = qData.highScores || {};
-          quizHistory = qData.sessionHistory || [];
-          streakCount = qData.streakCount || 0;
-          lastQuizDate = qData.lastQuizDate || '';
+        if (userSnap.exists()) {
+          profile = { uid: firebaseUser.uid, ...userSnap.data() } as UserProfile;
         } else {
-          const localScore = localStorage.getItem('clay_quiz_score');
-          const localCompleted = localStorage.getItem('clay_quiz_completed');
-          const localHighScores = localStorage.getItem('clay_quiz_high_scores');
-          const localHistory = localStorage.getItem('clay_quiz_sessions');
-          const localStreak = localStorage.getItem('clay_quiz_streak_count');
-          const localLastDate = localStorage.getItem('clay_quiz_last_date');
-          quizScore = localScore ? parseInt(localScore, 10) : 0;
-          quizCompleted = localCompleted ? JSON.parse(localCompleted) : {};
-          quizHighScores = localHighScores ? JSON.parse(localHighScores) : {};
-          streakCount = localStreak ? parseInt(localStreak, 10) : 0;
-          lastQuizDate = localLastDate || '';
-          try {
-            quizHistory = localHistory ? JSON.parse(localHistory) : [];
-          } catch (_) {
-            quizHistory = [];
-          }
+          // Create new profile
+          const joinedDate = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+          const avatar = `https://api.dicebear.com/7.x/bottts/svg?seed=${encodeURIComponent(firebaseUser.email || firebaseUser.uid)}`;
+          const fullName = firebaseUser.displayName || firebaseUser.email?.split('@')[0].toUpperCase() || 'Explorer';
+          
+          profile = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            fullName,
+            avatar,
+            joinedDate,
+            streak: 1,
+            linkedPlatforms: firebaseUser.providerData.map(p => p.providerId === 'google.com' ? 'Google' : '').filter(Boolean)
+          };
+          
+          await setDoc(userRef, {
+            email: profile.email,
+            fullName: profile.fullName,
+            avatar: profile.avatar,
+            joinedDate: profile.joinedDate,
+            streak: profile.streak,
+            linkedPlatforms: profile.linkedPlatforms
+          });
+        }
 
-          await setDoc(quizRef, {
-            userId: user.uid,
-            score: quizScore,
-            completedSections: quizCompleted,
-            highScores: quizHighScores,
-            sessionHistory: quizHistory,
-            streakCount,
-            lastQuizDate,
+        // Save to local storage for quick cache
+        localStorage.setItem('clay_user_profile', JSON.stringify(profile));
+        onUserChanged(profile);
+
+        // Fetch Progress (bookmarks and completed terms)
+        const progressRef = doc(db, 'progress', firebaseUser.uid);
+        const progressSnap = await getDoc(progressRef);
+        
+        let progress: UserProgress = { completedTerms: {}, bookmarks: {} };
+
+        if (progressSnap.exists()) {
+          const data = progressSnap.data();
+          progress = {
+            completedTerms: data.completedTerms || {},
+            bookmarks: data.bookmarks || {}
+          };
+        } else {
+          // Try importing from local storage if available to avoid data loss
+          const localCompleted = localStorage.getItem('clay_completed_terms');
+          const localBookmarks = localStorage.getItem('clay_bookmarks');
+          
+          progress = {
+            completedTerms: localCompleted ? JSON.parse(localCompleted) : {},
+            bookmarks: localBookmarks ? JSON.parse(localBookmarks) : {}
+          };
+
+          await setDoc(progressRef, {
+            userId: firebaseUser.uid,
+            completedTerms: progress.completedTerms,
+            bookmarks: progress.bookmarks,
             updatedAt: serverTimestamp()
           });
         }
 
-        localStorage.setItem('clay_quiz_score', quizScore.toString());
-        localStorage.setItem('clay_quiz_completed', JSON.stringify(quizCompleted));
-        localStorage.setItem('clay_quiz_high_scores', JSON.stringify(quizHighScores));
-        localStorage.setItem('clay_quiz_sessions', JSON.stringify(quizHistory));
-        localStorage.setItem('clay_quiz_streak_count', streakCount.toString());
-        localStorage.setItem('clay_quiz_last_date', lastQuizDate);
-      } catch (e) {
-        console.error("Error loading quiz progress:", e);
-      }
+        // Update local storage
+        localStorage.setItem('clay_completed_terms', JSON.stringify(progress.completedTerms));
+        localStorage.setItem('clay_bookmarks', JSON.stringify(progress.bookmarks));
+        onProgressChanged(progress);
 
-      // Trigger global state updates across elements
-      window.dispatchEvent(new Event('clay_auth_state_changed'));
+        // Fetch Quiz Progress
+        try {
+          const quizRef = doc(db, 'quizProgress', firebaseUser.uid);
+          const quizSnap = await getDoc(quizRef);
+          let quizScore = 0;
+          let quizCompleted: Record<string, boolean> = {};
+          let quizHighScores: Record<string, number> = {};
+
+          let quizHistory: any[] = [];
+          let streakCount = 0;
+          let lastQuizDate = '';
+          if (quizSnap.exists()) {
+            const qData = quizSnap.data();
+            quizScore = qData.score || 0;
+            quizCompleted = qData.completedSections || {};
+            quizHighScores = qData.highScores || {};
+            quizHistory = qData.sessionHistory || [];
+            streakCount = qData.streakCount || 0;
+            lastQuizDate = qData.lastQuizDate || '';
+          } else {
+            const localScore = localStorage.getItem('clay_quiz_score');
+            const localCompleted = localStorage.getItem('clay_quiz_completed');
+            const localHighScores = localStorage.getItem('clay_quiz_high_scores');
+            const localHistory = localStorage.getItem('clay_quiz_sessions');
+            const localStreak = localStorage.getItem('clay_quiz_streak_count');
+            const localLastDate = localStorage.getItem('clay_quiz_last_date');
+            quizScore = localScore ? parseInt(localScore, 10) : 0;
+            quizCompleted = localCompleted ? JSON.parse(localCompleted) : {};
+            quizHighScores = localHighScores ? JSON.parse(localHighScores) : {};
+            streakCount = localStreak ? parseInt(localStreak, 10) : 0;
+            lastQuizDate = localLastDate || '';
+            try {
+              quizHistory = localHistory ? JSON.parse(localHistory) : [];
+            } catch (_) {
+              quizHistory = [];
+            }
+
+            await setDoc(quizRef, {
+              userId: firebaseUser.uid,
+              score: quizScore,
+              completedSections: quizCompleted,
+              highScores: quizHighScores,
+              sessionHistory: quizHistory,
+              streakCount,
+              lastQuizDate,
+              updatedAt: serverTimestamp()
+            });
+          }
+
+          localStorage.setItem('clay_quiz_score', quizScore.toString());
+          localStorage.setItem('clay_quiz_completed', JSON.stringify(quizCompleted));
+          localStorage.setItem('clay_quiz_high_scores', JSON.stringify(quizHighScores));
+          localStorage.setItem('clay_quiz_sessions', JSON.stringify(quizHistory));
+          localStorage.setItem('clay_quiz_streak_count', streakCount.toString());
+          localStorage.setItem('clay_quiz_last_date', lastQuizDate);
+        } catch (e) {
+          console.error("Error loading quiz progress:", e);
+        }
+
+        window.dispatchEvent(new Event('clay_auth_state_changed'));
+      } catch (err) {
+        console.error("Firebase Auth Sync error:", err);
+      }
     } else {
       // Logged out
       localStorage.removeItem('clay_user_profile');
@@ -201,11 +453,42 @@ export function setupAuthListener(
       onProgressChanged(null);
       window.dispatchEvent(new Event('clay_auth_state_changed'));
     }
+  };
+
+  const handleLocalAuthChanged = () => {
+    syncLocalOrFirebaseState(auth.currentUser);
+  };
+
+  // Add event listener for manual auth changes
+  window.addEventListener('clay_local_auth_changed', handleLocalAuthChanged);
+
+  // Subscribe to Firebase auth
+  const unsubscribeFirebase = onAuthStateChanged(auth, (user) => {
+    syncLocalOrFirebaseState(user);
   });
+
+  // Initial sync run
+  syncLocalOrFirebaseState(auth.currentUser);
+
+  return () => {
+    window.removeEventListener('clay_local_auth_changed', handleLocalAuthChanged);
+    unsubscribeFirebase();
+  };
 }
 
-// 2. Sync Progress updates to Firestore (with debouncing or instant updates)
+// 2. Sync Progress updates (works for both local and firebase user)
 export async function syncProgressToCloud(completedTerms: Record<string, boolean>, bookmarks: Record<string, boolean>) {
+  const localUser = getActiveLocalUser();
+  if (localUser) {
+    localStorage.setItem(`clay_completed_terms_${localUser.uid}`, JSON.stringify(completedTerms));
+    localStorage.setItem(`clay_bookmarks_${localUser.uid}`, JSON.stringify(bookmarks));
+    // Save to session-wide keys
+    localStorage.setItem('clay_completed_terms', JSON.stringify(completedTerms));
+    localStorage.setItem('clay_bookmarks', JSON.stringify(bookmarks));
+    window.dispatchEvent(new Event('clay_auth_state_changed'));
+    return;
+  }
+
   const currentUser = auth.currentUser;
   if (!currentUser) return;
 
@@ -222,15 +505,13 @@ export async function syncProgressToCloud(completedTerms: Record<string, boolean
   }
 }
 
-// 3. Mark a learning term completed (with Firestore sync)
+// 3. Mark a learning term completed
 export async function toggleTermCompleted(termTitle: string, isCompleted: boolean) {
-  // 1. Update local storage
   const saved = localStorage.getItem('clay_completed_terms');
   const current: Record<string, boolean> = saved ? JSON.parse(saved) : {};
   current[termTitle] = isCompleted;
   localStorage.setItem('clay_completed_terms', JSON.stringify(current));
 
-  // 2. Sync to Firestore
   const savedBookmarks = localStorage.getItem('clay_bookmarks');
   const bookmarks: Record<string, boolean> = savedBookmarks ? JSON.parse(savedBookmarks) : {};
   await syncProgressToCloud(current, bookmarks);
@@ -238,15 +519,13 @@ export async function toggleTermCompleted(termTitle: string, isCompleted: boolea
   window.dispatchEvent(new Event('clay_auth_state_changed'));
 }
 
-// 4. Toggle bookmark of a section (with Firestore sync)
+// 4. Toggle bookmark of a section
 export async function toggleSectionBookmarked(sectionId: string, isBookmarked: boolean) {
-  // 1. Update local storage
   const saved = localStorage.getItem('clay_bookmarks');
   const current: Record<string, boolean> = saved ? JSON.parse(saved) : {};
   current[sectionId] = isBookmarked;
   localStorage.setItem('clay_bookmarks', JSON.stringify(current));
 
-  // 2. Sync to Firestore
   const savedTerms = localStorage.getItem('clay_completed_terms');
   const completedTerms: Record<string, boolean> = savedTerms ? JSON.parse(savedTerms) : {};
   await syncProgressToCloud(completedTerms, current);
@@ -254,7 +533,7 @@ export async function toggleSectionBookmarked(sectionId: string, isBookmarked: b
   window.dispatchEvent(new Event('clay_auth_state_changed'));
 }
 
-// 5. Sync Quiz progress to Firestore
+// 5. Sync Quiz progress
 export async function syncQuizProgressToCloud(
   score: number, 
   completedSections: Record<string, boolean>, 
@@ -263,9 +542,7 @@ export async function syncQuizProgressToCloud(
   streakCount?: number,
   lastQuizDate?: string
 ) {
-  const currentUser = auth.currentUser;
-  
-  // Save locally first
+  // Always save locally first
   localStorage.setItem('clay_quiz_score', score.toString());
   localStorage.setItem('clay_quiz_completed', JSON.stringify(completedSections));
   localStorage.setItem('clay_quiz_high_scores', JSON.stringify(highScores));
@@ -279,8 +556,22 @@ export async function syncQuizProgressToCloud(
     localStorage.setItem('clay_quiz_last_date', lastQuizDate);
   }
   
-  window.dispatchEvent(new Event('clay_auth_state_changed'));
+  const localUser = getActiveLocalUser();
+  if (localUser) {
+    const quizData = {
+      score,
+      completedSections,
+      highScores,
+      sessionHistory,
+      streakCount,
+      lastQuizDate
+    };
+    localStorage.setItem(`clay_quiz_${localUser.uid}`, JSON.stringify(quizData));
+    window.dispatchEvent(new Event('clay_auth_state_changed'));
+    return;
+  }
 
+  const currentUser = auth.currentUser;
   if (!currentUser) return;
 
   try {
