@@ -34,7 +34,10 @@ import {
   Moon,
   Droplets,
   Trash2,
-  Compass
+  Compass,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { useTheme, Theme } from '../hooks/useTheme';
@@ -95,7 +98,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { theme, setTheme } = useTheme();
   
   // Tabs & Preferences States
-  const [activeTab, setActiveTab] = useState<'account' | 'visuals' | 'audio' | 'advanced'>('account');
+  const [activeTab, setActiveTab] = useState<'account' | 'visuals' | 'audio' | 'advanced' | 'faq'>('account');
+  const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
   const [volume, setVolumeState] = useState(() => audioEngine.getVolume());
   const [speechRate, setSpeechRateState] = useState(() => audioEngine.getSpeechRate());
   const [pitch, setPitchState] = useState(() => audioEngine.getPitch());
@@ -410,6 +414,39 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     }
   };
 
+  const faqItems = [
+    {
+      qEn: "What is Simple AI?",
+      qUr: "Simple AI kya hai?",
+      aEn: "Simple AI is an interactive, multi-sensory educational sandbox designed to demystify artificial intelligence. It uses hand-crafted clay textures, real-time synthesized browser audio, and bilingual English/Urdu narration to make complex tech topics highly intuitive.",
+      aUr: "Simple AI ek interactive aur dilchasp sabaq-gah hai jo AI ke pecheeda concepts ko aasan tareeqay se samjhati hai. Isme haath se bani clay shapes, live browser sound effects, aur Urdu/English narration ka istemal kiya gaya hai."
+    },
+    {
+      qEn: "How does the sound engine work?",
+      qUr: "Iska sound engine kaise kaam karta hai?",
+      aEn: "Our audio engine uses the browser's Native Web Audio API to dynamically synthesize cozy ambient lo-fi music, rhythmic study drums, and vinyl crackles, as well as offline speech synthesis. This means absolutely zero expensive cloud servers are needed!",
+      aUr: "Humara audio system browser ke Web Audio API ko use karke live lo-fi music aur purani vinyl record ki crackle awaaz khud synthesize karta hai, bina kisi mehnge cloud server ke!"
+    },
+    {
+      qEn: "What features are in the AI Arena?",
+      qUr: "AI Arena me kya sahuliyat hain?",
+      aEn: "In the AI Arena, you can test custom prompts with live RAG (Retrieval-Augmented Generation) databases, explore the historical neural AI family tree, check your knowledge with interactive quiz games, and win beautiful collectible study badges.",
+      aUr: "AI Arena me aap live RAG Prompt simulation chala sakte hain, neural net ka family tree dekh sakte hain, interactive quiz khel sakte hain, aur khubsoorat learning badges haasil kar sakte hain."
+    },
+    {
+      qEn: "Is my learning progress saved securely?",
+      qUr: "Mera seekhne ka record kahan save hota hai?",
+      aEn: "Yes! Simple AI is designed offline-first. Your daily learning streaks, highscores, mastered vocabulary, and custom achievements are instantly and securely cached in your browser's IndexedDB / LocalStorage, which you can easily clear anytime.",
+      aUr: "Ji haan! Simple AI offline-first kaam karta hai. Aapki rozana ki streak, quiz score, aur seekhe hue sabaq aapke browser ke IndexedDB / LocalStorage me bina kisi delay ke mehfuz ho jate hain."
+    },
+    {
+      qEn: "How do I change the theme or language?",
+      qUr: "Theme ya zabaan kaise badlein?",
+      aEn: "You can change languages on the fly using the floating bubble in the bottom-left of the screen, and select premium color palettes (Desert Sand, Deep Blue, Deep Night, Red Light) in the Visuals tab of this Settings menu.",
+      aUr: "Aap screen ke bottom-left me diye gaye floating bubble se zabaan badal sakte hain, aur isi Settings Panel ke 'Rang/Visuals' tab me jaakar Desert Sand ya Deep Blue jese khubsoorat themes chun sakte hain."
+    }
+  ];
+
   if (!isOpen) return null;
 
   const masteredCount = getMasteredTermsCount();
@@ -458,7 +495,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             { id: 'account', labelEn: 'Account', labelUr: 'Profile', icon: User },
             { id: 'visuals', labelEn: 'Visuals', labelUr: 'Rang', icon: Palette },
             { id: 'audio', labelEn: 'Audio', labelUr: 'Awaaz', icon: Volume2 },
-            { id: 'advanced', labelEn: 'Advanced', labelUr: 'Khaas', icon: Sliders }
+            { id: 'advanced', labelEn: 'Advanced', labelUr: 'Khaas', icon: Sliders },
+            { id: 'faq', labelEn: 'FAQ', labelUr: 'FAQ', icon: HelpCircle }
           ].map((t) => {
             const isActive = activeTab === t.id;
             const IconComponent = t.icon;
@@ -468,7 +506,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 type="button"
                 onClick={() => {
                   setActiveTab(t.id as any);
-                  playTone(400 + (t.id === 'account' ? 0 : t.id === 'visuals' ? 50 : t.id === 'audio' ? 100 : 150), 'sine', 0.08, 0.05);
+                  playTone(400 + (t.id === 'account' ? 0 : t.id === 'visuals' ? 40 : t.id === 'audio' ? 80 : t.id === 'advanced' ? 120 : 160), 'sine', 0.08, 0.05);
                 }}
                 className={`flex-1 min-w-[70px] py-2 px-1 text-center border-b-2 font-mono text-[10px] font-bold transition-all flex flex-col items-center gap-1 cursor-pointer ${
                   isActive 
@@ -591,8 +629,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </div>
               </div>
             ) : (
-              /* OTHERWISE: SHOW LOGIN / SIGNUP SCREEN */
-              <div className="space-y-4">
+              /* OTHERWISE: SHOW LOGIN / SIGNUP SCREEN - Sleek, tactile card design */
+              <div className="bg-[#FAF8F5]/80 dark:bg-white/[0.02] border-2 border-brand-slate/10 dark:border-white/5 rounded-3xl p-5 md:p-6 shadow-[inset_0_2px_4px_rgba(0,0,0,0.04),_0_8px_20px_rgba(0,0,0,0.02)] space-y-4 text-left relative overflow-hidden">
                 <div className="text-center md:text-left">
                   <h3 className="font-display text-base font-black text-brand-charcoal tracking-tight flex items-center justify-center md:justify-start gap-1.5">
                     <User className="w-4 h-4 text-brand-amber" />
@@ -757,40 +795,52 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   <div className="flex-grow border-t border-brand-slate/10"></div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2.5">
                   <button
                     type="button"
-                    onClick={() => handleSocialAuth('Google')}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 border border-brand-slate/10 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 transition-all cursor-pointer"
+                    onClick={() => {
+                      handleSocialAuth('Google');
+                      playTone(440, 'sine', 0.08, 0.05);
+                    }}
+                    className="flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-white/[0.03] border border-brand-slate/10 hover:border-brand-amber/30 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal transition-all cursor-pointer active:translate-y-[1px] shadow-[0_2px_4px_rgba(0,0,0,0.03)] active:shadow-none"
                   >
-                    <Chrome className="w-3.5 h-3.5 text-red-500" />
+                    <Chrome className="w-4 h-4 text-red-500 shrink-0" />
                     <span>Google</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleSocialAuth('LinkedIn')}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 border border-brand-slate/10 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 transition-all cursor-pointer"
+                    onClick={() => {
+                      handleSocialAuth('LinkedIn');
+                      playTone(460, 'sine', 0.08, 0.05);
+                    }}
+                    className="flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-white/[0.03] border border-brand-slate/10 hover:border-brand-amber/30 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal transition-all cursor-pointer active:translate-y-[1px] shadow-[0_2px_4px_rgba(0,0,0,0.03)] active:shadow-none"
                   >
-                    <Linkedin className="w-3.5 h-3.5 text-blue-600" />
+                    <Linkedin className="w-4 h-4 text-blue-600 shrink-0" />
                     <span>LinkedIn</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleSocialAuth('Instagram')}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 border border-brand-slate/10 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 transition-all cursor-pointer"
+                    onClick={() => {
+                      handleSocialAuth('Instagram');
+                      playTone(480, 'sine', 0.08, 0.05);
+                    }}
+                    className="flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-white/[0.03] border border-brand-slate/10 hover:border-brand-amber/30 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal transition-all cursor-pointer active:translate-y-[1px] shadow-[0_2px_4px_rgba(0,0,0,0.03)] active:shadow-none"
                   >
-                    <Instagram className="w-3.5 h-3.5 text-pink-500" />
+                    <Instagram className="w-4 h-4 text-pink-500 shrink-0" />
                     <span>Instagram</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => handleSocialAuth('GitHub')}
-                    className="flex items-center justify-center gap-1.5 py-2 px-3 border border-brand-slate/10 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 transition-all cursor-pointer"
+                    onClick={() => {
+                      handleSocialAuth('GitHub');
+                      playTone(500, 'sine', 0.08, 0.05);
+                    }}
+                    className="flex items-center justify-center gap-2 py-2 px-3 bg-white dark:bg-white/[0.03] border border-brand-slate/10 hover:border-brand-amber/30 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal transition-all cursor-pointer active:translate-y-[1px] shadow-[0_2px_4px_rgba(0,0,0,0.03)] active:shadow-none"
                   >
-                    <Github className="w-3.5 h-3.5 text-slate-800" />
+                    <Github className="w-4 h-4 text-slate-800 dark:text-slate-200 shrink-0" />
                     <span>GitHub</span>
                   </button>
                 </div>
@@ -1254,6 +1304,78 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   {lang === 'en' ? "Reset Data" : "Reset Data"}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB CONTENT: FAQ - Beautiful skeuomorphic accordions with sound chimes */}
+        {activeTab === 'faq' && (
+          <div className="space-y-3.5 py-1 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
+            <div>
+              <h4 className="font-mono text-[9px] font-black text-brand-amber uppercase tracking-wider">
+                {lang === 'en' ? "Frequently Asked Questions" : "Aam Sawaalat Aur Jawaabat"}
+              </h4>
+              <p className="text-[10px] text-brand-muted mt-0.5 leading-tight">
+                {lang === 'en' ? "Quick guide to Simple AI's tactile features and interactive sound engine" : "Simple AI ki technology aur mazedaar sahuliyat ko samajhne ki guide"}
+              </p>
+            </div>
+
+            <div className="space-y-2.5">
+              {faqItems.map((item, idx) => {
+                const isOpen = openFaqIndex === idx;
+                return (
+                  <div 
+                    key={idx}
+                    className="border border-brand-slate/10 hover:border-brand-slate/25 bg-white/70 dark:bg-[#FAF8F5]/5 rounded-2xl overflow-hidden transition-all shadow-sm"
+                  >
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const nextIdx = isOpen ? null : idx;
+                        setOpenFaqIndex(nextIdx);
+                        if (nextIdx !== null) {
+                          playTone(480 + idx * 35, 'sine', 0.1, 0.04);
+                        } else {
+                          playTone(320, 'sine', 0.08, 0.04);
+                        }
+                      }}
+                      className="w-full py-3 px-4 flex items-center justify-between text-left gap-3 hover:bg-brand-sand/25 dark:hover:bg-white/[0.04] cursor-pointer transition-all active:bg-brand-sand/40"
+                    >
+                      <span className="font-display font-bold text-xs text-brand-charcoal leading-tight">
+                        {lang === 'en' ? item.qEn : item.qUr}
+                      </span>
+                      {isOpen ? (
+                        <ChevronUp className="w-4 h-4 text-brand-amber shrink-0" />
+                      ) : (
+                        <ChevronDown className="w-4 h-4 text-brand-muted shrink-0" />
+                      )}
+                    </button>
+
+                    <AnimatePresence initial={false}>
+                      {isOpen && (
+                        <motion.div
+                          initial={{ height: 0, opacity: 0 }}
+                          animate={{ height: "auto", opacity: 1 }}
+                          exit={{ height: 0, opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="overflow-hidden"
+                        >
+                          <div className="p-4 pt-0 text-[11px] text-brand-slate leading-relaxed border-t border-brand-slate/5 bg-brand-sand/10 dark:bg-white/[0.01]">
+                            {lang === 'en' ? item.aEn : item.aUr}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Extra guide line */}
+            <div className="pt-2 text-center border-t border-brand-slate/10">
+              <span className="text-[9px] font-mono font-bold text-brand-muted uppercase tracking-wider">
+                {lang === 'en' ? "Need more help? Ask the AI Agent!" : "Mazeed help chahiye? AI Agent se poochhein!"}
+              </span>
             </div>
           </div>
         )}
