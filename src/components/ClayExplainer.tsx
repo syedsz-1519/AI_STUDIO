@@ -89,7 +89,7 @@ export default function ClayExplainer() {
       audioEngine.stopSpeaking();
       setIsPlayingVoice(false);
     } else {
-      audioEngine.speak(storyShots[activeShot].bubbleText, () => {
+      audioEngine.speak(storyShots[activeShot].bubbleText, lang, () => {
         setIsPlayingVoice(false);
       });
       setIsPlayingVoice(true);

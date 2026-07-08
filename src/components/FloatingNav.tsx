@@ -27,8 +27,15 @@ export default function FloatingNav() {
         setIsSearchOpen(true);
       }
     };
+    const handleOpenSearchEvent = () => {
+      setIsSearchOpen(true);
+    };
     window.addEventListener('keydown', handleGlobalSearchKey);
-    return () => window.removeEventListener('keydown', handleGlobalSearchKey);
+    window.addEventListener('clay_open_search', handleOpenSearchEvent);
+    return () => {
+      window.removeEventListener('keydown', handleGlobalSearchKey);
+      window.removeEventListener('clay_open_search', handleOpenSearchEvent);
+    };
   }, []);
 
   useEffect(() => {
@@ -54,7 +61,7 @@ export default function FloatingNav() {
       }
 
       // Track both main sections and the 12 glossary sub-sections
-      const mainSections = ['hero', 'what-is-ai', 'family-tree', 'prompting-rag', 'ai-tools-directory', 'deeper'];
+      const mainSections = ['hero', 'what-is-ai', 'family-tree', 'prompting-rag', 'ai-tools-directory', 'deeper', 'classroom-hub', 'ai-arena'];
       const glossarySections = ['section-1', 'section-2', 'section-3', 'section-4', 'section-5', 'section-6', 'section-7', 'section-8', 'section-9', 'section-10', 'section-11', 'section-12'];
 
       let detectedActiveSection = 'hero';
@@ -228,14 +235,16 @@ export default function FloatingNav() {
 
         {/* Subtle Ambient Sound Toggle & Settings & Mobile Menu Trigger */}
         <div className="flex items-center gap-2">
-          {/* Glassmorphic Global Search Button */}
+          {/* Ask Clay / Global Search Button */}
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1 bg-white/70 hover:bg-brand-amber/10 hover:text-brand-amber text-brand-slate border border-brand-slate/10 hover:border-brand-amber/20 rounded-full text-xs font-bold transition-all cursor-pointer select-none shadow-sm hover:shadow-md active:scale-95 group"
-            title={lang === 'en' ? 'Search 12 Sections & Glossary (Cmd+K)' : 'Sabaq aur Glossary dhoondo (Cmd+K)'}
+            className="flex items-center gap-2 px-3 py-1.5 bg-white/80 hover:bg-brand-amber/15 text-brand-charcoal border border-brand-amber/20 hover:border-brand-amber/40 rounded-full text-xs font-black transition-all cursor-pointer select-none shadow-sm hover:shadow-md active:scale-95 group"
+            title={lang === 'en' ? 'Ask Clay a Question (Cmd+K)' : 'Clay se Sawaal Poochho (Cmd+K)'}
           >
-            <Search className="w-3.5 h-3.5 text-brand-slate group-hover:text-brand-amber transition-colors" />
-            <span className="hidden sm:inline text-[11px] font-bold">{lang === 'en' ? 'Search' : 'Dhoondo'}</span>
+            <ClayLogo size={18} />
+            <span className="hidden sm:inline text-[11px] font-extrabold text-brand-charcoal group-hover:text-brand-amber transition-colors">
+              {lang === 'en' ? 'Ask Clay' : 'Clay se Poochho'}
+            </span>
             <span className="hidden lg:inline text-[9px] font-mono opacity-40">⌘K</span>
           </button>
 
@@ -436,6 +445,8 @@ export default function FloatingNav() {
                       { id: 'prompting-rag', label: lang === 'en' ? '3. Prompting & RAG' : '3. Prompting aur RAG', num: '03' },
                       { id: 'ai-tools-directory', label: lang === 'en' ? '4. Curated Tools' : '4. AI Tools', num: '04' },
                       { id: 'deeper', label: lang === 'en' ? '5. Glossary Hub' : '5. Glossary Hub', num: '05' },
+                      { id: 'classroom-hub', label: lang === 'en' ? '6. Classroom Hub' : '6. Classroom Hub', num: '06' },
+                      { id: 'ai-arena', label: lang === 'en' ? '7. AI Arena' : '7. AI Arena', num: '07' },
                     ].map((item) => (
                       <button
                         key={item.id}

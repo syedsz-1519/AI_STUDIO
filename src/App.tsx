@@ -10,9 +10,11 @@ import AIToolsList from './components/AIToolsList';
 import ClosingAndDeeper from './components/ClosingAndDeeper';
 import AudioNarrationHub from './components/AudioNarrationHub';
 import FloatingLanguageBubble from './components/FloatingLanguageBubble';
+import AskClayButton from './components/AskClayButton';
 // Floating Theme Toggle is now bundled inside Settings Control Center
 import CheckYourKnowledge from './components/CheckYourKnowledge';
 import AIArena from './components/AIArena';
+import GoogleClassroomHub from './components/GoogleClassroomHub';
 import { Compass, Sparkles, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import ClayLogo from './components/ClayLogo';
@@ -60,6 +62,9 @@ export default function App() {
 
       {/* Floating Audio Guide for Clay */}
       <AudioNarrationHub />
+
+      {/* Floating Interactive "Ask Clay" Question Button */}
+      <AskClayButton />
 
       {/* Floating Language Change Bubble (Bottom Left) */}
       <FloatingLanguageBubble />
@@ -151,6 +156,16 @@ export default function App() {
         >
           <ClosingAndDeeper />
           <CheckYourKnowledge sectionId="deeper" />
+        </motion.div>
+
+        {/* Google Classroom Hub - Synchronize learning tasks with real-world streams */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={sectionAnimation}
+        >
+          <GoogleClassroomHub />
         </motion.div>
 
         {/* AI Arena - Gamified Battleground Section (Moved to the last section) */}

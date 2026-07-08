@@ -408,77 +408,61 @@ class AudioEngine {
     }, intervalMs);
   }
 
-  // --- TEXT TO SPEECH NARRATION WITH LANGUAGE SUPPORT ---
-  speak(text: string, onEnd?: () => void, language: 'en' | 'hyd' = 'en') {
+  // --- TEXT TO SPEECH NARRATION ---
+  speak(text: string, langCode: 'en' | 'hyd' = 'en', onEnd?: () => void) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-    // Security: Input validation
-    if (!text || typeof text !== 'string') {
-      console.error('[AudioEngine] Invalid text input');
-      return;
-    }
-
-    // Security: Limit text length to prevent abuse (max 5000 characters)
-    const MAX_TEXT_LENGTH = 5000;
-    if (text.length > MAX_TEXT_LENGTH) {
-      console.warn('[AudioEngine] Text exceeds maximum length, truncating');
-      text = text.substring(0, MAX_TEXT_LENGTH);
-    }
-
-    // Security: Validate language parameter
-    if (!['en', 'hyd'].includes(language)) {
-      console.error('[AudioEngine] Invalid language parameter');
-      language = 'en';
-    }
 
     window.speechSynthesis.cancel(); // Cancel any active speech
 
-    // Clean text of markdown and potentially harmful characters
-    let cleanText = text
+    // Clean text of markdown
+    const cleanText = text
       .replace(/[\*\_\#\`]/g, '')
-      .replace(/claymorphic/gi, 'tactile')
-      .replace(/[<>{}[\]]/g, '') // Remove HTML/code characters
+      .replace(/claymorphic/gi, 'tactile') // Just in case
       .trim();
-    
-    // Validate cleaned text isn't empty
-    if (!cleanText) {
-      console.warn('[AudioEngine] Text is empty after cleaning');
-      return;
-    }
 
     this.activeUtterance = new SpeechSynthesisUtterance(cleanText);
     
-    // Language-specific voice selection
+    // Choose voice
     const voices = window.speechSynthesis.getVoices();
     let preferredVoice = null;
 
-    if (language === 'en') {
-      // English: Prefer English male voice
+    if (langCode === 'hyd') {
+      // Find regional Indian voices (Hindi or Urdu or Indian English as fallback)
       preferredVoice = voices.find(v => 
-        v.lang.startsWith('en-US') && (
+        (v.lang.startsWith('hi') || v.lang.startsWith('ur')) && (
+          v.name.toLowerCase().includes('india') ||
+          v.name.toLowerCase().includes('google')
+        )
+      ) || voices.find(v => 
+        v.lang.startsWith('hi') || v.lang.startsWith('ur') || v.lang.startsWith('en-in')
+      );
+    }
+
+    if (!preferredVoice) {
+      // Prefer English male or youthful vocal profiles for a friendly teen boy sound
+      preferredVoice = voices.find(v => 
+        v.lang.startsWith('en') && (
           v.name.toLowerCase().includes('male') || 
           v.name.toLowerCase().includes('guy') || 
           v.name.toLowerCase().includes('david') || 
           v.name.toLowerCase().includes('natural') || 
           v.name.toLowerCase().includes('standard-b')
         )
-      ) || voices.find(v => v.lang.startsWith('en'));
-    } else if (language === 'hyd') {
-      // Hyderabadi/Urdu: Use Urdu voice or Hindi as fallback
-      preferredVoice = voices.find(v => v.lang.startsWith('ur')) ||
-                       voices.find(v => v.lang.startsWith('hi')) ||
-                       voices.find(v => v.lang.startsWith('en'));
+      ) || voices.find(v => 
+        v.name.toLowerCase().includes('google us english') ||
+        v.name.toLowerCase().includes('microsoft david') ||
+        v.lang.startsWith('en')
+      );
     }
 
     if (preferredVoice) {
       this.activeUtterance.voice = preferredVoice;
-      this.activeUtterance.lang = language === 'en' ? 'en-US' : 'ur-IN';
     }
 
     // Set properties for a soft, precise, and highly listenable narrator voice
-    this.activeUtterance.pitch = this.userPitch;
-    this.activeUtterance.rate = this.userSpeechRate;
-    this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100));
+    this.activeUtterance.pitch = this.userPitch;  // Custom speaking pitch
+    this.activeUtterance.rate = this.userSpeechRate;   // Soft, clear, and perfectly paced for high listenability
+    this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100)); // Gentle and comfortable volume presence
 
     this.activeUtterance.onstart = () => {
       if (this.onSpeakStateChange) this.onSpeakStateChange(true);
@@ -489,22 +473,12 @@ class AudioEngine {
       if (onEnd) onEnd();
     };
 
-    this.activeUtterance.onerror = (event) => {
-      // Enhanced error handling
-      const errorMsg = event.error || 'Unknown error';
-      console.error(`[AudioEngine] Speech synthesis error: ${errorMsg}`);
+    this.activeUtterance.onerror = () => {
       if (this.onSpeakStateChange) this.onSpeakStateChange(false);
       if (onEnd) onEnd();
     };
 
-    // Additional error handling: Check if voice synthesis starts successfully
-    try {
-      window.speechSynthesis.speak(this.activeUtterance);
-    } catch (error) {
-      console.error('[AudioEngine] Failed to start speech synthesis:', error);
-      if (this.onSpeakStateChange) this.onSpeakStateChange(false);
-      if (onEnd) onEnd();
-    }
+    window.speechSynthesis.speak(this.activeUtterance);
   }
 
   stopSpeaking() {

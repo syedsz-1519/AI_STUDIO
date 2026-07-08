@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { roadmapSections, Section, Term } from '../data/roadmapTerms';
 import { useLanguage } from '../hooks/useLanguage';
+import ClayLogo from './ClayLogo';
 
 interface SearchModalProps {
   isOpen: boolean;
@@ -206,11 +207,36 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ type: 'spring', duration: 0.35, bounce: 0.1 }}
-            className="relative w-full max-w-2xl bg-white/85 backdrop-blur-xl border border-brand-charcoal/10 rounded-3xl shadow-2xl flex flex-col max-h-[75vh] overflow-hidden"
+            className="relative w-full max-w-2xl bg-white/85 backdrop-blur-xl border border-brand-charcoal/10 rounded-3xl shadow-2xl flex flex-col max-h-[82vh] overflow-hidden"
           >
             {/* Soft decorative background glow */}
             <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-brand-amber/10 rounded-full blur-3xl pointer-events-none" />
             <div className="absolute bottom-[-50px] left-[-50px] w-64 h-64 bg-brand-slate/10 rounded-full blur-3xl pointer-events-none" />
+
+            {/* Clay's Ask Header Banner */}
+            <div className="bg-brand-amber/5 border-b border-brand-charcoal/5 px-5 py-4 flex items-center justify-between shrink-0 relative z-10">
+              <div className="flex items-center gap-3">
+                <ClayLogo size={36} />
+                <div>
+                  <h3 className="font-display text-sm font-black uppercase tracking-wider text-brand-charcoal flex items-center gap-1.5">
+                    {lang === 'en' ? "Ask Clay" : "Clay se Poochho"}
+                    <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-amber animate-pulse" />
+                  </h3>
+                  <p className="text-[10px] text-brand-slate leading-normal max-w-[400px]">
+                    {lang === 'en' 
+                      ? "I can search across 12 lessons & glossary terms instantly. Type a word below to start!" 
+                      : "Main poore 12 sabak aur glossary ke lafzaan ek second mein dhoond leta hoon yaaron! Neeche lafz likho."
+                    }
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={onClose}
+                className="p-1.5 rounded-full hover:bg-brand-sand text-brand-slate hover:text-brand-charcoal transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
             {/* Header: Input Bar */}
             <div className="relative p-5 border-b border-brand-charcoal/5 flex items-center gap-3 shrink-0">

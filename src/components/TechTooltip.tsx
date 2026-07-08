@@ -5,6 +5,8 @@ import { BookOpen } from 'lucide-react';
 interface TechTooltipProps {
   term: string;
   children: React.ReactNode;
+  definition?: string;
+  key?: React.Key;
 }
 
 const definitions: Record<string, string> = {
@@ -28,12 +30,12 @@ const definitions: Record<string, string> = {
   'AI Ethics & Bias': 'Guarding against bias, privacy invasion, and unfair outputs resulting from training models on historical internet records.'
 };
 
-export default function TechTooltip({ term, children }: TechTooltipProps) {
+export default function TechTooltip({ term, children, definition: customDefinition }: TechTooltipProps) {
   const [isVisible, setIsVisible] = useState(false);
 
   // Normalize search to find matching term
   const normTerm = term.trim();
-  const definition = definitions[normTerm] || definitions[term] || 'An important technical concept in modern artificial intelligence pathways.';
+  const definition = customDefinition || definitions[normTerm] || definitions[term] || 'An important technical concept in modern artificial intelligence pathways.';
 
   return (
     <span 

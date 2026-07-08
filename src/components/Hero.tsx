@@ -44,7 +44,7 @@ export default function Hero() {
           className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-brand-charcoal leading-[1.1] tracking-tight max-w-3xl mb-6 text-balance"
         >
           {lang === 'en' ? (
-            <>AI is not magic. It's <span className="text-brand-amber relative">pattern-matching</span> at massive scale.</>
+            <>AI is not magic. It’s <span className="text-brand-amber relative">pattern-matching</span> at massive scale.</>
           ) : (
             <>AI koi jaadu nahi hai yaaron. Ye bade paimane par <span className="text-brand-amber relative">pattern matching</span> hai.</>
           )}
@@ -59,27 +59,6 @@ export default function Hero() {
         >
           {t('hero.subtitle')}
         </motion.p>
-
-        {/* Scroll Indicator */}
-        <motion.button
-          onClick={() => {
-            const el = document.getElementById('what-is-ai');
-            if (el) el.scrollIntoView({ behavior: 'smooth' });
-          }}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.9, duration: 0.5 }}
-          className="flex flex-col items-center gap-2 text-xs font-semibold text-brand-slate hover:text-brand-amber transition-colors group cursor-pointer"
-        >
-          <span>{t('hero.button')}</span>
-          <motion.div
-            animate={{ y: [0, 6, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
-            className="w-7 h-7 rounded-full bg-white border border-brand-slate/10 flex items-center justify-center shadow-sm group-hover:border-brand-amber/30 group-hover:shadow-md transition-all"
-          >
-            <ArrowDown className="w-3.5 h-3.5" />
-          </motion.div>
-        </motion.button>
 
         {/* Tactile Interactive Pattern Canvas */}
         <motion.div
@@ -152,7 +131,26 @@ export default function Hero() {
           </div>
         </motion.div>
 
-
+        {/* Scroll Indicator */}
+        <motion.button
+          onClick={() => {
+            const el = document.getElementById('what-is-ai');
+            if (el) el.scrollIntoView({ behavior: 'smooth' });
+          }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.9, duration: 0.5 }}
+          className="flex flex-col items-center gap-2 text-xs font-semibold text-brand-slate hover:text-brand-amber transition-colors group cursor-pointer"
+        >
+          <span>{t('hero.button')}</span>
+          <motion.div
+            animate={{ y: [0, 6, 0] }}
+            transition={{ repeat: Infinity, duration: 1.5, ease: 'easeInOut' }}
+            className="w-7 h-7 rounded-full bg-white border border-brand-slate/10 flex items-center justify-center shadow-sm group-hover:border-brand-amber/30 group-hover:shadow-md transition-all"
+          >
+            <ArrowDown className="w-3.5 h-3.5" />
+          </motion.div>
+        </motion.button>
       </div>
     </section>
   );

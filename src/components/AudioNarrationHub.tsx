@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Volume2, VolumeX, Play, Square, Headphones, ChevronUp, ChevronDown, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Volume2, VolumeX, Play, Square, Headphones } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import { useLanguage } from '../hooks/useLanguage';
-import { sanitizeAudioText, validateLanguage, isAudioTextSafe } from '../lib/sanitize';
 import ClayLogo from './ClayLogo';
 
 interface SectionContent {
   id: string;
-  title: string;
-  text: string;
+  titleEn: string;
+  titleHyd: string;
+  textEn: string;
+  textHyd: string;
 }
 
 export default function AudioNarrationHub() {
@@ -44,45 +45,45 @@ export default function AudioNarrationHub() {
   const sections: SectionContent[] = [
     {
       id: 'all',
-      title: lang === 'en' ? 'Full Website Audio Guide' : 'Puri Website Ki Audio Guide',
-      text: lang === 'en' 
-        ? "Welcome! I'm Clay, your tactile explainer. Let me guide you through everything on this website. Artificial Intelligence is the broad concept of teaching machines to learn from examples. Inside it, we find Machine Learning, which uses mathematical algorithms to recognize patterns. Nested even deeper is Deep Learning, utilizing layered neural networks inspired by human brains. At the very center lies Generative AI, creating brand new content, powered by Large Language Models like Gemini. We can use these tools via clever prompts and Retrieval-Augmented Generation to get precise, factual answers."
-        : "Assalamu Alaikum! Main hoon Clay, tumhara tactile explainer. Mujhe dekho puri website ko samjhate hain. Artificial Intelligence matlab machine ko seekhana ki wo examples se patterns dhoondun. Usme Machine Learning hai jo ganit se patterns pehchhanta hai. Aur deeper jao to Deep Learning hai jo neural networks use karta hai. Bilkul center mein Generative AI hai jo nayi content banata hai, Large Language Models ki help se. Humm isko prompts aur RAG se use karke bilkul sahi jawab paa sakte hain."
+      titleEn: 'Full Website Audio Guide',
+      titleHyd: 'Poori Website ka Audio Guide',
+      textEn: "Welcome! I'm Clay, your tactile explainer. Let me guide you through everything on this website. Artificial Intelligence is the broad concept of teaching machines to learn from examples. Inside it, we find Machine Learning, which uses mathematical algorithms to recognize patterns. Nested even deeper is Deep Learning, utilizing layered neural networks inspired by human brains. At the very center lies Generative AI, creating brand new content, powered by Large Language Models like Gemini. We can use these tools via clever prompts and Retrieval-Augmented Generation to get precise, factual answers.",
+      textHyd: "Arey salaam yaaron! Main hoon Clay, tumhara apna tactile explainer. Main tumhein is website ki poori sair karaata hoon. Artificial Intelligence bole to computer'aa ko dimaag dena — aisi machines jo patterns se seekhte hain. Iske andar Machine Learning rehta jo mathematics ke zariye data mein patterns dhoondta. Aur uske bhi andar Deep Learning rehta jo insani dimaag ke jaisa layers wale neural networks use karta hai. Aur is khandaan ke bilkul dil mein Generative AI baithta hai, jo naye photo'aan, videos aur text bana sakta hai Gemini jaise bade language models ke zariye! Hum isko sahi prompts aur RAG ke zariye bilkul sacha jawaab dene ke kabil banate hain."
     },
     {
       id: 'basics',
-      title: lang === 'en' ? '1. What is AI?' : '1. AI Kya Hai?',
-      text: lang === 'en'
-        ? "Artificial Intelligence means designing computers that can learn and solve problems by recognizing patterns, rather than just executing manual rules written by programmers. In the traditional programming era, developers had to write step-by-step logic. Now, with AI, we feed the system thousands of examples, allowing it to calculate its own pathways to predict, classify, and create."
-        : "Artificial Intelligence yaani computer ko seekhana ta wo examples se patterns dhoondun aur khud se decisions le saken. Pehle programmer ko hath se har rule likhna padta tha. Ab to humm hazaaron examples dete hain aur machine khud seekh jaata hai predict karne, sort karne, aur naye cheezen banane ke liye."
+      titleEn: '1. What is AI?',
+      titleHyd: '1. AI kya hai?',
+      textEn: "Artificial Intelligence means designing computers that can learn and solve problems by recognizing patterns, rather than just executing manual rules written by programmers. In the traditional programming era, developers had to write step-by-step logic. Now, with AI, we feed the system thousands of examples, allowing it to calculate its own pathways to predict, classify, and create.",
+      textHyd: "Arey yaaron, Artificial Intelligence ka matlab computer ko rules likh ke dene ke bajaye use hazaaro examples dekar khud seekhne dena hai. Pehle hum ek ek line code ki likhte the. Ab hum hazaaro photos ya data de dete, computer apna rasta aur logic khud banaata hai taaki pehchan sake ya naya content bana sake!"
     },
     {
       id: 'family-tree',
-      title: lang === 'en' ? '2. The AI Family Tree' : '2. AI Ka Parivaar',
-      text: lang === 'en'
-        ? "To understand AI, we can picture nested Russian dolls. The outermost doll is Artificial Intelligence, the overall field. Inside is Machine Learning, which trains on data to make decisions. Nesting further is Deep Learning, which models multi-layered neural networks. Finally, at the core is Generative AI, which specializes in synthesizing new text, images, and creative media from instructions."
-        : "AI ko samjhne ke liye Russian dolls socho, ek ke andar ek. Sabse bahar Artificial Intelligence hai, poora domain. Usme Machine Learning hai jo data se seekhta hai. Aur deeper Machine Learning ke andar Deep Learning hai jo neural networks use karta hai. Bilkul center mein Generative AI hai jo new content banata hai - likhi so baatain, tasveerein, sab kuch."
+      titleEn: '2. The AI Family Tree',
+      titleHyd: '2. AI ka Khandaan (Family Tree)',
+      textEn: "To understand AI, we can picture nested Russian dolls. The outermost doll is Artificial Intelligence, the overall field. Inside is Machine Learning, which trains on data to make decisions. Nesting further is Deep Learning, which models multi-layered neural networks. Finally, at the core is Generative AI, which specializes in synthesizing new text, images, and creative media from instructions.",
+      textHyd: "AI ke khandaan ko samajhne ke waaste nested Russian dolls ke jaisa dabba-in-dabba samjho. Sabse bada dabba AI hai. Uske andar Machine Learning baithta hai jo data se seekhta hai. Uske bhi andar Deep Learning hai jo deep neural networks chalata hai. Aur sabse chota par sabse dhasu dabba Generative AI hai jo naya text aur photos banata hai!"
     },
     {
       id: 'gen-ai',
-      title: lang === 'en' ? '3. Generative AI & LLMs' : '3. Generative AI aur Language Models',
-      text: lang === 'en'
-        ? "Generative AI can create original content. It is powered by Large Language Models which are trained on vast oceans of text. These models break language into small tokens, calculating which word or phrase is most likely to come next. It's a continuous, mathematical prediction loop of incredible scale."
-        : "Generative AI original content bana sakta hai - likhe so baatain, images, sab. Ye Large Language Models se chalte hain jo hazaaron kitaab aur websites par trained hain. Ye har word ko token banate hain aur calculate karte hain ki agle word kaun sa hona chahiye. Ye sab ganit aur probability ka khel hai."
+      titleEn: '3. Generative AI & LLMs',
+      titleHyd: '3. Generative AI aur LLMs',
+      textEn: "Generative AI can create original content. It is powered by Large Language Models which are trained on vast oceans of text. These models break language into small tokens, calculating which word or phrase is most likely to come next. It's a continuous, mathematical prediction loop of incredible scale.",
+      textHyd: "Generative AI bole to naye photos, texts aur code paida karne wala AI. Iske peeche bade models rehte jise Large Language Models kehte hain. Ye poori duniya ke likhe so kitaabon ko padh ke, agla word kya hona chahiye uski probability check karte rehte!"
     },
     {
       id: 'prompting',
-      title: lang === 'en' ? '4. Prompting & RAG' : '4. Prompts aur RAG',
-      text: lang === 'en'
-        ? "We interact with LLMs using prompts. Prompting is a craft: giving context, roles, and instructions. To make answers highly accurate and prevent hallucinations, we use Retrieval-Augmented Generation, or RAG. It fetches fresh, reliable documents from a secure database and appends them to your prompt, so the AI reads the correct reference before drafting its reply."
-        : "LLM ke saath hum prompts se baat karte hain. Prompt likha to context likhi, role likhi, instructions likhi. Sahi jawab pane ke liye hum RAG use karte hain - ye secure database se sahi documents nikalta hai aur AI ko dikhata hai, phir AI sahi jawab deta hai. Hallucinationz nahi aate iss tarah."
+      titleEn: '4. Prompting & RAG',
+      titleHyd: '4. Prompting aur RAG',
+      textEn: "We interact with LLMs using prompts. Prompting is a craft: giving context, roles, and instructions. To make answers highly accurate and prevent hallucinations, we use Retrieval-Augmented Generation, or RAG. It fetches fresh, reliable documents from a secure database and appends them to your prompt, so the AI reads the correct reference before drafting its reply.",
+      textHyd: "Hum AI se baat karne ke waaste prompts use karte hain. Sahi sawaal puchna ek fun hai yaaron. Lekin AI kabhi kabhi fekte rehta hai (hallucination). Uske waaste hum RAG use karte. RAG pehle safe database se pakka sach dhoond ke lata, aur AI ko bolta ki isi ke mutabiq sach-sach bolo!"
     },
     {
       id: 'glossary',
-      title: lang === 'en' ? '5. Collapsible Glossary' : '5. Technical Shabdkosh',
-      text: lang === 'en'
-        ? "Our interactive glossary breaks down core terms simply. Neural networks are layers of nodes that filter signals to recognize features. Hallucinations are confident but incorrect predictions made by models due to pattern gaps. Tokens are word fragments representing numerical semantic values."
-        : "Humhara glossary technical words ko asaan karta hai. Neural networks matlab layers of nodes jo signals ko filter karte hain. Hallucinations yaani jab AI confident hote hue galat jawab de. Tokens yaani word ke pieces jo numbers represent karte hain."
+      titleEn: '5. Collapsible Glossary',
+      titleHyd: '5. Glossary (Mushkil Alfaaz)',
+      textEn: "Our interactive glossary breaks down core terms simply. Neural networks are layers of nodes that filter signals to recognize features. Hallucinations are confident but incorrect predictions made by models due to pattern gaps. Tokens are word fragments representing numerical semantic values.",
+      textHyd: "Humari glossary mein saare mushkil words ekdam asaan zabaan mein milenge yaaron. Neural networks bole to dimaag ke cells ke jaise layers, hallucinations bole to AI ki phekne wali aadat, aur tokens bole to words ke chote chote tukde!"
     }
   ];
 
@@ -92,24 +93,10 @@ export default function AudioNarrationHub() {
       setIsPlaying(false);
     } else {
       const selected = sections.find(s => s.id === activeSectionId) || sections[0];
-      
-      // Security: Validate and sanitize text before audio narration
-      if (!selected || !selected.text) {
-        console.error('[AudioNarrationHub] No text content available');
-        return;
-      }
-
-      if (!isAudioTextSafe(selected.text)) {
-        console.error('[AudioNarrationHub] Text content failed security check');
-        return;
-      }
-
-      const sanitizedText = sanitizeAudioText(selected.text);
-      const validatedLang = validateLanguage(lang);
-
-      audioEngine.speak(sanitizedText, () => {
+      const textToSpeak = lang === 'en' ? selected.textEn : selected.textHyd;
+      audioEngine.speak(textToSpeak, lang, () => {
         setIsPlaying(false);
-      }, validatedLang);
+      });
       setIsPlaying(true);
     }
   };
@@ -139,16 +126,15 @@ export default function AudioNarrationHub() {
             <div className="flex items-center justify-between border-b border-brand-slate/5 pb-3">
               <div className="flex items-center gap-2">
                 <Headphones className="w-4 h-4 text-brand-amber" />
-                <span className="font-display text-sm font-extrabold text-brand-charcoal">Clay's Audio Guide Hub</span>
-                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-amber/20 text-brand-amber uppercase tracking-wider font-mono">
-                  {lang === 'en' ? 'EN' : 'HYD'}
+                <span className="font-display text-sm font-extrabold text-brand-charcoal">
+                  {lang === 'en' ? "Clay's Audio Guide Hub" : "Clay ka Audio Hub"}
                 </span>
               </div>
               <button 
                 onClick={() => setIsOpen(false)}
                 className="text-xs font-bold text-brand-slate hover:text-brand-charcoal cursor-pointer"
               >
-                Minimize
+                {lang === 'en' ? "Minimize" : "Chupao"}
               </button>
             </div>
 
@@ -186,11 +172,17 @@ export default function AudioNarrationHub() {
 
               <div>
                 <span className="font-display text-xs font-bold block text-brand-charcoal flex items-center gap-1.5">
-                  {isPlaying ? "Clay is Speaking..." : "Clay is Idle"}
+                  {isPlaying 
+                    ? (lang === 'en' ? "Clay is Speaking..." : "Clay Bolra Hai...") 
+                    : (lang === 'en' ? "Clay is Idle" : "Clay Thanda Baitha")
+                  }
                   {isPlaying && <span className="inline-block w-2.5 h-2.5 rounded-full bg-brand-amber animate-ping" />}
                 </span>
                 <span className="text-[10px] text-brand-muted block mt-0.5 leading-snug">
-                  {isPlaying ? "Reading active section aloud. Voice rate calibrated." : "Select a section below and tap play to listen."}
+                  {isPlaying 
+                    ? (lang === 'en' ? "Reading active section aloud. Voice rate calibrated." : "Chunu so hissa zor se padh ra. Awaaz ekdam set hai.") 
+                    : (lang === 'en' ? "Select a section below and tap play to listen." : "Neeche se ek hissa chuno aur play dabba ke suno yaaron.")
+                  }
                 </span>
               </div>
             </div>
@@ -198,7 +190,7 @@ export default function AudioNarrationHub() {
             {/* Dropdown Select Section */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] font-bold uppercase tracking-wider text-brand-muted font-mono">
-                Select Narrative Section
+                {lang === 'en' ? "Select Narrative Section" : "Padhne ka Hissa Chuno"}
               </label>
               <select
                 value={activeSectionId}
@@ -213,7 +205,7 @@ export default function AudioNarrationHub() {
               >
                 {sections.map(s => (
                   <option key={s.id} value={s.id}>
-                    {s.title}
+                    {lang === 'en' ? s.titleEn : s.titleHyd}
                   </option>
                 ))}
               </select>
@@ -241,7 +233,12 @@ export default function AudioNarrationHub() {
                 ) : (
                   <Play className="w-4 h-4 fill-white" />
                 )}
-                <span>{isPlaying ? "Pause Clay's Voice" : "Read Active Section"}</span>
+                <span>
+                  {isPlaying 
+                    ? (lang === 'en' ? "Pause Clay's Voice" : "Clay ki Awaaz Roko") 
+                    : (lang === 'en' ? "Read Active Section" : "Ye Hissa Padho")
+                  }
+                </span>
               </motion.button>
               
               {isPlaying && (
@@ -259,8 +256,10 @@ export default function AudioNarrationHub() {
 
             {/* Text Preview box */}
             <div className="bg-white/50 p-3 rounded-xl border border-brand-slate/5 text-[11px] text-brand-muted max-h-24 overflow-y-auto leading-relaxed font-sans scrollbar-thin">
-              <span className="font-bold text-brand-charcoal block mb-0.5">Reading Content:</span>
-              {currentSection.text}
+              <span className="font-bold text-brand-charcoal block mb-0.5">
+                {lang === 'en' ? "Reading Content:" : "Padhra so Likhaawat:"}
+              </span>
+              {lang === 'en' ? currentSection.textEn : currentSection.textHyd}
             </div>
           </motion.div>
         )}
@@ -276,7 +275,7 @@ export default function AudioNarrationHub() {
         }`}
       >
         <div className="relative flex items-center justify-center">
-          <Headphones className={`w-4.5 h-4.5 ${isPlaying ? 'text-brand-amber' : 'text-brand-amber'} animate-bounce`} />
+          <Headphones className={`w-4.5 h-4.5 text-brand-amber animate-bounce`} />
           {isPlaying && (
             <span className="absolute -top-1 -right-1 flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-amber opacity-75"></span>
@@ -285,7 +284,10 @@ export default function AudioNarrationHub() {
           )}
         </div>
         <span className="font-display text-xs font-bold text-brand-charcoal pr-0.5 tracking-tight flex items-center gap-1.5">
-          {isOpen ? "Close Audio Helper" : "Clay's Voice Guide"}
+          {isOpen 
+            ? (lang === 'en' ? "Close Audio Helper" : "Audio Guide Band Karo") 
+            : (lang === 'en' ? "Clay's Voice Guide" : "Clay ki Awaaz")
+          }
           {isPlaying && (
             <span className="text-[9px] bg-brand-amber/20 text-brand-amber px-1.5 py-0.5 rounded-full uppercase tracking-wider font-mono font-extrabold animate-pulse">
               Live
