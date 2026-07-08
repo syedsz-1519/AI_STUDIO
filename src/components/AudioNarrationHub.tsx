@@ -81,7 +81,7 @@ export default function AudioNarrationHub() {
       const selected = sections.find(s => s.id === activeSectionId) || sections[0];
       audioEngine.speak(selected.text, () => {
         setIsPlaying(false);
-      }, lang as 'en' | 'hyd' | 'tel');
+      }, lang as 'en' | 'hyd');
       setIsPlaying(true);
     }
   };
@@ -113,7 +113,7 @@ export default function AudioNarrationHub() {
                 <Headphones className="w-4 h-4 text-brand-amber" />
                 <span className="font-display text-sm font-extrabold text-brand-charcoal">Clay's Audio Guide Hub</span>
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-brand-amber/20 text-brand-amber uppercase tracking-wider font-mono">
-                  {lang === 'en' ? 'EN' : lang === 'hyd' ? 'HYD' : 'TEL'}
+                  {lang === 'en' ? 'EN' : 'HYD'}
                 </span>
               </div>
               <button 

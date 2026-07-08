@@ -409,7 +409,7 @@ class AudioEngine {
   }
 
   // --- TEXT TO SPEECH NARRATION WITH LANGUAGE SUPPORT ---
-  speak(text: string, onEnd?: () => void, language: 'en' | 'hyd' | 'tel' = 'en') {
+  speak(text: string, onEnd?: () => void, language: 'en' | 'hyd' = 'en') {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel(); // Cancel any active speech
@@ -442,17 +442,11 @@ class AudioEngine {
       preferredVoice = voices.find(v => v.lang.startsWith('ur')) ||
                        voices.find(v => v.lang.startsWith('hi')) ||
                        voices.find(v => v.lang.startsWith('en'));
-    } else if (language === 'tel') {
-      // Telugu: Use Telugu voice
-      preferredVoice = voices.find(v => v.lang.startsWith('te')) ||
-                       voices.find(v => v.lang.includes('Telugu')) ||
-                       voices.find(v => v.lang.startsWith('en'));
     }
 
     if (preferredVoice) {
       this.activeUtterance.voice = preferredVoice;
-      this.activeUtterance.lang = language === 'en' ? 'en-US' : 
-                                   language === 'hyd' ? 'ur-IN' : 'te-IN';
+      this.activeUtterance.lang = language === 'en' ? 'en-US' : 'ur-IN';
     }
 
     // Set properties for a soft, precise, and highly listenable narrator voice
