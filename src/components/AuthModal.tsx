@@ -18,9 +18,25 @@ import {
   Instagram,
   Linkedin,
   Github,
-  Check
+  Check,
+  Volume2,
+  Volume1,
+  VolumeX,
+  Palette,
+  Music,
+  Sliders,
+  RefreshCw,
+  Type,
+  Globe,
+  Flame,
+  Sun,
+  Moon,
+  Droplets,
+  Trash2
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
+import { useTheme, Theme } from '../hooks/useTheme';
+import { audioEngine } from '../lib/audioEngine';
 import { 
   auth, 
   db, 
@@ -37,6 +53,31 @@ import {
 } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 
+// Browser Audio Synthesizer for UI SFX
+const playTone = (frequency: number, type: OscillatorType, duration: number, volume = 0.1) => {
+  try {
+    const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContext) return;
+    const ctx = new AudioContext();
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    osc.type = type;
+    osc.frequency.value = frequency;
+    
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + duration);
+    
+    osc.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    osc.start();
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {
+    // Audio Context blocked or not supported
+  }
+};
+
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -44,6 +85,89 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { lang } = useLanguage();
+  const { theme, setTheme } = useTheme();
+  
+  // Tabs & Preferences States
+  const [activeTab, setActiveTab] = useState<'account' | 'visuals' | 'audio' | 'advanced'>('account');
+  const [volume, setVolumeState] = useState(() => audioEngine.getVolume());
+  const [speechRate, setSpeechRateState] = useState(() => audioEngine.getSpeechRate());
+  const [crackle, setCrackleState] = useState(() => audioEngine.isCrackleEnabled());
+  const [practiceMode, setPracticeModeState] = useState(() => localStorage.getItem('clay_quiz_practice_mode') === 'true');
+  const [textSize, setTextSizeState] = useState(() => localStorage.getItem('clay_text_size') || 'md');
+
+  // Sync state on modal open
+  useEffect(() => {
+    if (isOpen) {
+      setVolumeState(audioEngine.getVolume());
+      setSpeechRateState(audioEngine.getSpeechRate());
+      setCrackleState(audioEngine.isCrackleEnabled());
+      setPracticeModeState(localStorage.getItem('clay_quiz_practice_mode') === 'true');
+      setTextSizeState(localStorage.getItem('clay_text_size') || 'md');
+    }
+  }, [isOpen]);
+
+  // Sync custom event triggers
+  useEffect(() => {
+    const handleVolumeEvent = () => {
+      setVolumeState(audioEngine.getVolume());
+    };
+    const handlePracticeModeEvent = () => {
+      setPracticeModeState(localStorage.getItem('clay_quiz_practice_mode') === 'true');
+    };
+    window.addEventListener('clay_volume_changed', handleVolumeEvent);
+    window.addEventListener('clay_practice_mode_changed', handlePracticeModeEvent);
+    return () => {
+      window.removeEventListener('clay_volume_changed', handleVolumeEvent);
+      window.removeEventListener('clay_practice_mode_changed', handlePracticeModeEvent);
+    };
+  }, []);
+
+  const handleVolumeSliderChange = (newVal: number) => {
+    setVolumeState(newVal);
+    audioEngine.setVolume(newVal);
+  };
+
+  const handleSpeechRateSliderChange = (newVal: number) => {
+    setSpeechRateState(newVal);
+    audioEngine.setSpeechRate(newVal);
+  };
+
+  const handleCrackleToggle = (enabled: boolean) => {
+    setCrackleState(enabled);
+    audioEngine.setCrackleEnabled(enabled);
+  };
+
+  const handlePracticeToggle = () => {
+    const nextVal = !practiceMode;
+    setPracticeModeState(nextVal);
+    localStorage.setItem('clay_quiz_practice_mode', String(nextVal));
+    window.dispatchEvent(new Event('clay_practice_mode_changed'));
+  };
+
+  const handleTextSizeChange = (size: string) => {
+    setTextSizeState(size);
+    localStorage.setItem('clay_text_size', size);
+    
+    // Apply text size globally to body or html tag
+    const root = document.documentElement;
+    root.classList.remove('text-size-sm', 'text-size-md', 'text-size-lg');
+    root.classList.add(`text-size-${size}`);
+    
+    // Trigger custom window resize or style update if needed
+    window.dispatchEvent(new Event('clay_text_size_changed'));
+  };
+
+  const handleResetLearning = () => {
+    const confirmMsgEn = "⚠️ CRITICAL RESET: This will permanently wipe all your master terms count, quiz scores, daily streaks, achievements, and custom avatar profiles inside this browser. Are you absolutely sure you want to completely start over?";
+    const confirmMsgUr = "⚠️ SAKHT RESET: Yih aapke saare seekhe hue alfaaz, quiz scores, streaks aur custom avatar ko browser se mita dega. Kya aap such me sab zero karna chahte hain?";
+    
+    if (window.confirm(lang === 'en' ? confirmMsgEn : confirmMsgUr)) {
+      localStorage.clear();
+      // Force reload page to apply absolute clean state
+      window.location.reload();
+    }
+  };
+
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -245,299 +369,597 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           <X className="w-4.5 h-4.5" />
         </button>
 
-        {/* If user is logged in: SHOW PROFILE & LEARNING SETTINGS */}
-        {user ? (
-          <div className="space-y-6">
-            <div className="flex items-center gap-4 pb-4 border-b border-brand-slate/10">
-              <img 
-                src={user.avatar} 
-                alt={user.fullName} 
-                className="w-14 h-14 rounded-2xl bg-brand-sand border-2 border-brand-amber/40 p-1 shadow-inner shrink-0"
-              />
-              <div className="min-w-0">
-                <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-brand-amber/10 text-brand-amber px-2 py-0.5 rounded-full uppercase tracking-wider">
-                  <Sparkles className="w-2.5 h-2.5" /> Simple AI Scholar
-                </span>
-                <h3 className="font-display text-base font-black text-brand-charcoal truncate leading-tight mt-1.5">
-                  {user.fullName}
-                </h3>
-                <p className="text-[11px] text-brand-muted truncate mt-0.5">
-                  {user.email}
-                </p>
-              </div>
-            </div>
+        {/* Modal Header */}
+        <div className="mb-4 text-center md:text-left pr-6">
+          <h3 className="font-display text-lg font-black text-brand-charcoal tracking-tight flex items-center justify-center md:justify-start gap-1.5">
+            <Settings className="w-5 h-5 text-brand-amber animate-spin-slow" />
+            {lang === 'en' ? "Control Center & Settings" : "Tanzimat Aur Sahuliyat"}
+          </h3>
+          <p className="text-[10px] text-brand-muted mt-0.5">
+            {lang === 'en' ? "Customize lofi-sound, global color theme palettes, and student profile" : "Awaaz, website ka rang, aur student profile set karein"}
+          </p>
+        </div>
 
-            {/* Scholar Stats Grid */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-[#FAF8F5] border border-brand-slate/10 p-3 rounded-2xl">
-                <div className="flex items-center gap-1.5 text-brand-amber mb-1">
-                  <BookOpen className="w-3.5 h-3.5 shrink-0" />
-                  <span className="text-[9px] font-mono font-bold uppercase">{lang === 'en' ? "Vocabulary" : "Shabd"}</span>
-                </div>
-                <div className="text-xl font-black text-brand-charcoal">
-                  {masteredCount} <span className="text-xs text-brand-muted font-bold">/ 54</span>
-                </div>
-                <span className="text-[9px] text-brand-muted font-medium mt-0.5 block">
-                  {lang === 'en' ? "Terms Mastered" : "Alfaaz Seekhe"}
-                </span>
-              </div>
+        {/* Tab Selection Navigation */}
+        <div className="flex border-b border-brand-slate/10 mb-4 overflow-x-auto scrollbar-none gap-1">
+          {[
+            { id: 'account', labelEn: 'Account', labelUr: 'Profile', icon: User },
+            { id: 'visuals', labelEn: 'Visuals', labelUr: 'Rang', icon: Palette },
+            { id: 'audio', labelEn: 'Audio', labelUr: 'Awaaz', icon: Volume2 },
+            { id: 'advanced', labelEn: 'Advanced', labelUr: 'Khaas', icon: Sliders }
+          ].map((t) => {
+            const isActive = activeTab === t.id;
+            const IconComponent = t.icon;
+            return (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => {
+                  setActiveTab(t.id as any);
+                  playTone(400 + (t.id === 'account' ? 0 : t.id === 'visuals' ? 50 : t.id === 'audio' ? 100 : 150), 'sine', 0.08, 0.05);
+                }}
+                className={`flex-1 min-w-[70px] py-2 px-1 text-center border-b-2 font-mono text-[10px] font-bold transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                  isActive 
+                    ? 'border-brand-amber text-brand-amber bg-brand-sand/10' 
+                    : 'border-transparent text-brand-muted hover:text-brand-charcoal'
+                }`}
+              >
+                <IconComponent className="w-4 h-4 shrink-0" />
+                <span>{lang === 'en' ? t.labelEn : t.labelUr}</span>
+              </button>
+            );
+          })}
+        </div>
 
-              <div className="bg-[#FAF8F5] border border-brand-slate/10 p-3 rounded-2xl">
-                <div className="flex items-center gap-1.5 text-[#E07A5F] mb-1">
-                  <Award className="w-3.5 h-3.5 shrink-0" />
-                  <span className="text-[9px] font-mono font-bold uppercase">{lang === 'en' ? "Streak" : "Streak"}</span>
+        {/* TAB CONTENT: ACCOUNT */}
+        {activeTab === 'account' && (
+          <div>
+            {user ? (
+              <div className="space-y-4">
+                <div className="flex items-center gap-4 pb-3 border-b border-brand-slate/10">
+                  <img 
+                    src={user.avatar} 
+                    alt={user.fullName} 
+                    className="w-14 h-14 rounded-2xl bg-brand-sand border-2 border-brand-amber/40 p-1 shadow-inner shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <span className="inline-flex items-center gap-1 text-[9px] font-mono font-bold bg-brand-amber/10 text-brand-amber px-2 py-0.5 rounded-full uppercase tracking-wider">
+                      <Sparkles className="w-2.5 h-2.5" /> Simple AI Scholar
+                    </span>
+                    <h3 className="font-display text-base font-black text-brand-charcoal truncate leading-tight mt-1">
+                      {user.fullName}
+                    </h3>
+                    <p className="text-[11px] text-brand-muted truncate">
+                      {user.email}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-xl font-black text-brand-charcoal">
-                  {user.streak} <span className="text-xs text-brand-muted font-bold">{lang === 'en' ? "days" : "din"}</span>
-                </div>
-                <span className="text-[9px] text-brand-muted font-medium mt-0.5 block">
-                  {lang === 'en' ? "Active Study Streak" : "Seekhne ki Streak"}
-                </span>
-              </div>
-            </div>
 
-            {/* Platform accounts linking status */}
-            <div className="space-y-2.5 text-left">
-              <h4 className="font-mono text-[9px] font-black text-brand-amber uppercase tracking-wider">
-                {lang === 'en' ? "Linked Social Accounts" : "Linked Social Accounts"}
+                {/* Scholar Stats Grid */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-[#FAF8F5] border border-brand-slate/10 p-3 rounded-2xl">
+                    <div className="flex items-center gap-1.5 text-brand-amber mb-1">
+                      <BookOpen className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[9px] font-mono font-bold uppercase">{lang === 'en' ? "Vocabulary" : "Shabd"}</span>
+                    </div>
+                    <div className="text-xl font-black text-brand-charcoal">
+                      {masteredCount} <span className="text-xs text-brand-muted font-bold">/ 54</span>
+                    </div>
+                    <span className="text-[9px] text-brand-muted font-medium mt-0.5 block">
+                      {lang === 'en' ? "Terms Mastered" : "Alfaaz Seekhe"}
+                    </span>
+                  </div>
+
+                  <div className="bg-[#FAF8F5] border border-brand-slate/10 p-3 rounded-2xl">
+                    <div className="flex items-center gap-1.5 text-[#E07A5F] mb-1">
+                      <Award className="w-3.5 h-3.5 shrink-0" />
+                      <span className="text-[9px] font-mono font-bold uppercase">{lang === 'en' ? "Streak" : "Streak"}</span>
+                    </div>
+                    <div className="text-xl font-black text-brand-charcoal">
+                      {user.streak} <span className="text-xs text-brand-muted font-bold">{lang === 'en' ? "days" : "din"}</span>
+                    </div>
+                    <span className="text-[9px] text-brand-muted font-medium mt-0.5 block">
+                      {lang === 'en' ? "Active Study Streak" : "Seekhne ki Streak"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Platform accounts linking status */}
+                <div className="space-y-2 text-left">
+                  <h4 className="font-mono text-[9px] font-black text-brand-amber uppercase tracking-wider">
+                    {lang === 'en' ? "Linked Social Accounts" : "Linked Social Accounts"}
+                  </h4>
+                  <p className="text-[10px] text-brand-muted">
+                    {lang === 'en' 
+                      ? "Toggle platforms below to connect and sync your study journey profile on other services:" 
+                      : "Neeche click karke dusre platforms ko connect aur study data sync karein:"}
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { name: 'Google', icon: Chrome, color: 'hover:border-red-500/30 hover:bg-red-50/10' },
+                      { name: 'LinkedIn', icon: Linkedin, color: 'hover:border-blue-500/30 hover:bg-blue-50/10' },
+                      { name: 'Instagram', icon: Instagram, color: 'hover:border-pink-500/30 hover:bg-pink-50/10' },
+                      { name: 'GitHub', icon: Github, color: 'hover:border-slate-800/30 hover:bg-slate-50/10' }
+                    ].map((plat) => {
+                      const isLinked = user.linkedPlatforms.includes(plat.name);
+                      return (
+                        <button
+                          key={plat.name}
+                          type="button"
+                          onClick={() => handleLinkPlatform(plat.name)}
+                          className={`flex items-center gap-2 p-2 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
+                            isLinked 
+                              ? 'border-brand-amber/30 bg-brand-amber/[0.03] text-brand-charcoal font-bold' 
+                              : 'border-brand-slate/10 text-brand-slate ' + plat.color
+                          }`}
+                        >
+                          <plat.icon className={`w-3.5 h-3.5 shrink-0 ${isLinked ? 'text-brand-amber' : 'text-brand-muted'}`} />
+                          <span className="flex-grow text-left">{plat.name}</span>
+                          {isLinked && <Check className="w-3 h-3 text-brand-amber" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Profile actions */}
+                <div className="pt-3 border-t border-brand-slate/10 flex items-center justify-between">
+                  <span className="text-[9px] font-mono text-brand-muted">
+                    {lang === 'en' ? `Member since ${user.joinedDate}` : `${user.joinedDate} se member hain`}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleLogOut}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    {lang === 'en' ? "Log Out" : "Log Out"}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* OTHERWISE: SHOW LOGIN / SIGNUP SCREEN */
+              <div className="space-y-4">
+                <div className="text-center md:text-left">
+                  <h3 className="font-display text-base font-black text-brand-charcoal tracking-tight flex items-center justify-center md:justify-start gap-1.5">
+                    <User className="w-4 h-4 text-brand-amber" />
+                    {isLoginMode 
+                      ? (lang === 'en' ? "Welcome back" : "Aapka swagat hai") 
+                      : (lang === 'en' ? "Create account" : "Naya account banayein")}
+                  </h3>
+                  <p className="text-[11px] text-brand-muted mt-0.5">
+                    {isLoginMode 
+                      ? (lang === 'en' ? "Log in to track your AI learning achievements" : "Apne AI lessons ki progress dekhne ke liye login karein") 
+                      : (lang === 'en' ? "Sign up to begin your personalized visual journey" : "Apni naye sabaq ki progress bachane ke liye signup karein")}
+                  </p>
+                </div>
+
+                {/* Loading / success animations overlay */}
+                <AnimatePresence>
+                  {isLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3 text-center p-6"
+                    >
+                      <Loader2 className="w-10 h-10 text-brand-amber animate-spin" />
+                      <div>
+                        <h4 className="font-display text-sm font-bold text-brand-charcoal">
+                          {lang === 'en' ? "Connecting Simple AI..." : "Simple AI se jod rahe hain..."}
+                        </h4>
+                        <p className="text-[10px] text-brand-muted mt-0.5">
+                          {lang === 'en' ? "Authenticating security token credentials" : "Security key credentials check ho rahe hain"}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {authSuccess && (
+                    <motion.div 
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3 text-center p-6"
+                    >
+                      <CheckCircle2 className="w-12 h-12 text-green-500 animate-bounce" />
+                      <div>
+                        <h4 className="font-display text-sm font-black text-brand-charcoal">
+                          {lang === 'en' ? "Success! Session active" : "Kamyaabi! Login ho gaya"}
+                        </h4>
+                        <p className="text-[10px] text-brand-muted mt-0.5">
+                          {lang === 'en' ? "Profile synchronized successfully" : "Aapka study record aur progress load ho chuka hai"}
+                        </p>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                {errorMessage && (
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs font-semibold text-red-600">
+                    {errorMessage}
+                  </div>
+                )}
+
+                {/* Auth Form */}
+                <form onSubmit={handleAuth} className="space-y-3">
+                  {!isLoginMode && (
+                    <div className="space-y-1">
+                      <label className="block text-[9px] font-mono font-bold text-brand-muted uppercase">
+                        {lang === 'en' ? "Full Name" : "Aapka Naam"}
+                      </label>
+                      <div className="relative">
+                        <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                        <input
+                          type="text"
+                          placeholder={lang === 'en' ? "Shahnawaz" : "Shahnawaz"}
+                          value={fullName}
+                          onChange={(e) => setFullName(e.target.value)}
+                          required
+                          className="w-full pl-10 pr-4 py-2 bg-[#FAF8F5] border border-brand-slate/10 rounded-2xl text-xs font-medium text-brand-charcoal placeholder-brand-muted/70 focus:outline-none focus:border-brand-amber transition-colors"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-mono font-bold text-brand-muted uppercase">
+                      {lang === 'en' ? "Email Address" : "Email Address"}
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                      <input
+                        type="email"
+                        placeholder="you@domain.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        className="w-full pl-10 pr-4 py-2 bg-[#FAF8F5] border border-brand-slate/10 rounded-2xl text-xs font-medium text-brand-charcoal placeholder-brand-muted/70 focus:outline-none focus:border-brand-amber transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="block text-[9px] font-mono font-bold text-brand-muted uppercase">
+                      {lang === 'en' ? "Password" : "Password"}
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        className="w-full pl-10 pr-10 py-2 bg-[#FAF8F5] border border-brand-slate/10 rounded-2xl text-xs font-medium text-brand-charcoal placeholder-brand-muted/70 focus:outline-none focus:border-brand-amber transition-colors"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-charcoal transition-colors cursor-pointer"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-2xl font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer mt-2"
+                  >
+                    {isLoginMode 
+                      ? (lang === 'en' ? "Enter Study Journal" : "Sabaq Shuru Karein") 
+                      : (lang === 'en' ? "Register Account" : "Naya Account Banayein")}
+                  </button>
+                </form>
+
+                {/* Quick social login dividers */}
+                <div className="relative flex py-1 items-center">
+                  <div className="flex-grow border-t border-brand-slate/10"></div>
+                  <span className="flex-shrink mx-4 text-[9px] font-mono font-bold text-brand-muted uppercase">
+                    {lang === 'en' ? "Or connect with" : "Ya inke sath judiye"}
+                  </span>
+                  <div className="flex-grow border-t border-brand-slate/10"></div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSocialAuth('Google')}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 border border-brand-slate/10 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 transition-all cursor-pointer"
+                  >
+                    <Chrome className="w-3.5 h-3.5 text-red-500" />
+                    <span>Google</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleSocialAuth('LinkedIn')}
+                    className="flex items-center justify-center gap-1.5 py-2 px-3 border border-brand-slate/10 rounded-2xl text-[11px] font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 transition-all cursor-pointer"
+                  >
+                    <Linkedin className="w-3.5 h-3.5 text-blue-600" />
+                    <span>LinkedIn</span>
+                  </button>
+                </div>
+
+                {/* Bottom Toggle */}
+                <div className="text-center pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setIsLoginMode(!isLoginMode)}
+                    className="text-[11px] font-bold text-brand-amber hover:text-brand-amber-dark underline transition-all cursor-pointer"
+                  >
+                    {isLoginMode 
+                      ? (lang === 'en' ? "Don't have an account? Sign Up" : "Naya account chahiye? Sign Up karein") 
+                      : (lang === 'en' ? "Already have an account? Log In" : "Pehle se account hai? Log In karein")}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* TAB CONTENT: VISUALS */}
+        {activeTab === 'visuals' && (
+          <div className="space-y-4 py-1">
+            <div>
+              <h4 className="font-mono text-[9px] font-black text-brand-amber uppercase tracking-wider mb-2">
+                {lang === 'en' ? "Global Color Palette" : "Website Ka Theme Palette"}
               </h4>
-              <p className="text-[10px] text-brand-muted mb-2">
-                {lang === 'en' 
-                  ? "Toggle platforms below to connect and sync your study journey profile on other services:" 
-                  : "Neeche click karke dusre platforms ko connect aur study data sync karein:"}
-              </p>
-              
-              <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-2">
                 {[
-                  { name: 'Google', icon: Chrome, color: 'hover:border-red-500/30 hover:bg-red-50/10' },
-                  { name: 'LinkedIn', icon: Linkedin, color: 'hover:border-blue-500/30 hover:bg-blue-50/10' },
-                  { name: 'Instagram', icon: Instagram, color: 'hover:border-pink-500/30 hover:bg-pink-50/10' },
-                  { name: 'GitHub', icon: Github, color: 'hover:border-slate-800/30 hover:bg-slate-50/10' }
-                ].map((plat) => {
-                  const isLinked = user.linkedPlatforms.includes(plat.name);
+                  { id: 'sand', labelEn: 'Desert Sand', labelUr: 'Chicha Sand', descEn: 'Warm solar sand and amber vibes', descUr: 'Garam mitti aur sun-burnt sunehra rang', bgClass: 'bg-[#FDFBF7]', borderClass: 'border-brand-amber/30' },
+                  { id: 'deep-blue', labelEn: 'Deep Blue', labelUr: 'Gehra Neela', descEn: 'Immersive deep ocean cerulean', descUr: 'Gahra neela aur chamakdar aabi rang', bgClass: 'bg-[#0B1528]', borderClass: 'border-blue-500/30' },
+                  { id: 'deep-night', labelEn: 'Deep Night', labelUr: 'Andheri Raat', descEn: 'OLED midnight dark charcoal', descUr: 'Bilkul andhera aur safed harf', bgClass: 'bg-[#09090B]', borderClass: 'border-zinc-800' },
+                  { id: 'red-light', labelEn: 'Red Light', labelUr: 'Laal Roshni', descEn: 'Ruby high-contrast night vision', descUr: 'Garam surkh roshni aur tez laal rang', bgClass: 'bg-[#1A0505]', borderClass: 'border-red-800' }
+                ].map((t) => {
+                  const isSelected = theme === t.id;
                   return (
                     <button
-                      key={plat.name}
-                      onClick={() => handleLinkPlatform(plat.name)}
-                      className={`flex items-center gap-2 p-2 rounded-xl border text-[11px] font-semibold transition-all cursor-pointer ${
-                        isLinked 
-                          ? 'border-brand-amber/30 bg-brand-amber/[0.03] text-brand-charcoal font-bold' 
-                          : 'border-brand-slate/10 text-brand-slate ' + plat.color
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        setTheme(t.id as Theme);
+                        playTone(t.id === 'sand' ? 523 : t.id === 'deep-blue' ? 392 : t.id === 'deep-night' ? 261 : 659, 'sine', 0.15, 0.05);
+                      }}
+                      className={`w-full text-left p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
+                        isSelected 
+                          ? 'border-brand-amber bg-brand-amber/[0.04] shadow-sm' 
+                          : 'border-brand-slate/10 bg-[#FAF8F5] hover:border-brand-slate/20'
                       }`}
                     >
-                      <plat.icon className={`w-3.5 h-3.5 shrink-0 ${isLinked ? 'text-brand-amber' : 'text-brand-muted'}`} />
-                      <span className="flex-grow text-left">{plat.name}</span>
-                      {isLinked && <Check className="w-3 h-3 text-brand-amber" />}
+                      <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 border border-brand-charcoal/10 ${t.bgClass}`}>
+                        {isSelected && <Check className="w-4 h-4 text-brand-amber" />}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between">
+                          <span className="font-display font-black text-xs text-brand-charcoal">
+                            {lang === 'en' ? t.labelEn : t.labelUr}
+                          </span>
+                          {isSelected && (
+                            <span className="text-[8px] font-mono font-bold uppercase text-brand-amber bg-brand-amber/10 px-1.5 py-0.5 rounded">
+                              {lang === 'en' ? 'Active' : 'Chalu'}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[10px] text-brand-muted truncate mt-0.5">
+                          {lang === 'en' ? t.descEn : t.descUr}
+                        </p>
+                      </div>
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* Profile actions */}
-            <div className="pt-4 border-t border-brand-slate/10 flex items-center justify-between">
-              <span className="text-[9px] font-mono text-brand-muted">
-                {lang === 'en' ? `Member since ${user.joinedDate}` : `${user.joinedDate} se member hain`}
-              </span>
-              <button
-                onClick={handleLogOut}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                {lang === 'en' ? "Log Out" : "Log Out"}
-              </button>
+            {/* Typography scale */}
+            <div className="pt-3 border-t border-brand-slate/10">
+              <h4 className="font-mono text-[9px] font-black text-brand-amber uppercase tracking-wider mb-2">
+                {lang === 'en' ? "Adaptive Text Size" : "Likhai Ka Size"}
+              </h4>
+              <div className="flex bg-brand-sand/40 p-1 rounded-2xl border border-brand-slate/5 gap-1">
+                {[
+                  { id: 'sm', label: 'Small', labelUr: 'Chota' },
+                  { id: 'md', label: 'Medium', labelUr: 'Aam' },
+                  { id: 'lg', label: 'Large', labelUr: 'Bada' }
+                ].map((size) => {
+                  const isSelected = textSize === size.id;
+                  return (
+                    <button
+                      key={size.id}
+                      type="button"
+                      onClick={() => {
+                        handleTextSizeChange(size.id);
+                        playTone(300 + (size.id === 'sm' ? 0 : size.id === 'md' ? 100 : 200), 'sine', 0.1, 0.05);
+                      }}
+                      className={`flex-1 py-1.5 rounded-xl text-[10px] font-bold font-mono transition-all cursor-pointer ${
+                        isSelected 
+                          ? 'bg-brand-amber text-white shadow-sm' 
+                          : 'text-brand-muted hover:text-brand-charcoal'
+                      }`}
+                    >
+                      {lang === 'en' ? size.label : size.labelUr}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
-        ) : (
-          /* OTHERWISE: SHOW LOGIN / SIGNUP SCREEN */
-          <div className="space-y-6">
-            <div className="text-center md:text-left">
-              <h3 className="font-display text-xl font-black text-brand-charcoal tracking-tight flex items-center justify-center md:justify-start gap-2">
-                <Settings className="w-5 h-5 text-brand-amber animate-spin-slow" />
-                {isLoginMode 
-                  ? (lang === 'en' ? "Welcome back" : "Aapka swagat hai") 
-                  : (lang === 'en' ? "Create account" : "Naya account banayein")}
-              </h3>
-              <p className="text-xs text-brand-muted mt-1">
-                {isLoginMode 
-                  ? (lang === 'en' ? "Log in to track your AI learning achievements" : "Apne AI lessons ki tarakki dekhne ke liye login karein") 
-                  : (lang === 'en' ? "Sign up to begin your personalized visual journey" : "Apni naye sabaq ki progress bachane ke liye signup karein")}
-              </p>
-            </div>
+        )}
 
-            {/* Loading / success animations overlay */}
-            <AnimatePresence>
-              {isLoading && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3 text-center p-6"
+        {/* TAB CONTENT: AUDIO */}
+        {activeTab === 'audio' && (
+          <div className="space-y-4 py-1">
+            {/* Ambient Synth volume */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <h4 className="font-mono text-[9px] font-black text-brand-amber uppercase tracking-wider">
+                  {lang === 'en' ? "Synthesizer Background Volume" : "Background Lofi Awaaz"}
+                </h4>
+                <span className="font-mono text-xs font-bold text-brand-charcoal">
+                  {volume === 0 ? (lang === 'en' ? 'Muted' : 'Khamosh') : `${volume}%`}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVol = volume > 0 ? 0 : 50;
+                    handleVolumeSliderChange(nextVol);
+                    playTone(nextVol > 0 ? 440 : 220, 'sine', 0.1, 0.05);
+                  }}
+                  className="p-2 bg-brand-sand/50 hover:bg-brand-sand border border-brand-slate/10 rounded-xl transition-all cursor-pointer text-brand-charcoal shrink-0"
                 >
-                  <Loader2 className="w-10 h-10 text-brand-amber animate-spin" />
-                  <div>
-                    <h4 className="font-display text-sm font-bold text-brand-charcoal">
-                      {lang === 'en' ? "Connecting Simple AI..." : "Simple AI se jod rahe hain..."}
-                    </h4>
-                    <p className="text-[10px] text-brand-muted mt-0.5">
-                      {lang === 'en' ? "Authenticating security token credentials" : "Security key credentials check ho rahe hain"}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
+                  {volume === 0 ? (
+                    <VolumeX className="w-4 h-4 text-brand-muted" />
+                  ) : volume < 45 ? (
+                    <Volume1 className="w-4 h-4 text-brand-amber" />
+                  ) : (
+                    <Volume2 className="w-4 h-4 text-brand-amber" />
+                  )}
+                </button>
 
-              {authSuccess && (
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  className="absolute inset-0 bg-white/95 backdrop-blur-sm z-30 flex flex-col items-center justify-center gap-3 text-center p-6"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVol = Math.max(0, volume - 10);
+                    handleVolumeSliderChange(nextVol);
+                    playTone(280, 'sine', 0.08, 0.05);
+                  }}
+                  className="px-2 py-1 text-[10px] font-mono font-black border border-brand-slate/10 hover:border-brand-slate/25 bg-brand-sand/30 rounded-lg cursor-pointer shrink-0"
                 >
-                  <CheckCircle2 className="w-12 h-12 text-green-500 animate-bounce" />
-                  <div>
-                    <h4 className="font-display text-sm font-black text-brand-charcoal">
-                      {lang === 'en' ? "Success! Session active" : "Kamyaabi! Login ho gaya"}
-                    </h4>
-                    <p className="text-[10px] text-brand-muted mt-0.5">
-                      {lang === 'en' ? "Profile synchronized successfully" : "Aapka study record aur progress load ho chuka hai"}
-                    </p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                  -10%
+                </button>
 
-            {errorMessage && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-xs font-semibold text-red-600">
-                {errorMessage}
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={volume}
+                  onChange={(e) => handleVolumeSliderChange(parseInt(e.target.value))}
+                  className="flex-grow accent-brand-amber h-1.5 bg-brand-sand rounded-lg cursor-pointer"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVol = Math.min(100, volume + 10);
+                    handleVolumeSliderChange(nextVol);
+                    playTone(380, 'sine', 0.08, 0.05);
+                  }}
+                  className="px-2 py-1 text-[10px] font-mono font-black border border-brand-slate/10 hover:border-brand-slate/25 bg-brand-sand/30 rounded-lg cursor-pointer shrink-0"
+                >
+                  +10%
+                </button>
               </div>
-            )}
-
-            {/* Auth Form */}
-            <form onSubmit={handleAuth} className="space-y-4">
-              {!isLoginMode && (
-                <div className="space-y-1.5">
-                  <label className="block text-[10px] font-mono font-bold text-brand-muted uppercase">
-                    {lang === 'en' ? "Full Name" : "Aapka Naam"}
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                    <input
-                      type="text"
-                      placeholder={lang === 'en' ? "Shahnawaz" : "Shahnawaz"}
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      required
-                      className="w-full pl-10 pr-4 py-2.5 bg-[#FAF8F5] border border-brand-slate/10 rounded-2xl text-xs font-medium text-brand-charcoal placeholder-brand-muted/70 focus:outline-none focus:border-brand-amber transition-colors"
-                    />
-                  </div>
-                </div>
-              )}
-
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-mono font-bold text-brand-muted uppercase">
-                  {lang === 'en' ? "Email Address" : "Email Address"}
-                </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                  <input
-                    type="email"
-                    placeholder="you@domain.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-4 py-2.5 bg-[#FAF8F5] border border-brand-slate/10 rounded-2xl text-xs font-medium text-brand-charcoal placeholder-brand-muted/70 focus:outline-none focus:border-brand-amber transition-colors"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="block text-[10px] font-mono font-bold text-brand-muted uppercase">
-                  {lang === 'en' ? "Password" : "Password"}
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-brand-muted" />
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    className="w-full pl-10 pr-10 py-2.5 bg-[#FAF8F5] border border-brand-slate/10 rounded-2xl text-xs font-medium text-brand-charcoal placeholder-brand-muted/70 focus:outline-none focus:border-brand-amber transition-colors"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-charcoal transition-colors cursor-pointer"
-                  >
-                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-3 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-2xl font-bold text-xs shadow-md hover:shadow-lg transition-all cursor-pointer mt-2"
-              >
-                {isLoginMode 
-                  ? (lang === 'en' ? "Enter Study Journal" : "Sabaq Shuru Karein") 
-                  : (lang === 'en' ? "Register Account" : "Naya Account Banayein")}
-              </button>
-            </form>
-
-            {/* Quick social login dividers */}
-            <div className="relative flex py-2 items-center">
-              <div className="flex-grow border-t border-brand-slate/10"></div>
-              <span className="flex-shrink mx-4 text-[9px] font-mono font-bold text-brand-muted uppercase">
-                {lang === 'en' ? "Or connect with" : "Ya inke sath judiye"}
-              </span>
-              <div className="flex-grow border-t border-brand-slate/10"></div>
             </div>
 
-            {/* Fully Functional Social Logins for Google, LinkedIn, Instagram, Github */}
-            <div className="grid grid-cols-2 gap-2.5">
-              <button
-                onClick={() => handleSocialAuth('Google')}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 border border-brand-slate/10 rounded-2xl text-xs font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 hover:border-brand-slate/20 transition-all cursor-pointer"
-              >
-                <Chrome className="w-3.5 h-3.5 text-red-500" />
-                <span>Google</span>
-              </button>
-
-              <button
-                onClick={() => handleSocialAuth('LinkedIn')}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 border border-brand-slate/10 rounded-2xl text-xs font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 hover:border-brand-slate/20 transition-all cursor-pointer"
-              >
-                <Linkedin className="w-3.5 h-3.5 text-blue-600" />
-                <span>LinkedIn</span>
-              </button>
-
-              <button
-                onClick={() => handleSocialAuth('Instagram')}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 border border-brand-slate/10 rounded-2xl text-xs font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 hover:border-brand-slate/20 transition-all cursor-pointer"
-              >
-                <Instagram className="w-3.5 h-3.5 text-pink-600" />
-                <span>Instagram</span>
-              </button>
-
-              <button
-                onClick={() => handleSocialAuth('GitHub')}
-                className="flex items-center justify-center gap-2 py-2.5 px-3 border border-brand-slate/10 rounded-2xl text-xs font-bold text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/30 hover:border-brand-slate/20 transition-all cursor-pointer"
-              >
-                <Github className="w-3.5 h-3.5 text-brand-charcoal" />
-                <span>GitHub</span>
-              </button>
+            {/* Tape/Vinyl Crackle Toggle */}
+            <div className="pt-3 border-t border-brand-slate/10">
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 pr-4">
+                  <h5 className="font-display font-bold text-xs text-brand-charcoal flex items-center gap-1.5">
+                    <Music className="w-3.5 h-3.5 text-brand-amber shrink-0" />
+                    {lang === 'en' ? "Vinyl Tape Crackle" : "Purane Record Ka Shor"}
+                  </h5>
+                  <p className="text-[10px] text-brand-muted mt-0.5 leading-tight">
+                    {lang === 'en' ? "Procedural dusty record player hum inside background." : "Halki tape crackle aur ghoonghat ki awaaz shamil karein."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !crackle;
+                    handleCrackleToggle(next);
+                    playTone(next ? 580 : 280, 'sine', 0.08, 0.05);
+                  }}
+                  className={`w-11 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${crackle ? 'bg-brand-amber' : 'bg-brand-slate/25'}`}
+                >
+                  <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${crackle ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
             </div>
 
-            {/* Bottom Toggle */}
-            <div className="text-center pt-2">
-              <button
-                onClick={() => setIsLoginMode(!isLoginMode)}
-                className="text-[11px] font-bold text-brand-amber hover:text-brand-amber-dark underline transition-all cursor-pointer"
-              >
-                {isLoginMode 
-                  ? (lang === 'en' ? "Don't have an account? Sign Up" : "Naya account chahiye? Sign Up karein") 
-                  : (lang === 'en' ? "Already have an account? Log In" : "Pehle se account hai? Log In karein")}
-              </button>
+            {/* Speech rate pace */}
+            <div className="pt-3 border-t border-brand-slate/10">
+              <div className="flex items-center justify-between mb-1.5">
+                <h4 className="font-mono text-[9px] font-black text-brand-amber uppercase tracking-wider">
+                  {lang === 'en' ? "Narrator Speaking Rate" : "Ustad Ke Bolne Ki Raftar"}
+                </h4>
+                <span className="font-mono text-xs font-bold text-brand-charcoal">
+                  {speechRate.toFixed(2)}x
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[9px] text-brand-muted">0.5x</span>
+                <input
+                  type="range"
+                  min="0.5"
+                  max="2.0"
+                  step="0.1"
+                  value={speechRate}
+                  onChange={(e) => handleSpeechRateSliderChange(parseFloat(e.target.value))}
+                  className="flex-grow accent-brand-amber h-1.5 bg-brand-sand rounded-lg cursor-pointer"
+                />
+                <span className="text-[9px] text-brand-muted">2.0x</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB CONTENT: ADVANCED */}
+        {activeTab === 'advanced' && (
+          <div className="space-y-4 py-1">
+            {/* Practice mode toggle */}
+            <div>
+              <div className="flex items-center justify-between">
+                <div className="min-w-0 pr-4">
+                  <h5 className="font-display font-bold text-xs text-brand-charcoal flex items-center gap-1.5">
+                    <Flame className="w-3.5 h-3.5 text-brand-amber shrink-0" />
+                    {lang === 'en' ? "Bypass Quiz Timers" : "Quiz Timers Band Karein"}
+                  </h5>
+                  <p className="text-[10px] text-brand-muted mt-0.5 leading-tight">
+                    {lang === 'en' ? "Enables always-on practice mode where you can think leisurely." : "Quiz ke doran time countdown band karein aur aaram se jawab dein."}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    handlePracticeToggle();
+                    playTone(practiceMode ? 280 : 580, 'sine', 0.08, 0.05);
+                  }}
+                  className={`w-11 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${practiceMode ? 'bg-green-500' : 'bg-brand-slate/25'}`}
+                >
+                  <span className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform ${practiceMode ? 'translate-x-5' : 'translate-x-0'}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Clear learning stats */}
+            <div className="pt-3 border-t border-brand-slate/10">
+              <div className="bg-red-500/5 border border-red-500/10 p-3 rounded-2xl">
+                <div className="flex items-center gap-2 text-red-600 mb-1">
+                  <Trash2 className="w-4 h-4 shrink-0" />
+                  <h5 className="font-display font-black text-xs">
+                    {lang === 'en' ? "Clear All App Data" : "Saara Data Reset Karein"}
+                  </h5>
+                </div>
+                <p className="text-[10px] text-brand-muted leading-relaxed">
+                  {lang === 'en' 
+                    ? "Resets completed glossary terms count, quiz highscores, daily streak counts, achievements, and custom avatar styling." 
+                    : "Yih dabane se aapke seekhe hue sabaq, streaks, high scores aur saara data browser se permanently mita diya jayega."}
+                </p>
+                <button
+                  type="button"
+                  onClick={handleResetLearning}
+                  className="mt-2.5 w-full py-2 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-[10px] tracking-wider uppercase transition-all cursor-pointer"
+                >
+                  {lang === 'en' ? "Reset Data" : "Reset Data"}
+                </button>
+              </div>
             </div>
           </div>
         )}

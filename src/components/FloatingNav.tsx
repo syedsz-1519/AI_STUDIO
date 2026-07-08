@@ -489,7 +489,7 @@ export default function FloatingNav() {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             onClick={() => scrollToSection('hero')}
-            className="fixed bottom-6 right-6 z-40 p-3.5 rounded-full bg-white/80 backdrop-blur-md border border-brand-slate/15 shadow-lg hover:shadow-xl text-brand-slate hover:text-white hover:bg-brand-amber hover:border-brand-amber transition-all cursor-pointer group flex items-center justify-center"
+            className="fixed bottom-22 right-6 z-40 p-3.5 rounded-full bg-white/80 backdrop-blur-md border border-brand-slate/15 shadow-lg hover:shadow-xl text-brand-slate hover:text-white hover:bg-brand-amber hover:border-brand-amber transition-all cursor-pointer group flex items-center justify-center"
             title="Back to Top"
             aria-label="Back to Top"
           >

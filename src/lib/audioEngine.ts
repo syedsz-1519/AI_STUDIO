@@ -15,12 +15,80 @@ class AudioEngine {
   private lfo: OscillatorNode | null = null;
   private crackleNode: ScriptProcessorNode | null = null;
   private drumInterval: any = null;
+  private userVolume: number = 50; // Default 50 (0-100)
+  private userSpeechRate: number = 0.96; // Default 0.96 (0.5 to 2.0)
+  private crackleEnabled: boolean = true; // Default true
 
   constructor() {
     // Check if SpeechSynthesis is supported
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel(); // Reset on start
     }
+    if (typeof window !== 'undefined') {
+      const savedVolume = localStorage.getItem('clay_ambient_volume');
+      if (savedVolume !== null) {
+        const parsed = parseInt(savedVolume, 10);
+        if (!isNaN(parsed)) {
+          this.userVolume = Math.max(0, Math.min(100, parsed));
+        }
+      }
+      
+      const savedRate = localStorage.getItem('clay_speech_rate');
+      if (savedRate !== null) {
+        const parsed = parseFloat(savedRate);
+        if (!isNaN(parsed)) {
+          this.userSpeechRate = Math.max(0.5, Math.min(2.0, parsed));
+        }
+      }
+      
+      const savedCrackle = localStorage.getItem('clay_crackle_enabled');
+      this.crackleEnabled = savedCrackle !== 'false';
+    }
+  }
+
+  getVolume(): number {
+    return this.userVolume;
+  }
+
+  setVolume(vol: number) {
+    this.userVolume = Math.max(0, Math.min(100, vol));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('clay_ambient_volume', this.userVolume.toString());
+      // Dispatch event to sync settings dialogs
+      window.dispatchEvent(new Event('clay_volume_changed'));
+    }
+    
+    if (this.masterVolume && this.ctx) {
+      const gainVal = this.getGainValue();
+      this.masterVolume.gain.setValueAtTime(gainVal, this.ctx.currentTime);
+    }
+  }
+
+  getSpeechRate(): number {
+    return this.userSpeechRate;
+  }
+
+  setSpeechRate(rate: number) {
+    this.userSpeechRate = Math.max(0.5, Math.min(2.0, rate));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('clay_speech_rate', this.userSpeechRate.toString());
+    }
+  }
+
+  isCrackleEnabled(): boolean {
+    return this.crackleEnabled;
+  }
+
+  setCrackleEnabled(enabled: boolean) {
+    this.crackleEnabled = enabled;
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('clay_crackle_enabled', String(enabled));
+    }
+  }
+
+  private getGainValue(): number {
+    // Maps 0-100 to 0-0.16 gain (so 50 maps to the original 0.08)
+    return (this.userVolume / 100) * 0.16;
   }
 
   setSpeakStateListener(listener: (speaking: boolean) => void) {
@@ -47,7 +115,7 @@ class AudioEngine {
 
     // Master volume set to low level for ambient background
     this.masterVolume = ctx.createGain();
-    this.masterVolume.gain.setValueAtTime(0.08, ctx.currentTime);
+    this.masterVolume.gain.setValueAtTime(this.getGainValue(), ctx.currentTime);
     this.masterVolume.connect(ctx.destination);
 
     // Warm Lowpass Filter
@@ -191,6 +259,12 @@ class AudioEngine {
     
     this.crackleNode.onaudioprocess = (e) => {
       const output = e.outputBuffer.getChannelData(0);
+      if (!this.crackleEnabled) {
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = 0;
+        }
+        return;
+      }
       for (let i = 0; i < bufferSize; i++) {
         // Continuous low background hum/noise
         let noise = (Math.random() * 2 - 1) * 0.003;
@@ -352,7 +426,7 @@ class AudioEngine {
     // Set properties for a soft, precise, and highly listenable teen boy voice
     this.activeUtterance.pitch = 1.15;  // Youthful, friendly teen boy pitch
     this.activeUtterance.rate = 0.96;   // Soft, clear, and perfectly paced for high listenability
-    this.activeUtterance.volume = 0.90; // Gentle and comfortable volume presence
+    this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100)); // Gentle and comfortable volume presence
 
     this.activeUtterance.onstart = () => {
       if (this.onSpeakStateChange) this.onSpeakStateChange(true);

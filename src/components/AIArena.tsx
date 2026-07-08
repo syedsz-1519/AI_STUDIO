@@ -165,6 +165,8 @@ export default function AIArena() {
       if (soundEnabled) {
         playTone(newVal ? 580 : 380, 'triangle', 0.1, 0.05);
       }
+      // Dispatch event to sync with Settings
+      window.dispatchEvent(new Event('clay_practice_mode_changed'));
       return newVal;
     });
   };
@@ -207,9 +209,17 @@ export default function AIArena() {
       }
     };
     
+    const handlePracticeModeEvent = () => {
+      setPracticeMode(localStorage.getItem('clay_quiz_practice_mode') === 'true');
+    };
+    
     handleSync();
     window.addEventListener('clay_auth_state_changed', handleSync);
-    return () => window.removeEventListener('clay_auth_state_changed', handleSync);
+    window.addEventListener('clay_practice_mode_changed', handlePracticeModeEvent);
+    return () => {
+      window.removeEventListener('clay_auth_state_changed', handleSync);
+      window.removeEventListener('clay_practice_mode_changed', handlePracticeModeEvent);
+    };
   }, []);
 
   // Compute Rank Badge based on score
@@ -470,6 +480,52 @@ export default function AIArena() {
       setTimeLeft(20);
     }
   }, [gameState, currentQuestionIdx]);
+
+  // Keyboard navigation support for accessibility and speed
+  useEffect(() => {
+    if (gameState !== 'playing' || !activeSection) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Check if user is typing in some input or search box (e.g. within active element)
+      const activeEl = document.activeElement;
+      if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.getAttribute('contenteditable') === 'true')) {
+        return;
+      }
+
+      const key = e.key;
+
+      // Map '1'-'4' to option indices
+      if (['1', '2', '3', '4'].includes(key)) {
+        const optionIdx = parseInt(key, 10) - 1;
+        if (!isAnswerChecked) {
+          handleOptionClick(optionIdx);
+        }
+      } 
+      // Map 'a'-'d' / 'A'-'D' to option indices
+      else if (['a', 'b', 'c', 'd', 'A', 'B', 'C', 'D'].includes(key)) {
+        const optionIdx = key.toLowerCase().charCodeAt(0) - 97; // 'a' is 97
+        if (optionIdx >= 0 && optionIdx <= 3 && !isAnswerChecked) {
+          handleOptionClick(optionIdx);
+        }
+      } 
+      // Map 'Enter' to verify or next
+      else if (key === 'Enter') {
+        e.preventDefault();
+        if (!isAnswerChecked) {
+          if (selectedIdx !== null) {
+            handleVerifyAnswer();
+          }
+        } else {
+          handleNextQuestion();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [gameState, activeSection, isAnswerChecked, selectedIdx, currentQuestionIdx]);
 
   // Launch quiz run
   const handleStartSectionQuiz = (section: QuizSection) => {
@@ -1923,16 +1979,23 @@ export default function AIArena() {
                         whileTap={!isAnswerChecked ? { scale: 0.97 } : undefined}
                         onClick={() => handleOptionClick(idx)}
                         disabled={isAnswerChecked}
-                        className={`p-4 md:p-5 min-h-[3.5rem] rounded-2xl border text-left text-sm font-medium transition-all duration-200 flex items-start gap-3 select-none cursor-pointer w-full focus:outline-hidden touch-manipulation ${buttonStyle}`}
+                        className={`p-4 md:p-5 min-h-[3.5rem] rounded-2xl border text-left text-sm font-medium transition-all duration-200 flex items-center justify-between gap-3 select-none cursor-pointer w-full focus:outline-hidden touch-manipulation ${buttonStyle}`}
                       >
-                        <span className={`w-6 h-6 rounded-lg border flex items-center justify-center text-xs font-mono font-black shrink-0 ${
-                          isSelected 
-                            ? 'bg-brand-amber text-brand-charcoal border-brand-amber' 
-                            : 'bg-brand-sand text-brand-muted border-brand-slate/10'
-                        }`}>
-                          {String.fromCharCode(65 + idx)}
-                        </span>
-                        <span className="leading-tight pt-0.5">{opt}</span>
+                        <div className="flex items-start gap-3 flex-grow">
+                          <span className={`w-6 h-6 rounded-lg border flex items-center justify-center text-xs font-mono font-black shrink-0 ${
+                            isSelected 
+                              ? 'bg-brand-amber text-brand-charcoal border-brand-amber' 
+                              : 'bg-brand-sand text-brand-muted border-brand-slate/10'
+                          }`}>
+                            {String.fromCharCode(65 + idx)}
+                          </span>
+                          <span className="leading-tight pt-0.5">{opt}</span>
+                        </div>
+                        {!isAnswerChecked && (
+                          <kbd className="hidden sm:inline-flex items-center justify-center w-5 h-5 text-[10px] font-mono text-brand-muted bg-brand-sand/40 border border-brand-slate/10 rounded shadow-xs shrink-0 font-bold">
+                            {idx + 1}
+                          </kbd>
+                        )}
                       </motion.button>
                     );
                   })}
@@ -1979,29 +2042,36 @@ export default function AIArena() {
                     <button
                       onClick={handleVerifyAnswer}
                       disabled={selectedIdx === null}
-                      className={`px-6 py-3 rounded-2xl text-xs font-bold font-mono tracking-wider transition-all duration-200 shadow-xs cursor-pointer ${
+                      className={`px-6 py-3 rounded-2xl text-xs font-bold font-mono tracking-wider transition-all duration-200 shadow-xs cursor-pointer flex items-center gap-2 ${
                         selectedIdx !== null
                           ? 'bg-brand-amber hover:bg-brand-amber/95 text-brand-charcoal scale-102 hover:shadow-md'
                           : 'bg-brand-slate/15 text-brand-muted opacity-50 cursor-not-allowed'
                       }`}
                     >
-                      {lang === 'en' ? "VERIFY SELECTION" : "OPTION LOCK KAREIN"}
+                      <span>{lang === 'en' ? "VERIFY SELECTION" : "OPTION LOCK KAREIN"}</span>
+                      {selectedIdx !== null && (
+                        <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-mono font-bold bg-brand-charcoal/10 border border-brand-charcoal/15 rounded text-brand-charcoal">
+                          ⏎ Enter
+                        </kbd>
+                      )}
                     </button>
                   ) : (
                     <button
                       onClick={handleNextQuestion}
-                      className="px-6 py-3 bg-brand-charcoal hover:bg-brand-charcoal/95 text-brand-cream rounded-2xl text-xs font-bold font-mono tracking-wider transition-all duration-200 cursor-pointer shadow-xs scale-102 hover:shadow-md flex items-center gap-1"
+                      className="px-6 py-3 bg-brand-charcoal hover:bg-brand-charcoal/95 text-brand-cream rounded-2xl text-xs font-bold font-mono tracking-wider transition-all duration-200 cursor-pointer shadow-xs scale-102 hover:shadow-md flex items-center gap-2"
                     >
                       <span>
                         {currentQuestionIdx < activeSection.questions.length - 1
                           ? (lang === 'en' ? "NEXT QUERY" : "AGLA SAWAAAL")
                           : (lang === 'en' ? "VIEW ARENA REPORT" : "ARENA REPORT DEKHEIN")}
                       </span>
-                      <ChevronRight className="w-4 h-4" />
+                      <ChevronRight className="w-4 h-4 text-brand-amber" />
+                      <kbd className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-mono font-bold bg-white/10 border border-white/15 rounded text-brand-cream">
+                        ⏎ Enter
+                      </kbd>
                     </button>
                   )}
                 </div>
-
               </div>
             </motion.div>
           )}
