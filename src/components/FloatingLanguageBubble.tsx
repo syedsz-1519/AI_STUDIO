@@ -17,7 +17,7 @@ export default function FloatingLanguageBubble() {
   }, [lang]);
 
   return (
-    <div className="fixed bottom-6 right-24 z-40 flex items-center gap-3 pointer-events-none select-none">
+    <div className="fixed bottom-[88px] right-[26px] z-40 flex items-center gap-3 pointer-events-none select-none">
       <div className="pointer-events-auto flex items-center gap-3 relative">
         
         {/* Animated Speech Bubble - positioning on the left of the button */}
