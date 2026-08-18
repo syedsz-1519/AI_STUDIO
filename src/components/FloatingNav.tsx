@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
-import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX, Sparkles, Settings, Search, User, Palette } from 'lucide-react';
+import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX, Sparkles, Settings, Search, User, Palette, Languages } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
-import { useLanguage } from '../hooks/useLanguage';
+import { useLanguage, type Language } from '../hooks/useLanguage';
 import { motion, AnimatePresence } from 'motion/react';
 import { roadmapSections } from '../data/roadmapTerms';
 import AuthModal from './AuthModal';
 import SearchModal from './SearchModal';
 
 export default function FloatingNav() {
-  const { lang, t } = useLanguage();
+  const { lang, setLang, t } = useLanguage();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -372,6 +372,37 @@ export default function FloatingNav() {
                     </button>
                   </div>
 
+                  {/* Language Selection Row */}
+                  <div className="bg-white/80 p-2.5 border border-brand-slate/10 rounded-xl flex flex-col gap-1.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[9px] font-mono font-bold text-brand-amber uppercase tracking-tight flex items-center gap-1">
+                        <Languages className="w-3 h-3" />
+                        <span>{lang === 'te' ? 'భాషను ఎంచుకోండి' : lang === 'hyd' ? 'Zabaan Chuno' : 'Choose Language'}</span>
+                      </span>
+                      <span className="text-[8px] font-mono text-brand-muted">3 Options</span>
+                    </div>
+                    <div className="grid grid-cols-3 gap-1">
+                      {[
+                        { code: 'en' as Language, label: 'EN', name: 'English' },
+                        { code: 'hyd' as Language, label: 'HYD', name: 'హైదరాబాదీ' },
+                        { code: 'te' as Language, label: 'TEL', name: 'తెలుగు' }
+                      ].map((item) => (
+                        <button
+                          key={item.code}
+                          onClick={() => setLang(item.code)}
+                          className={`py-1.5 px-1 rounded-lg text-center font-bold text-[10px] transition-all cursor-pointer ${
+                            lang === item.code
+                              ? 'bg-brand-amber text-white shadow-xs'
+                              : 'bg-brand-sand/50 hover:bg-brand-sand text-brand-charcoal'
+                          }`}
+                        >
+                          <span className="block font-mono text-[9px]">{item.label}</span>
+                          <span className="block text-[8px] opacity-85 truncate">{item.name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Settings Category Links */}
                   <div className="grid grid-cols-2 gap-2 text-left">
                     <button
@@ -435,18 +466,18 @@ export default function FloatingNav() {
                 {/* Core Journey Paths */}
                 <div className="text-left">
                   <span className="block text-[9px] font-mono uppercase font-black text-brand-amber tracking-wider mb-2.5">
-                    {lang === 'en' ? 'Core Journey' : 'Khaas Rasta'}
+                    {lang === 'en' ? 'Core Journey' : lang === 'te' ? 'ప్రధాన ప్రయాణం' : 'Khaas Rasta'}
                   </span>
                   <div className="flex flex-col gap-1.5">
                     {[
-                      { id: 'hero', label: lang === 'en' ? 'Home Intro' : 'Shuruat', num: '00' },
-                      { id: 'what-is-ai', label: lang === 'en' ? '1. The Basics' : '1. Shuruati Baatein', num: '01' },
-                      { id: 'family-tree', label: lang === 'en' ? '2. The Family Tree' : '2. Khandan ka Tree', num: '02' },
-                      { id: 'prompting-rag', label: lang === 'en' ? '3. Prompting & RAG' : '3. Prompting aur RAG', num: '03' },
-                      { id: 'ai-tools-directory', label: lang === 'en' ? '4. Curated Tools' : '4. AI Tools', num: '04' },
-                      { id: 'deeper', label: lang === 'en' ? '5. Glossary Hub' : '5. Glossary Hub', num: '05' },
-                      { id: 'classroom-hub', label: lang === 'en' ? '6. Classroom Hub' : '6. Classroom Hub', num: '06' },
-                      { id: 'ai-arena', label: lang === 'en' ? '7. AI Arena' : '7. AI Arena', num: '07' },
+                      { id: 'hero', label: lang === 'en' ? 'Home Intro' : lang === 'te' ? 'హోమ్ పరిచయం' : 'Shuruat', num: '00' },
+                      { id: 'what-is-ai', label: lang === 'en' ? '1. The Basics' : lang === 'te' ? '1. ప్రాథమిక విషయాలు' : '1. Shuruati Baatein', num: '01' },
+                      { id: 'family-tree', label: lang === 'en' ? '2. The Family Tree' : lang === 'te' ? '2. ఫ్యామిలీ ట్రీ' : '2. Khandan ka Tree', num: '02' },
+                      { id: 'prompting-rag', label: lang === 'en' ? '3. Prompting & RAG' : lang === 'te' ? '3. ప్రాంప్టింగ్ & RAG' : '3. Prompting aur RAG', num: '03' },
+                      { id: 'ai-tools-directory', label: lang === 'en' ? '4. Curated Tools' : lang === 'te' ? '4. AI సాధనాలు' : '4. AI Tools', num: '04' },
+                      { id: 'deeper', label: lang === 'en' ? '5. Glossary Hub' : lang === 'te' ? '5. పదకోశం' : '5. Glossary Hub', num: '05' },
+                      { id: 'classroom-hub', label: lang === 'en' ? '6. Classroom Hub' : lang === 'te' ? '6. క్లాస్‌రూమ్ హబ్' : '6. Classroom Hub', num: '06' },
+                      { id: 'ai-arena', label: lang === 'en' ? '7. AI Arena' : lang === 'te' ? '7. AI అరేనా' : '7. AI Arena', num: '07' },
                     ].map((item) => (
                       <button
                         key={item.id}

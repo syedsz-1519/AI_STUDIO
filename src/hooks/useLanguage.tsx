@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type Language = 'en' | 'hyd';
+export type Language = 'en' | 'hyd' | 'te';
 
 interface LanguageContextType {
   lang: Language;
@@ -26,12 +26,13 @@ const dictionary: Record<Language, Record<string, string>> = {
     'brand.constructed': '© 2026 Simple AI. By Syed Shahnawaz.',
 
     // Hero Section
-    'hero.badge': 'An Editorial Guide by Clay',
+    'hero.badge': '✨ 100% Beginner-Safe • Zero Math & Zero Jargon',
     'hero.title': 'AI is not magic. It’s pattern-matching at massive scale.',
-    'hero.subtitle': 'No formulas, no math, and no confusing technical jargon. Just a calm, interactive walk through how computers learn to look at our world and make sense of it.',
-    'hero.canvas.instruction': 'Hover nodes to reveal patterns',
-    'hero.canvas.engine': 'Skeuo-tactile engine v1.0',
-    'hero.button': 'Begin the Scroll Journey',
+    'hero.subtitle': 'Understand how modern artificial intelligence, ChatGPT, and machine learning actually work — without feeling overwhelmed. A calm, tactile journey designed for curious minds.',
+    'hero.tagline': 'From simple daily patterns to generative neural networks — demystified step by step.',
+    'hero.canvas.instruction': 'Hover nodes to reveal how AI finds hidden connections',
+    'hero.canvas.engine': 'Tactile Pattern Engine v1.2',
+    'hero.button': 'Begin the Interactive Journey',
 
     // What Is AI Section
     'whatis.badge': 'Lesson 01',
@@ -148,11 +149,12 @@ const dictionary: Record<Language, Record<string, string>> = {
     'brand.constructed': '© 2026 Simple AI. Syed Shahnawaz ki taraf se.',
 
     // Hero Section
-    'hero.badge': 'Clay ki taraf se ek pyaara guide',
+    'hero.badge': '✨ 100% Asaan Sabaq • Na Koi Math, Na Koi Jargon',
     'hero.title': 'AI koi jaadu nahi hai yaaron. Ye bade paimane par pattern matching hai.',
-    'hero.subtitle': 'Formula’aan, maths, aur mushkil words ki bilkul zaroorat nahi hai. Ekdum thanda aur pyaara tareeqa ye samajhne ka ki computer duniya ko kaisa dekhte aur samajhte hain.',
-    'hero.canvas.instruction': 'Patterns dekhne ke waaste nodes pe mouse leke jaao',
-    'hero.canvas.engine': 'Tactile Engine v1.0',
+    'hero.subtitle': 'Bina tension aur bina dimaag ki dahi kare samjho ki AI, ChatGPT aur Machine Learning asal mein kaise kaam karte hain. Bilkul asaan aur mazedaar andaaz mein!',
+    'hero.tagline': 'Rozmarra ke patterns se leke smart generative models tak — ek ek karke sab clear!',
+    'hero.canvas.instruction': 'Nodes pe mouse ghuma ke dekho AI patterns kaise jodta hai',
+    'hero.canvas.engine': 'Tactile Pattern Engine v1.2',
     'hero.button': 'Safar Shuru Karo Yaaron',
 
     // What Is AI Section
@@ -255,13 +257,136 @@ const dictionary: Record<Language, Record<string, string>> = {
     'deeper.roadmap.desc': 'Ekdam sadhe algorithms se leke khud-ba-khud kaam karne wale AI Agents tak. Milestone pe click karke seekho.',
     'deeper.roadmap.interactive': 'Horizons card pe click karke dekho naye AI agents kaisa sochte hain.',
     'deeper.close': 'Details Band Karo'
+  },
+  te: {
+    // Nav & General (తెలుగు)
+    'nav.intro': 'AI అంటే ఏమిటి',
+    'nav.family': 'AI ఫ్యామిలీ ట్రీ',
+    'nav.how': 'ఎలా ఉపయోగిస్తారు',
+    'nav.toolbox': 'AI టూల్‌బాక్స్',
+    'nav.deeper': 'ఇంకా లోతుగా తెలుసుకోవాలా?',
+    'nav.close': 'డీపర్',
+    'brand.title': 'Simple AI',
+    'brand.slogan': 'AI, సులభంగా అర్థమయ్యేలా',
+    'brand.desc': 'కృత్రిమ మేధస్సు (AI), మెషిన్ లెర్నింగ్, జనరేటివ్ AI లను గణితం మరియు కష్టమైన పదాలు లేకుండా దృశ్య రూపంలో సులభంగా వివరించే సరళమైన గైడ్.',
+    'brand.constructed': '© 2026 Simple AI. సయ్యద్ షానవాజ్ ద్వారా.',
+
+    // Hero Section
+    'hero.badge': '✨ 100% ప్రారంభకులకు అనుకూలం • మ్యాథ్స్ & కష్టమైన పదాలు లేవు',
+    'hero.title': 'AI అంటే మాయ కాదు. ఇది భారీ స్థాయిలో ప్యాటర్న్ మ్యాచింగ్ (Pattern-Matching).',
+    'hero.subtitle': 'ఆధునిక ఆర్టిఫిషియల్ ఇంటెలిజెన్స్, ChatGPT మరియు మెషిన్ లెర్నింగ్ నిజానికి ఎలా పనిచేస్తాయో కంగారు పడకుండా అర్థం చేసుకోండి. ఆసక్తి ఉన్న ప్రతి ఒక్కరి కోసం రూపొందించిన సరళమైన ప్రయాణం.',
+    'hero.tagline': 'సాధారణ రోజువారీ ప్యాటర్న్‌ల నుండి జనరేటివ్ న్యూరల్ నెట్‌వర్క్‌ల వరకు — ప్రతిదీ సులభంగా అర్థం చేసుకోండి.',
+    'hero.canvas.instruction': 'AI ఎలా సంబంధాలను కనుగొంటుందో చూడటానికి నోడ్స్‌పై కర్సర్ ఉంచండి',
+    'hero.canvas.engine': 'టాక్టైల్ ప్యాటర్న్ ఇంజిన్ v1.2',
+    'hero.button': 'ఈ ఇంటరాక్టివ్ ప్రయాణాన్ని ప్రారంభించండి',
+
+    // What Is AI Section
+    'whatis.badge': 'పాఠం 01',
+    'whatis.title': 'అసలు AI అంటే ఏమిటి?',
+    'whatis.text': 'ఆర్టిఫిషియల్ ఇంటెలిజెన్స్ (కృత్రిమ మేధస్సు) — సాధారణంగా మానవ ఆలోచన లేదా వివేచన అవసరమయ్యే పనులను కంప్యూటర్లు చేసే సామర్థ్యం. ఇది స్వయంగా ఆలోచించే జీవి కాదు; బదులుగా, ఇది భారీ డేటాలో దాగి ఉన్న ప్యాటర్న్‌లను గుర్తిస్తుంది.',
+    'whatis.analogy.title': 'ఒక సాధారణ ఉదాహరణ',
+    'whatis.analogy.text': '"ఇది ఒక చిన్న పిల్లాడికి \'కుక్క\' అంటే ఏమిటో నేర్పించడం లాంటిది. మీరు జంతు శాస్త్రం పుస్తకం ఇవ్వరు; వేలాది కుక్కలను చూపిస్తారు. పిల్లాడి మెదడు వాటంతట అవే చెవులు, తోక, ఆకారాన్ని పోల్చి కుక్క అని గుర్తుపడుతుంది. కంప్యూటర్ కూడా అలానే నేర్చుకుంటుంది!"',
+    'whatis.timeline.show': 'AI చరిత్ర చూడండి',
+    'whatis.timeline.hide': 'చరిత్ర దాచండి',
+    'whatis.pocket.title': 'మీ జేబులో AI',
+    'whatis.pocket.subtitle': 'మనం ప్రతిరోజూ ప్యాటర్న్ మ్యాచింగ్‌ని ఉపయోగిస్తున్నాం. ఉదాహరణలను చూడటానికి క్లిక్ చేయండి.',
+    'whatis.pattern.title': 'ప్యాటర్న్ మ్యాచర్',
+    'whatis.pattern.text': 'డేటా లోపలికి వెళ్తుంది, ప్యాటర్న్‌లు కనుగొనబడతాయి, సరైన నిర్ణయాలు బయటకు వస్తాయి.',
+
+    // Clay Explainer Section
+    'clay.badge': 'ప్రత్యేక కథనం',
+    'clay.title': 'క్లే (Clay)ని కలవండి: మీ AI గైడ్',
+    'clay.subtitle': 'స్టాప్-మోషన్ బొమ్మ క్లే తో మాట్లాడండి మరియు అతని సరళమైన వివరణలు వినండి.',
+    'clay.interactive': 'ఈ ఇంటరాక్టివ్ మోడల్ స్టాప్-మోషన్ యానిమేషన్ స్క్రిప్ట్ ఆధారంగా పనిచేస్తుంది.',
+    'clay.voice.active': 'వాయిస్ ప్లే అవుతోంది...',
+    'clay.voice.speak': 'క్లే మాటలు వినండి',
+    'clay.sfx.muted': 'సౌండ్ ఆఫ్ చేయండి',
+    'clay.sfx.enabled': 'సౌండ్ ఆన్ చేయబడింది',
+    'clay.shot.1.title': 'దృశ్యం 1: క్లేని కలవండి',
+    'clay.shot.1.caption': 'AI అంటే ప్యాటర్న్‌ల ద్వారా నేర్చుకునే యంత్రాలు — మాయ కాదు.',
+    'clay.shot.1.bubble': 'నమస్కారం! నేను క్లే, మీ స్నేహపూర్వక గైడ్‌ని. నేను AI ని ఎలా వివరిస్తానో చూడటానికి క్రింది స్టెప్స్‌పై క్లిక్ చేయండి!',
+    'clay.shot.2.title': 'దృశ్యం 2: AI అంటే ఏమిటి?',
+    'clay.shot.2.caption': 'కఠినమైన నియమాలకు బదులుగా, ఉదాహరణలను చూసి AI నేర్చుకుంటుంది.',
+    'clay.shot.2.bubble': 'నన్ను ఒక చిన్న పిల్లాడిగా భావించండి. మీరు నాకు వేలాది ఆకుల ఫోటోలు చూపిస్తే, నా మెదడు స్వయంగా ఆ ప్యాటర్న్‌ను గుర్తిస్తుంది!',
+    'clay.shot.3.title': 'దృశ్యం 3: రోజువారీ ఉపయోగం',
+    'clay.shot.3.caption': 'సిఫార్సులు, వాయిస్ అసిస్టెంట్లు మరియు డిజిటల్ మ్యాప్‌లు.',
+    'clay.shot.3.bubble': 'నెట్‌ఫ్లిక్స్ మీకు సినిమా సూచించినప్పుడు లేదా గూగుల్ మ్యాప్స్ రూట్ చూపించినప్పుడు మీరు రోజూ ప్యాటర్న్ మ్యాచింగ్‌నే ఉపయోగిస్తున్నారు!',
+    'clay.shot.4.title': 'దృశ్యం 4: AI ఫ్యామిలీ ట్రీ',
+    'clay.shot.4.caption': 'AI అనేది ఒక పెద్ద గొడుగు లాంటిది. ML మరియు డీప్ లెర్నింగ్ దాని లోపల ఉంటాయి.',
+    'clay.shot.4.bubble': 'మేమంతా ఒకే కుటుంబం. మెషిన్ లెర్నింగ్ AI లోపల ఉంటుంది, జనరేటివ్ AI ఈ చెట్టు యొక్క గుండెకాయ లాంటిది!',
+
+    // Family Tree Section
+    'family.badge': 'పాఠం 02',
+    'family.title': 'AI ఫ్యామిలీ ట్రీ',
+    'family.subtitle': 'ఆర్టిఫిషియల్ ఇంటెలిజెన్స్ అనేది ఒకే టెక్నాలజీ కాదు. ఇది ఒకదానిలో ఒకటి ఇమిడి ఉన్న భావనల సమూహం. రింగ్స్‌పై హోవర్ చేయండి లేదా కార్డ్‌లపై క్లిక్ చేయండి.',
+    'family.depth.label': 'లోతును అర్థం చేసుకోండి',
+    'family.interactive.hint': 'నెస్టెడ్ సిస్టమ్‌లో దాని స్థానాన్ని చూడటానికి కార్డుపై క్లిక్ చేయండి.',
+
+    // Generative AI Section
+    'genai.badge': 'చెట్టు యొక్క గుండె',
+    'genai.title': 'జనరేటివ్ AI లో ఉన్న ప్రత్యేకత ఏమిటి?',
+    'genai.subtitle': 'సాంప్రదాయ AI ఇప్పటికే ఉన్న డేటాను విశ్లేషించడంలో లేదా వర్గీకరించడంలో నిపుణత కలిగి ఉంటుంది. కానీ జనరేటివ్ AI సరికొత్త విషయాలను సృష్టిస్తుంది.',
+    'genai.llm.badge': 'లార్జ్ లాంగ్వేజ్ మోడల్ (LLM)',
+    'genai.llm.definition': 'వాక్యంలోని తదుపరి అత్యంత సహేతుకమైన పదాన్ని అంచనా వేయడానికి వేలాది పుస్తకాలు, ఆర్టికల్స్ మరియు వెబ్‌సైట్ల డేటాతో శిక్షణ పొందిన ప్రత్యేక AI మోడల్.',
+    'genai.llm.explanation': 'ఇది మనుషుల వలె సమాచారాన్ని గుర్తుపెట్టుకోదు, సంభావ్యతను (probability) లెక్కిస్తుంది. మీరు ప్రాంప్ట్ ఇచ్చినప్పుడు, "ఇంతవరకు రాసిన రచనల ఆధారంగా, తదుపరి సరైన పదం ఏది?" అని అంచనా వేసి సమాధానం ఇస్తుంది.',
+    'genai.chatbots.title': 'చాట్‌బాట్‌లు vs మోడల్స్',
+    'genai.chatbots.text': 'ప్రధాన మోడల్ (ఉదాహరణకు Gemini) అనేది లెక్కింపు చేసే భారీ ఇంజిన్. చాట్‌బాట్ అనేది దానిపై ఉండే వినియోగదారు విండో మాత్రమే.',
+    'genai.interactive.title': 'డైనమిక్ టోకెన్ ప్రిడిక్టర్ (శ్యాండ్‌బాక్స్)',
+    'genai.interactive.desc': 'ఇంటరాక్టివ్ శ్యాండ్‌బాక్స్: LLM సంభావ్యత ఆధారంగా పదం తర్వాత పదం ఎలా అంచనా వేస్తుందో స్వయంగా చూడండి.',
+    'genai.interactive.prompt': 'ప్రారంభించడానికి ఒక ప్రాంప్ట్‌ను ఎంచుకోండి:',
+    'genai.interactive.weights': 'తదుపరి పదం సంభావ్యత బరువులు:',
+    'genai.interactive.sentence': 'తయారవుతున్న వాక్యం:',
+
+    // Prompting & RAG Section
+    'prompt.badge': 'పాఠం 03',
+    'prompt.title': 'AI తో ఎలా మాట్లాడాలి: ప్రాంప్టింగ్ & RAG',
+    'prompt.subtitle': 'AI ని ఉపయోగించడానికి మీకు కోడింగ్ అవసరం లేదు. మీరు ప్రాంప్ట్‌ల ద్వారా మాట్లాడవచ్చు. మరి సమాధానాలు కచ్చితంగా మరియు నిజాయితీగా ఉండేలా ఎలా చేయాలి?',
+    'prompt.methods.title': 'ప్రధాన ప్రాంప్టింగ్ పద్ధతులు',
+    'prompt.methods.desc': 'సరైన ఫలితాలు పొందడానికి మనం AI ఇంజిన్‌ను ఎలా నడిపించాలి.',
+    'prompt.rag.title': 'రిట్రీవల్-ఆగ్మెంటెడ్ జనరేషన్ (RAG)',
+    'prompt.rag.subtitle': 'వాస్తవాల సరిహద్దు',
+    'prompt.rag.desc': 'మీరు నిర్దిష్ట ప్రశ్న అడిగినప్పుడు, AI తన శిక్షణలో లేని సమాచారానికి తప్పుడు సమాధానం ఇవ్వవచ్చు (హాలూసినేషన్). RAG మొదట సరైన పత్రాలను శోధించి, ఆ తర్వాత AI కి ఇచ్చి సారాంశం రాయిస్తుంది.',
+    'prompt.rag.step1': 'వినియోగదారు ప్రశ్న',
+    'prompt.rag.step2': 'సందర్భ శోధన (Search)',
+    'prompt.rag.step3': 'నిర్దిష్ట సందర్భం',
+    'prompt.rag.step4': 'కచ్చితమైన సమాధానం',
+    'prompt.interactive.title': 'RAG సిమ్యులేటర్',
+    'prompt.interactive.desc': 'RAG నిజమైన సమాచారాన్ని తీసుకొచ్చి తప్పుడు సమాధానాలు రాకుండా ఎలా ఆపుతుందో చూడటానికి ఒక ప్రశ్నను ఎంచుకోండి.',
+    'prompt.interactive.ask': 'సిమ్యులేట్ చేయడానికి ప్రశ్నను ఎంచుకోండి:',
+    'prompt.interactive.step1.lbl': '1. ప్రాంప్ట్ (ప్రశ్న)',
+    'prompt.interactive.step2.lbl': '2. డేటాబేస్ సెర్చ్',
+    'prompt.interactive.step3.lbl': '3. RAG సందర్భం',
+    'prompt.interactive.step4.lbl': '4. కచ్చితమైన సమాధానం',
+
+    // AI Toolbox Section
+    'tools.badge': 'ఎంపిక చేసిన డైరెక్టరీ',
+    'tools.title': 'ఉచిత AI టూల్‌బాక్స్',
+    'tools.subtitle': '40+ కి పైగా ఉచిత లేదా ఫ్రీమియం AI సాధనాల సమగ్ర సమాహారం. ఎటువంటి ఖర్చు లేకుండా వెంటనే వీటిని ఉపయోగించడం ప్రారంభించండి.',
+    'tools.search': 'టూల్స్, ఉపయోగాలు లేదా ట్యాగ్‌లను వెతకండి...',
+    'tools.bestfor': 'దేనికి ఉత్తమమైనది',
+    'tools.copy': 'కాపీ',
+    'tools.copied': 'కాపీ చేయబడింది!',
+    'tools.empty': 'ఎలాంటి AI టూల్స్ కనుగొనబడలేదు',
+    'tools.empty.desc': 'ఫిల్టర్‌లను మార్చండి లేదా మరొక పదాన్ని వెతకండి.',
+
+    // Want to Go Deeper Section
+    'deeper.badge': 'పాఠం 04',
+    'deeper.title': 'ఇంకా లోతుగా తెలుసుకోవాలా?',
+    'deeper.subtitle': 'ప్రాథమిక అంశాలను నేర్చుకున్న తర్వాత, పదకోశం, అధునాతన అంశాలు మరియు భవిష్యత్ పరిణామాలను అన్వేషించండి.',
+    'deeper.glossary.title': 'డైనమిక్ గ్లోసరీ (పదకోశం)',
+    'deeper.glossary.desc': 'సులభమైన వివరణల కోసం ఏదైనా పదాన్ని క్లిక్ చేయండి లేదా పూర్తి జాబితాను పరిశీలించండి.',
+    'deeper.faq.title': 'తరచుగా అడిగే ప్రశ్నలు (FAQ)',
+    'deeper.roadmap.title': 'అధునాతన రోడ్‌మ్యాప్',
+    'deeper.roadmap.desc': 'సాధారణ అల్గారిథమ్‌ల నుండి స్వయంప్రతిపత్త డిజిటల్ ఏజెంట్ల వరకు. మైలురాళ్లపై క్లిక్ చేసి తెలుసుకోండి.',
+    'deeper.roadmap.interactive': 'ఆధునిక AI ఏజెంట్లు ఎలా ఆలోచిస్తాయో తెలుసుకోవడానికి కార్డుపై క్లిక్ చేయండి.',
+    'deeper.close': 'వివరాలు మూసివేయండి'
   }
 };
 
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<Language>(() => {
     const saved = localStorage.getItem('app_language');
-    return (saved === 'hyd' ? 'hyd' : 'en') as Language;
+    return (saved === 'hyd' || saved === 'te' ? saved : 'en') as Language;
   });
 
   const setLang = (newLang: Language) => {
@@ -270,7 +395,7 @@ export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const t = (key: string): string => {
-    return dictionary[lang][key] || dictionary['en'][key] || key;
+    return dictionary[lang]?.[key] || dictionary['en']?.[key] || key;
   };
 
   return (
@@ -287,3 +412,4 @@ export const useLanguage = () => {
   }
   return context;
 };
+

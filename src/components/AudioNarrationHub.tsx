@@ -41,7 +41,6 @@ export default function AudioNarrationHub() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [playingSectionId, setPlayingSectionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [showSpeechBubble, setShowSpeechBubble] = useState(true);
 
   // Sync state with global speech synthesis status
   useEffect(() => {
@@ -61,14 +60,6 @@ export default function AudioNarrationHub() {
     });
 
     return () => clearInterval(checkState);
-  }, []);
-
-  // Show "Ask me anything" speech bubble for a short period on load
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setShowSpeechBubble(false);
-    }, 8000);
-    return () => clearTimeout(timer);
   }, []);
 
   const sections: SectionContent[] = [
@@ -508,32 +499,6 @@ export default function AudioNarrationHub() {
 
       {/* Floating Launcher Trigger Button */}
       <div className="relative flex items-center justify-end">
-        
-        {/* Resting Speech Bubble Hint */}
-        <AnimatePresence>
-          {showSpeechBubble && !isOpen && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.8, x: 15 }}
-              animate={{ opacity: 1, scale: 1, x: 0 }}
-              exit={{ opacity: 0, scale: 0.8, x: 15 }}
-              onClick={() => setIsOpen(true)}
-              className="absolute right-15 bg-white border-2 border-brand-amber/30 rounded-2xl p-2.5 shadow-xl max-w-[190px] text-right pointer-events-auto cursor-pointer select-none"
-            >
-              <div className="flex gap-1.5 items-center justify-end">
-                <Sparkles className="w-3.5 h-3.5 text-brand-amber shrink-0 animate-pulse" />
-                <span className="block font-mono text-[8px] font-black text-brand-amber uppercase tracking-wider">
-                  {lang === 'en' ? "Clay is online:" : "Clay bolra:"}
-                </span>
-              </div>
-              <p className="text-[11px] font-bold text-brand-charcoal leading-tight text-right mt-0.5">
-                {lang === 'en' ? "Ask questions & play audio guides!" : "Poochho aur poore guides suno!"}
-              </p>
-              {/* Speech bubble arrow */}
-              <div className="absolute top-1/2 -translate-y-1/2 -right-1.5 w-2.5 h-2.5 bg-white border-r-2 border-t-2 border-brand-amber/30 rotate-[45deg]" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-
         {/* Circular Claymorphic Trigger Button */}
         <motion.button
           onClick={() => setIsOpen(!isOpen)}

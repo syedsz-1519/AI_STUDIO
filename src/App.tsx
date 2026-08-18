@@ -187,6 +187,8 @@ export default function App() {
             <p className="text-xs text-brand-muted leading-relaxed max-w-sm text-left">
               {lang === 'en' 
                 ? "An interactive, beginner-safe editorial journal dedicated to demystifying modern artificial intelligence, machine learning structures, and generative algorithms through clean visual logic."
+                : lang === 'te'
+                ? "కృత్రిమ మేధస్సు (AI), మెషిన్ లెర్నింగ్, మరియు జనరేటివ్ అల్గారిథమ్‌లను గణితం మరియు కష్టమైన పదాలు లేకుండా దృశ్య రూపంలో సులభంగా వివరించే సరళమైన ఇంటరాక్టివ్ గైడ్."
                 : "Miya, ye ek interactive aur boht aasan editorial journal hai jo modern AI, machine learning, aur generative systems ko boht saaf aur asaan zubaan mein samjhati hai."
               }
             </p>
@@ -195,19 +197,19 @@ export default function App() {
           <div className="md:col-span-7 grid grid-cols-2 sm:grid-cols-3 gap-6 text-left">
             <div>
               <h5 className="font-mono text-[10px] font-bold text-brand-amber uppercase tracking-wider mb-3">
-                {lang === 'en' ? "Narrative Path" : "Sabaq ka Rasta"}
+                {lang === 'en' ? "Narrative Path" : lang === 'te' ? "పాఠ్య ప్రయాణం" : "Sabaq ka Rasta"}
               </h5>
               <ul className="flex flex-col gap-2 text-xs font-medium text-brand-muted text-left">
-                <li><a href="#what-is-ai" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "1. The Basics" : "1. Shuruati Baatein"}</a></li>
-                <li><a href="#family-tree" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "2. The Family Tree" : "2. Khandan ka Tree"}</a></li>
-                <li><a href="#prompting-rag" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "3. Prompting & RAG" : "3. Prompting aur RAG"}</a></li>
-                <li><a href="#deeper" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "4. Deep Dive Glossary" : "4. Gehra Glossary"}</a></li>
+                <li><a href="#what-is-ai" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "1. The Basics" : lang === 'te' ? "1. ప్రాథమిక విషయాలు" : "1. Shuruati Baatein"}</a></li>
+                <li><a href="#family-tree" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "2. The Family Tree" : lang === 'te' ? "2. ఫ్యామిలీ ట్రీ" : "2. Khandan ka Tree"}</a></li>
+                <li><a href="#prompting-rag" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "3. Prompting & RAG" : lang === 'te' ? "3. ప్రాంప్టింగ్ & RAG" : "3. Prompting aur RAG"}</a></li>
+                <li><a href="#deeper" className="hover:text-brand-amber transition-colors">{lang === 'en' ? "4. Deep Dive Glossary" : lang === 'te' ? "4. పదకోశం" : "4. Gehra Glossary"}</a></li>
               </ul>
             </div>
 
             <div>
               <h5 className="font-mono text-[10px] font-bold text-brand-amber uppercase tracking-wider mb-3">
-                {lang === 'en' ? "Topic Guides" : "Khaas Topics"}
+                {lang === 'en' ? "Topic Guides" : lang === 'te' ? "ముఖ్య అంశాలు" : "Khaas Topics"}
               </h5>
               <ul className="flex flex-col gap-2 text-xs font-medium text-brand-muted text-left">
                 <li><span className="hover:text-brand-amber transition-colors cursor-pointer">Machine Learning</span></li>
@@ -219,7 +221,7 @@ export default function App() {
 
             <div className="col-span-2 sm:col-span-1 text-left">
               <h5 className="font-mono text-[10px] font-bold text-brand-amber uppercase tracking-wider mb-3">
-                {lang === 'en' ? "Journal Ethos" : "Khaas Baatein"}
+                {lang === 'en' ? "Journal Ethos" : lang === 'te' ? "విశేషాలు" : "Khaas Baatein"}
               </h5>
               <div className="flex flex-col gap-2 text-xs text-brand-muted text-left">
                 <span className="flex items-center gap-1 justify-start">
@@ -228,7 +230,7 @@ export default function App() {
                 </span>
                 <span className="flex items-center gap-1 justify-start">
                   <BookOpen className="w-3 h-3 text-brand-slate shrink-0" />
-                  <span>{lang === 'en' ? "100% Beginner-Safe" : "Naye Seekhne Walo ke liye"}</span>
+                  <span>{lang === 'en' ? "100% Beginner-Safe" : lang === 'te' ? "ప్రారంభకులకు 100% అనుకూలం" : "Naye Seekhne Walo ke liye"}</span>
                 </span>
               </div>
             </div>
@@ -238,8 +240,8 @@ export default function App() {
         <div className="max-w-5xl mx-auto px-6 mt-12 pt-6 border-t border-brand-slate/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-brand-muted">
           <span>© 2026 Simple AI. By Syed Shahnawaz.</span>
           <div className="flex gap-4">
-            <span className="hover:text-brand-amber transition-colors cursor-pointer">{lang === 'en' ? "Editorial Policies" : "Khaas Policies"}</span>
-            <span className="hover:text-brand-amber transition-colors cursor-pointer">{lang === 'en' ? "Privacy Principles" : "Privacy ke Rules"}</span>
+            <span className="hover:text-brand-amber transition-colors cursor-pointer">{lang === 'en' ? "Editorial Policies" : lang === 'te' ? "విధానాలు" : "Khaas Policies"}</span>
+            <span className="hover:text-brand-amber transition-colors cursor-pointer">{lang === 'en' ? "Privacy Principles" : lang === 'te' ? "గోప్యతా సూత్రాలు" : "Privacy ke Rules"}</span>
           </div>
         </div>
       </footer>

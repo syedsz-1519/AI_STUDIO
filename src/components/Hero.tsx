@@ -1,12 +1,46 @@
-import { useState } from 'react';
-import { motion } from 'motion/react';
-import { Sparkles, ArrowDown } from 'lucide-react';
+import { useState, useEffect, type MouseEvent } from 'react';
+import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
+import { Sparkles, ArrowDown, Activity, Cpu, Network, Binary, Lightbulb, Compass, CheckCircle2 } from 'lucide-react';
 import ClayLogo from './ClayLogo';
 import { useLanguage } from '../hooks/useLanguage';
+import aiHeroBg from '../assets/images/ai_hero_bg_1787017861246.jpg';
 
 export default function Hero() {
   const { t, lang } = useLanguage();
   const [hoveredNode, setHoveredNode] = useState<number | null>(null);
+
+  // Mouse parallax motion values
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const smoothMouseX = useSpring(mouseX, { damping: 30, stiffness: 200 });
+  const smoothMouseY = useSpring(mouseY, { damping: 30, stiffness: 200 });
+
+  const bgOrb1X = useTransform(smoothMouseX, [-300, 300], [-25, 25]);
+  const bgOrb1Y = useTransform(smoothMouseY, [-300, 300], [-25, 25]);
+  const bgOrb2X = useTransform(smoothMouseX, [-300, 300], [30, -30]);
+  const bgOrb2Y = useTransform(smoothMouseY, [-300, 300], [30, -30]);
+  const particlesX = useTransform(smoothMouseX, [-300, 300], [-15, 15]);
+  const particlesY = useTransform(smoothMouseY, [-300, 300], [-15, 15]);
+  const bgImageScale = useTransform(smoothMouseY, [-300, 300], [1.03, 1.07]);
+  const bgImageTranslate = useTransform(smoothMouseX, [-300, 300], [-12, 12]);
+
+  const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    mouseX.set(e.clientX - centerX);
+    mouseY.set(e.clientY - centerY);
+  };
+
+  // Ambient floating background symbols representing math/AI foundation
+  const floatingGlyphs = [
+    { text: 'W·x + b', x: '12%', y: '22%', delay: 0 },
+    { text: 'σ(z)', x: '85%', y: '18%', delay: 1.2 },
+    { text: '∇L(θ)', x: '8%', y: '72%', delay: 0.8 },
+    { text: 'P(w|ctx)', x: '88%', y: '68%', delay: 2.1 },
+    { text: 'softmax(z)', x: '78%', y: '42%', delay: 1.5 },
+    { text: 'd_model=768', x: '16%', y: '48%', delay: 2.7 },
+  ];
 
   // A list of interactive "data points" for a miniature pattern matching game
   const nodes = [
@@ -19,21 +53,134 @@ export default function Hero() {
   ];
 
   return (
-    <section id="hero" className="relative min-h-[92vh] flex flex-col justify-center items-center px-6 overflow-hidden pt-16">
-      {/* Background organic blur */}
-      <div className="absolute top-1/4 left-1/4 w-80 h-80 rounded-full bg-brand-amber/5 blur-[100px] pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-96 h-96 rounded-full bg-brand-slate/5 blur-[120px] pointer-events-none" />
+    <section 
+      id="hero" 
+      onMouseMove={handleMouseMove}
+      className="relative min-h-[95vh] flex flex-col justify-center items-center px-6 overflow-hidden pt-20 pb-16 select-none"
+    >
+      {/* Progressive AI Background Image with Soft Mask & Parallax Motion (Increased Transparency) */}
+      <motion.div 
+        style={{ scale: bgImageScale, x: bgImageTranslate }}
+        className="absolute inset-0 pointer-events-none z-0 overflow-hidden"
+      >
+        <img
+          src={aiHeroBg}
+          alt="Abstract Neural Network AI Visual Architecture"
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover object-center opacity-[0.08] mix-blend-multiply filter contrast-110 saturate-100"
+        />
+        {/* Soft Radial Vignette Mask so text has pristine contrast */}
+        <div className="absolute inset-0 bg-radial-[circle_at_center_rgba(245,242,237,0.85)_0%,var(--brand-cream)_90%] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-b from-brand-cream/90 via-transparent to-brand-cream pointer-events-none" />
+      </motion.div>
 
+      {/* Dynamic Background Graphic Elements (Softened & Transparent) */}
+      
+      {/* 1. Subtle Precision Coordinate Grid */}
+      <div 
+        className="absolute inset-0 opacity-[0.02] pointer-events-none z-0"
+        style={{
+          backgroundImage: `
+            linear-gradient(to right, currentColor 1px, transparent 1px),
+            linear-gradient(to bottom, currentColor 1px, transparent 1px)
+          `,
+          backgroundSize: '48px 48px'
+        }}
+      />
+
+      {/* 2. Concentric Geometric Orbital Rings */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[700px] pointer-events-none opacity-20 z-0">
+        <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ duration: 120, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-0 rounded-full border border-dashed border-brand-amber/20"
+        />
+        <motion.div 
+          animate={{ rotate: -360 }}
+          transition={{ duration: 90, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-16 rounded-full border border-brand-slate/15"
+        />
+        <motion.div 
+          animate={{ rotate: 180 }}
+          transition={{ duration: 60, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-32 rounded-full border border-dotted border-brand-amber/25"
+        />
+        
+        {/* Orbital Pulse Nodes */}
+        <motion.div 
+          animate={{ rotate: 360 }}
+          transition={{ duration: 25, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-0"
+        >
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-brand-amber/80 shadow-[0_0_10px_rgba(217,119,6,0.6)]" />
+        </motion.div>
+        <motion.div 
+          animate={{ rotate: -360 }}
+          transition={{ duration: 35, repeat: Infinity, ease: 'linear' }}
+          className="absolute inset-16"
+        >
+          <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-2 h-2 rounded-full bg-brand-slate/80 shadow-[0_0_8px_rgba(71,85,105,0.5)]" />
+        </motion.div>
+      </div>
+
+      {/* 3. Fluid Responsive Ambient Luminous Meshes with Parallax Tilt */}
+      <motion.div 
+        style={{ x: bgOrb1X, y: bgOrb1Y }}
+        className="absolute top-1/4 left-1/5 w-96 h-96 rounded-full bg-gradient-to-tr from-brand-amber/10 via-amber-400/5 to-transparent blur-[100px] pointer-events-none z-0"
+      />
+      <motion.div 
+        style={{ x: bgOrb2X, y: bgOrb2Y }}
+        className="absolute bottom-1/4 right-1/5 w-[450px] h-[450px] rounded-full bg-gradient-to-bl from-brand-slate/10 via-sky-600/5 to-transparent blur-[120px] pointer-events-none z-0"
+      />
+
+      {/* 4. Ambient Mathematical & Pattern Floating Glyphs */}
+      <motion.div 
+        style={{ x: particlesX, y: particlesY }}
+        className="absolute inset-0 pointer-events-none hidden sm:block z-0"
+      >
+        {floatingGlyphs.map((glyph, index) => (
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ 
+              opacity: [0.2, 0.55, 0.2], 
+              y: [0, -12, 0] 
+            }}
+            transition={{ 
+              duration: 5 + index, 
+              repeat: Infinity, 
+              delay: glyph.delay, 
+              ease: 'easeInOut' 
+            }}
+            className="absolute font-mono text-[11px] font-medium text-brand-slate/60 tracking-wider px-2 py-0.5 rounded border border-brand-slate/10 bg-white/40 backdrop-blur-[2px] shadow-2xs"
+            style={{ left: glyph.x, top: glyph.y }}
+          >
+            {glyph.text}
+          </motion.div>
+        ))}
+
+        {/* Subtle Decorative Technical Corner Reticles */}
+        <div className="absolute top-12 left-10 font-mono text-[9px] text-brand-slate/50 tracking-widest uppercase flex items-center gap-1.5 bg-white/50 px-2.5 py-1 rounded-md border border-brand-slate/10">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
+          <span>BEGINNER_TRACK // ONLINE</span>
+        </div>
+        <div className="absolute top-12 right-10 font-mono text-[9px] text-brand-slate/50 tracking-widest uppercase bg-white/50 px-2.5 py-1 rounded-md border border-brand-slate/10">
+          <span>ZERO_JARGON_MODE: ACTIVE</span>
+        </div>
+      </motion.div>
+
+      {/* Main Hero Content */}
       <div className="max-w-4xl mx-auto text-center z-10 flex flex-col items-center">
         {/* Subtle Pill Badge */}
         <motion.div
           initial={{ opacity: 0, y: -15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-brand-amber/15 rounded-full text-xs font-semibold text-brand-amber shadow-sm mb-8"
+          className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/90 backdrop-blur-md border border-brand-amber/25 rounded-full text-xs font-semibold text-brand-amber shadow-sm mb-6 hover:border-brand-amber/50 transition-all hover:scale-105"
         >
           <ClayLogo size={20} />
           <span>{t('hero.badge')}</span>
+          <span className="w-1.5 h-1.5 rounded-full bg-brand-amber animate-pulse" />
         </motion.div>
 
         {/* Master Hook Heading */}
@@ -41,34 +188,63 @@ export default function Hero() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.1 }}
-          className="font-display text-4xl sm:text-5xl md:text-6xl font-extrabold text-brand-charcoal leading-[1.1] tracking-tight max-w-3xl mb-6 text-balance"
+          className="font-display text-4xl sm:text-5xl md:text-6xl lg:text-[64px] font-extrabold text-brand-charcoal leading-[1.08] tracking-tight max-w-3xl mb-6 text-balance drop-shadow-2xs"
         >
           {lang === 'en' ? (
-            <>AI is not magic. It’s <span className="text-brand-amber relative">pattern-matching</span> at massive scale.</>
+            <>
+              AI is not magic. It’s <span className="text-brand-amber relative inline-block underline decoration-brand-amber/30 decoration-wavy underline-offset-8">pattern-matching</span> at massive scale.
+            </>
+          ) : lang === 'te' ? (
+            <>
+              AI అంటే మాయ కాదు. ఇది భారీ స్థాయిలో <span className="text-brand-amber relative inline-block underline decoration-brand-amber/30 decoration-wavy underline-offset-8">ప్యాటర్న్ మ్యాచింగ్</span> మాత్రమే.
+            </>
           ) : (
-            <>AI koi jaadu nahi hai yaaron. Ye bade paimane par <span className="text-brand-amber relative">pattern matching</span> hai.</>
+            <>
+              AI koi jaadu nahi hai yaaron. Ye bade paimane par <span className="text-brand-amber relative inline-block underline decoration-brand-amber/30 decoration-wavy underline-offset-8">pattern matching</span> hai.
+            </>
           )}
         </motion.h1>
 
-        {/* Elegant Sub-intro */}
+        {/* Captivating Beginner-Friendly Sub-intro */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 0.3 }}
-          className="font-sans text-lg md:text-xl text-brand-muted max-w-2xl leading-relaxed mb-10"
+          className="font-sans text-base sm:text-lg md:text-xl text-brand-muted max-w-2xl leading-relaxed mb-4 text-balance font-normal"
         >
           {t('hero.subtitle')}
         </motion.p>
+
+        {/* Scannable Key Beginner Hooks */}
+        <motion.div 
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.4 }}
+          className="flex flex-wrap justify-center items-center gap-3 sm:gap-6 mb-10 text-xs sm:text-sm font-medium text-brand-slate"
+        >
+          <div className="flex items-center gap-1.5 bg-white/70 backdrop-blur-xs px-3 py-1 rounded-full border border-brand-slate/10 shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{lang === 'en' ? "Visual analogies" : lang === 'te' ? "విజువల్ ఉదాహరణలు" : "Aasan misaalein"}</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/70 backdrop-blur-xs px-3 py-1 rounded-full border border-brand-slate/10 shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{lang === 'en' ? "Hands-on sandboxes" : lang === 'te' ? "ఇంటరాక్టివ్ శ్యాండ్‌బాక్స్" : "Live interactive sandboxes"}</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-white/70 backdrop-blur-xs px-3 py-1 rounded-full border border-brand-slate/10 shadow-2xs">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+            <span>{lang === 'en' ? "3-Language support (EN / HYD / TEL)" : lang === 'te' ? "3 భాషల మద్దతు (EN / HYD / TEL)" : "3 Zabaano mein support"}</span>
+          </div>
+        </motion.div>
 
         {/* Tactile Interactive Pattern Canvas */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.5 }}
-          className="relative w-full max-w-lg h-56 bg-white/50 border border-brand-slate/10 rounded-2xl p-6 mb-12 shadow-sm flex flex-col justify-between overflow-hidden backdrop-blur-sm"
+          className="relative w-full max-w-lg h-56 bg-white/85 border border-brand-slate/15 rounded-2xl p-6 mb-10 shadow-lg shadow-brand-slate/5 flex flex-col justify-between overflow-hidden backdrop-blur-md hover:border-brand-amber/35 transition-all"
         >
           {/* Subtle grid pattern background */}
-          <div className="absolute inset-0 opacity-[0.02] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+          <div className="absolute inset-0 opacity-[0.04] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
 
           {/* SVG Connection Lines */}
           <svg className="absolute inset-0 w-full h-full pointer-events-none">
@@ -112,8 +288,8 @@ export default function Hero() {
                   backgroundColor: hoveredNode === node.id ? node.color : '#ffffff',
                   border: `2.5px solid ${node.color}`,
                   boxShadow: hoveredNode === node.id 
-                    ? `0 0 16px ${node.color}40, inset 0 1px 2px rgba(255,255,255,0.4)`
-                    : '0 2px 4px rgba(0,0,0,0.05)'
+                    ? `0 0 18px ${node.color}60, inset 0 1px 2px rgba(255,255,255,0.6)`
+                    : '0 2px 6px rgba(0,0,0,0.06)'
                 }}
               >
                 <div 
@@ -126,8 +302,11 @@ export default function Hero() {
 
           {/* Tactile interaction instructions */}
           <div className="absolute bottom-3 left-4 right-4 flex justify-between items-center text-xs text-brand-muted pointer-events-none">
-            <span className="font-medium">{t('hero.canvas.instruction')}</span>
-            <span className="font-mono bg-brand-sand px-2 py-0.5 rounded border border-brand-slate/5">{t('hero.canvas.engine')}</span>
+            <span className="font-medium flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-brand-amber animate-pulse inline-block" />
+              {t('hero.canvas.instruction')}
+            </span>
+            <span className="font-mono bg-brand-sand px-2 py-0.5 rounded border border-brand-slate/10 text-[10px]">{t('hero.canvas.engine')}</span>
           </div>
         </motion.div>
 
