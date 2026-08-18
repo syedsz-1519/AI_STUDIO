@@ -6,6 +6,7 @@ export interface ChatMessage {
   sources?: { title: string; uri: string }[];
   modelUsed?: string;
   thinkingMode?: boolean;
+  thought?: string; // Thought process steps for reasoning models
 }
 
 export type GeminiModelType = 'gemini-3.5-flash' | 'gemini-3.1-pro-preview' | 'gemini-3.1-flash-lite';
@@ -21,6 +22,7 @@ export interface ChatOptions {
 
 export interface ChatResponse {
   reply: string;
+  thought?: string; // Separated thought process content
   sources?: { title: string; uri: string }[];
   model: string;
   grounded?: boolean;

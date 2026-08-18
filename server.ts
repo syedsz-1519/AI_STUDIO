@@ -102,6 +102,14 @@ Keep tone approachable, supportive, and completely free of confusing jargon unle
         config,
       });
 
+      // Extract parts to separate thinking/reasoning from final content
+      const parts = response.candidates?.[0]?.content?.parts || [];
+      const thoughtParts = parts.filter((p: any) => p.thought);
+      const textParts = parts.filter((p: any) => !p.thought);
+      
+      const thought = thoughtParts.map((p: any) => p.text).join('') || '';
+      const reply = textParts.map((p: any) => p.text).join('') || response.text || '';
+
       // Extract search grounding metadata if available
       const searchChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
       const webSources = searchChunks
@@ -113,7 +121,8 @@ Keep tone approachable, supportive, and completely free of confusing jargon unle
         }));
 
       res.json({
-        reply: response.text || '',
+        reply,
+        thought,
         sources: webSources,
         model: chosenModel,
         grounded: useSearch && webSources.length > 0,
