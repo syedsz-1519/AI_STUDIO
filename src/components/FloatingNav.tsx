@@ -248,6 +248,18 @@ export default function FloatingNav() {
             <span className="hidden lg:inline text-[9px] font-mono opacity-40">⌘K</span>
           </button>
 
+          {/* Gemini AI Studio Direct Trigger Button */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('clay_open_ai_studio'))}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-full text-xs font-black transition-all cursor-pointer select-none shadow-sm hover:shadow-md active:scale-95 group"
+            title="Open Gemini AI Chat, Voice Transcribe, and Veo Studio"
+          >
+            <Sparkles className="w-3.5 h-3.5" />
+            <span className="text-[11px] font-extrabold tracking-tight">
+              {lang === 'te' ? 'AI స్టూడియో' : lang === 'hyd' ? 'AI Studio' : 'AI Studio'}
+            </span>
+          </button>
+
           {/* Ambient Sound Button */}
           <button
             onClick={toggleAmbient}

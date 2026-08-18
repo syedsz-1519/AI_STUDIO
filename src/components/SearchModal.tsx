@@ -296,9 +296,24 @@ export default function SearchModal({ isOpen, onClose }: SearchModalProps) {
               className="flex-grow overflow-y-auto p-4 flex flex-col gap-2 scrollbar-thin max-h-[45vh]"
             >
               {filteredResults.length === 0 ? (
-                <div className="py-12 px-6 text-center">
-                  <BookOpen className="w-10 h-10 text-brand-slate/30 mx-auto mb-3 animate-pulse" />
+                <div className="py-10 px-6 text-center space-y-3">
+                  <BookOpen className="w-9 h-9 text-brand-slate/30 mx-auto mb-2 animate-pulse" />
                   <p className="text-sm font-semibold text-brand-slate/80">{t.noResults}</p>
+                  <p className="text-xs text-brand-muted max-w-sm mx-auto">
+                    {lang === 'en' 
+                      ? "Ask Clay's Gemini AI directly for deeper explanations or real-time web search facts." 
+                      : "Is mauzu par Clay Gemini AI se tafseelan poochhein."}
+                  </p>
+                  <button
+                    onClick={() => {
+                      onClose();
+                      window.dispatchEvent(new CustomEvent('clay_open_ai_studio'));
+                    }}
+                    className="px-4 py-2 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-xl text-xs font-bold transition-all shadow-sm inline-flex items-center gap-2 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{lang === 'en' ? "Ask Clay Gemini AI" : "Clay Gemini AI se Poochho"}</span>
+                  </button>
                 </div>
               ) : (
                 filteredResults.map((item, idx) => {

@@ -597,3 +597,53 @@ export async function syncQuizProgressToCloud(
     console.error("Failed to sync quiz progress to Firebase Firestore:", error);
   }
 }
+
+import { useState as useReactState, useEffect as useReactEffect } from 'react';
+
+// Custom React hook for accessing current auth user and status
+export function useAuth() {
+  const [user, setUser] = useReactState<UserProfile | null>(() => {
+    const saved = localStorage.getItem('clay_user_profile');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [loading, setLoading] = useReactState(false);
+
+  useReactEffect(() => {
+    const updateUser = () => {
+      const saved = localStorage.getItem('clay_user_profile');
+      setUser(saved ? JSON.parse(saved) : null);
+    };
+
+    window.addEventListener('clay_auth_state_changed', updateUser);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+        if (userDoc.exists()) {
+          const profile = userDoc.data() as UserProfile;
+          localStorage.setItem('clay_user_profile', JSON.stringify(profile));
+          setUser(profile);
+        } else {
+          const newProfile: UserProfile = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email || '',
+            fullName: firebaseUser.displayName || 'Learner',
+            avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/bottts/svg?seed=${firebaseUser.uid}`,
+            joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+            streak: 1,
+            linkedPlatforms: ['google'],
+          };
+          localStorage.setItem('clay_user_profile', JSON.stringify(newProfile));
+          setUser(newProfile);
+        }
+      }
+    });
+
+    return () => {
+      window.removeEventListener('clay_auth_state_changed', updateUser);
+      unsubscribe();
+    };
+  }, []);
+
+  return { user, loading };
+}
+

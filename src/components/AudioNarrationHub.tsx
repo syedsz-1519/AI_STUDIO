@@ -14,12 +14,14 @@ import {
   X, 
   ChevronRight,
   HelpCircle,
-  MessageSquare
+  MessageSquare,
+  Bot
 } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import { useLanguage } from '../hooks/useLanguage';
 import { roadmapSections, Section, Term } from '../data/roadmapTerms';
 import ClayLogo from './ClayLogo';
+import GeminiAssistantHub from './GeminiAssistantHub';
 
 interface SectionContent {
   id: string;
@@ -37,10 +39,20 @@ type SearchResultItem =
 export default function AudioNarrationHub() {
   const { lang } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'audio' | 'search'>('audio');
+  const [activeTab, setActiveTab] = useState<'audio' | 'search' | 'ai'>('audio');
   const [isPlaying, setIsPlaying] = useState(false);
   const [playingSectionId, setPlayingSectionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Event listener to open AI studio from other components
+  useEffect(() => {
+    const handleOpenAiStudio = () => {
+      setIsOpen(true);
+      setActiveTab('ai');
+    };
+    window.addEventListener('clay_open_ai_studio', handleOpenAiStudio);
+    return () => window.removeEventListener('clay_open_ai_studio', handleOpenAiStudio);
+  }, []);
 
   // Sync state with global speech synthesis status
   useEffect(() => {
@@ -253,7 +265,9 @@ export default function AudioNarrationHub() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-            className="glass-panel w-85 sm:w-96 rounded-3xl p-5 border-brand-amber/25 shadow-2xl mb-4.5 flex flex-col gap-4.5 relative overflow-hidden border-2 bg-white/95 backdrop-blur-xl focus:ring-2 focus:ring-brand-amber/40 focus:outline-none"
+            className={`glass-panel rounded-3xl p-5 border-brand-amber/25 shadow-2xl mb-4.5 flex flex-col gap-4.5 relative overflow-hidden border-2 bg-white/95 backdrop-blur-xl focus:ring-2 focus:ring-brand-amber/40 focus:outline-none transition-all duration-300 ${
+              activeTab === 'ai' ? 'w-[92vw] sm:w-[480px] md:w-[560px] max-h-[82vh]' : 'w-85 sm:w-96'
+            }`}
           >
             {/* Ambient clay texture overlay */}
             <div className="absolute inset-0 opacity-[0.01] bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px] pointer-events-none" />
@@ -268,7 +282,7 @@ export default function AudioNarrationHub() {
                     {isPlaying && <span className="inline-block w-2 h-2 rounded-full bg-brand-amber animate-ping" />}
                   </h3>
                   <p className="text-[10px] text-brand-slate">
-                    {lang === 'en' ? "Your regional guide to AI" : "AI seekhne ka asaan zariya"}
+                    {lang === 'en' ? "Voice Guide, Search & Gemini AI" : "AI seekhne ka asaan zariya"}
                   </p>
                 </div>
               </div>
@@ -280,33 +294,52 @@ export default function AudioNarrationHub() {
               </button>
             </div>
 
-            {/* Modern Tab Control */}
-            <div className="flex bg-brand-sand/50 p-1 rounded-2xl border border-brand-slate/5 shrink-0">
+            {/* Modern 3-Way Tab Control */}
+            <div className="flex bg-brand-sand/50 p-1 rounded-2xl border border-brand-slate/5 shrink-0 gap-1">
               <button
                 data-tab="audio"
                 onClick={() => setActiveTab('audio')}
-                className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer select-none flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-brand-amber/50 ${
+                className={`flex-1 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 focus:outline-none ${
                   activeTab === 'audio'
                     ? 'bg-white text-brand-charcoal shadow-sm'
                     : 'text-brand-slate hover:text-brand-charcoal'
                 }`}
               >
                 <Headphones className="w-3.5 h-3.5 text-brand-amber" />
-                <span>{lang === 'en' ? "Voice Guide" : "Awaaz Guide"}</span>
+                <span className="truncate">{lang === 'en' ? "Voice" : "Awaaz"}</span>
               </button>
               <button
                 data-tab="search"
                 onClick={() => setActiveTab('search')}
-                className={`flex-1 py-2 text-xs font-black rounded-xl transition-all cursor-pointer select-none flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-brand-amber/50 ${
+                className={`flex-1 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 focus:outline-none ${
                   activeTab === 'search'
                     ? 'bg-white text-brand-charcoal shadow-sm'
                     : 'text-brand-slate hover:text-brand-charcoal'
                 }`}
               >
                 <Search className="w-3.5 h-3.5 text-brand-amber" />
-                <span>{lang === 'en' ? "Ask Clay" : "Clay se Poochho"}</span>
+                <span className="truncate">{lang === 'en' ? "Search" : "Dhoondo"}</span>
+              </button>
+              <button
+                data-tab="ai"
+                onClick={() => setActiveTab('ai')}
+                className={`flex-1 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 focus:outline-none ${
+                  activeTab === 'ai'
+                    ? 'bg-brand-amber text-white shadow-sm'
+                    : 'text-brand-slate hover:text-brand-charcoal'
+                }`}
+              >
+                <Bot className="w-3.5 h-3.5" />
+                <span className="truncate">{lang === 'en' ? "Gemini AI" : "AI Studio"}</span>
               </button>
             </div>
+
+            {/* TAB CONTENT: 0. GEMINI AI STUDIO (CHAT, VOICE, VEO, SEARCH GROUNDING, THINKING) */}
+            {activeTab === 'ai' && (
+              <div className="flex-1 min-h-[420px] max-h-[500px] flex flex-col">
+                <GeminiAssistantHub onClose={() => setIsOpen(false)} />
+              </div>
+            )}
 
             {/* TAB CONTENT: 1. AUDIO GUIDE SECTION LIST */}
             {activeTab === 'audio' && (
