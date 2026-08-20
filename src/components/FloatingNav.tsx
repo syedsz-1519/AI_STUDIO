@@ -1,5 +1,29 @@
-import { useState, useEffect } from 'react';
-import { Compass, BookOpen, ArrowUp, Menu, X, Music, Volume2, VolumeX, Sparkles, Settings, Search, User, Palette, Languages } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Compass, 
+  BookOpen, 
+  ArrowUp, 
+  Menu, 
+  X, 
+  Music, 
+  Volume2, 
+  VolumeX, 
+  Sparkles, 
+  Settings, 
+  Search, 
+  User, 
+  Palette, 
+  Languages, 
+  Bookmark, 
+  BookmarkCheck, 
+  ListOrdered, 
+  ChevronDown, 
+  Check, 
+  RotateCcw, 
+  ArrowRight, 
+  Layers,
+  CheckCircle2
+} from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
 import { useLanguage, type Language } from '../hooks/useLanguage';
@@ -8,17 +32,124 @@ import { roadmapSections } from '../data/roadmapTerms';
 import AuthModal from './AuthModal';
 import SearchModal from './SearchModal';
 
+interface BookmarkData {
+  scrollY: number;
+  sectionId: string;
+  sectionTitle: string;
+  timestamp: number;
+}
+
+const GUIDE_SECTIONS = [
+  { id: 'hero', num: 1, titleEn: '1. Overview', titleHyd: '1. Taaruf', shortEn: 'Intro' },
+  { id: 'what-is-ai', num: 2, titleEn: '2. What is AI?', titleHyd: '2. AI Kya Hai?', shortEn: 'Basics' },
+  { id: 'family-tree', num: 3, titleEn: '3. AI Family Tree', titleHyd: '3. AI Shijra', shortEn: 'Family Tree' },
+  { id: 'prompting-rag', num: 4, titleEn: '4. Prompting & RAG', titleHyd: '4. RAG Nizaam', shortEn: 'RAG' },
+  { id: 'ai-tools-directory', num: 5, titleEn: '5. AI Tools Directory', titleHyd: '5. AI Tools', shortEn: 'Tools' },
+  { id: 'deeper', num: 6, titleEn: '6. 12 Core Concepts', titleHyd: '6. 12 Sabaq', shortEn: '12 Concepts' },
+  { id: 'flashcards', num: 7, titleEn: '7. AI Flashcards', titleHyd: '7. AI Flashcards', shortEn: 'Flashcards' },
+  { id: 'classroom-hub', num: 8, titleEn: '8. Classroom Hub', titleHyd: '8. Classroom', shortEn: 'Classroom' },
+  { id: 'ai-arena', num: 9, titleEn: '9. AI Arena & Quiz', titleHyd: '9. Arena Quiz', shortEn: 'Quiz' },
+];
+
 export default function FloatingNav() {
   const { lang, setLang, t } = useLanguage();
   const [scrollProgress, setScrollProgress] = useState(0);
   const [activeSection, setActiveSection] = useState('hero');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isTocOpen, setIsTocOpen] = useState(false);
   const [readingTime, setReadingTime] = useState(6); // Default fallback
   const [wordCount, setWordCount] = useState(1200); // Default fallback
   const [isAmbientOn, setIsAmbientOn] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  
+  // LocalStorage scroll position bookmark system
+  const [savedBookmark, setSavedBookmark] = useState<BookmarkData | null>(null);
+  const [bookmarkToast, setBookmarkToast] = useState<string | null>(null);
+  const [showResumeBanner, setShowResumeBanner] = useState(false);
+  const tocRef = useRef<HTMLDivElement>(null);
+
+  // Load bookmark on mount
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('clay_scroll_bookmark');
+      if (raw) {
+        const parsed: BookmarkData = JSON.parse(raw);
+        setSavedBookmark(parsed);
+        // If bookmark is deeper down and user just opened the page
+        if (parsed.scrollY > 300 && window.scrollY < 200) {
+          setShowResumeBanner(true);
+        }
+      }
+    } catch (e) {
+      console.error('Error loading bookmark from localStorage', e);
+    }
+  }, []);
+
+  // Close TOC when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (tocRef.current && !tocRef.current.contains(e.target as Node)) {
+        setIsTocOpen(false);
+      }
+    };
+    if (isTocOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isTocOpen]);
+
+  // Save current scroll position to localStorage
+  const handleSaveBookmark = () => {
+    const currentScrollY = window.scrollY;
+    let sectionTitle = 'Overview & Hero';
+    if (activeSection === 'what-is-ai') sectionTitle = '1. What is AI?';
+    else if (activeSection === 'family-tree') sectionTitle = '2. The AI Family Tree';
+    else if (activeSection === 'prompting-rag') sectionTitle = '3. Prompting & RAG';
+    else if (activeSection === 'ai-tools-directory') sectionTitle = '4. AI Tools Directory';
+    else if (activeSection === 'deeper') sectionTitle = '5. 12 Core Concepts';
+    else if (activeSection === 'classroom-hub') sectionTitle = '6. Classroom Hub';
+    else if (activeSection === 'ai-arena') sectionTitle = '7. AI Arena & Quiz';
+
+    const newBookmark: BookmarkData = {
+      scrollY: Math.round(currentScrollY),
+      sectionId: activeSection,
+      sectionTitle,
+      timestamp: Date.now(),
+    };
+
+    localStorage.setItem('clay_scroll_bookmark', JSON.stringify(newBookmark));
+    setSavedBookmark(newBookmark);
+    setShowResumeBanner(false);
+    
+    // Show toast
+    setBookmarkToast(lang === 'en' ? `Bookmark saved at ${sectionTitle}!` : `Bookmark save ho gaya: ${sectionTitle}!`);
+    setTimeout(() => setBookmarkToast(null), 3000);
+  };
+
+  // Jump to saved bookmark
+  const handleJumpToBookmark = () => {
+    if (!savedBookmark) return;
+    window.scrollTo({
+      top: savedBookmark.scrollY,
+      behavior: 'smooth'
+    });
+    setShowResumeBanner(false);
+    setIsTocOpen(false);
+    setBookmarkToast(lang === 'en' ? 'Resumed where you left off!' : 'Wapas wahi pahunch gaye!');
+    setTimeout(() => setBookmarkToast(null), 2500);
+  };
+
+  // Clear bookmark
+  const handleClearBookmark = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    localStorage.removeItem('clay_scroll_bookmark');
+    setSavedBookmark(null);
+    setShowResumeBanner(false);
+    setBookmarkToast(lang === 'en' ? 'Bookmark cleared' : 'Bookmark hata diya gaya');
+    setTimeout(() => setBookmarkToast(null), 2000);
+  };
 
   useEffect(() => {
     const handleGlobalSearchKey = (e: KeyboardEvent) => {
@@ -61,7 +192,7 @@ export default function FloatingNav() {
       }
 
       // Track both main sections and the 12 glossary sub-sections
-      const mainSections = ['hero', 'what-is-ai', 'family-tree', 'prompting-rag', 'ai-tools-directory', 'deeper', 'classroom-hub', 'ai-arena'];
+      const mainSections = ['hero', 'what-is-ai', 'family-tree', 'prompting-rag', 'ai-tools-directory', 'deeper', 'flashcards', 'classroom-hub', 'ai-arena'];
       const glossarySections = ['section-1', 'section-2', 'section-3', 'section-4', 'section-5', 'section-6', 'section-7', 'section-8', 'section-9', 'section-10', 'section-11', 'section-12'];
 
       let detectedActiveSection = 'hero';
@@ -171,42 +302,65 @@ export default function FloatingNav() {
     setIsMenuOpen(false);
   };
 
+  const currentSectionObj = GUIDE_SECTIONS.find(s => s.id === activeSection) || GUIDE_SECTIONS[0];
+  const currentSectionNum = currentSectionObj.num;
+  const totalSections = GUIDE_SECTIONS.length;
+  const isGuideComplete = scrollProgress >= 96;
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300">
-      {/* Dynamic Progress Bar */}
-      <motion.div 
-        className="absolute top-0 left-0 h-[4px] bg-brand-amber origin-left shadow-[0_2px_8px_rgba(217,119,6,0.6)]" 
-        initial={{ scaleX: 0, scaleY: 0, opacity: 0 }}
-        animate={{ 
-          scaleX: scrollProgress / 100,
-          scaleY: scrollProgress > 0 ? 1 : 0,
-          opacity: scrollProgress > 0 ? 1 : 0
-        }}
-        transition={{ 
-          scaleX: { 
+      {/* Visual Multi-Section Progress Indicator at the Top */}
+      <div className="relative w-full h-[6px] bg-brand-sand/70 overflow-visible group/progress">
+        {/* Animated Progress Fill */}
+        <motion.div 
+          className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-400 via-brand-amber to-amber-600 shadow-[0_2px_10px_rgba(217,119,6,0.6)] origin-left" 
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: scrollProgress / 100 }}
+          transition={{ 
             type: "spring", 
             stiffness: 140, 
             damping: 18, 
             mass: 0.5 
-          },
-          scaleY: { 
-            type: "spring", 
-            stiffness: 240, 
-            damping: 12, 
-            mass: 0.4
-          },
-          opacity: { 
-            type: "spring", 
-            stiffness: 120, 
-            damping: 15 
-          }
-        }}
-        style={{ width: '100%' }}
-      />
+          }}
+          style={{ width: '100%' }}
+        />
+
+        {/* Milestone Section Pins */}
+        <div className="absolute inset-0 flex justify-between items-center pointer-events-none px-1">
+          {GUIDE_SECTIONS.map((sec, idx) => {
+            const milestonePercent = (idx / (totalSections - 1)) * 100;
+            const isPassed = scrollProgress >= milestonePercent - 2;
+            const isCurrent = activeSection === sec.id;
+            return (
+              <div 
+                key={sec.id}
+                className="relative group/pin pointer-events-auto cursor-pointer flex flex-col items-center"
+                onClick={() => scrollToSection(sec.id)}
+              >
+                {/* Milestone Node */}
+                <div 
+                  className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 border ${
+                    isCurrent
+                      ? 'bg-white border-brand-amber ring-2 ring-brand-amber scale-125 shadow-md'
+                      : isPassed
+                      ? 'bg-brand-amber border-white/80'
+                      : 'bg-brand-sand border-brand-slate/20 hover:scale-110'
+                  }`}
+                />
+
+                {/* Popover on Hover */}
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 opacity-0 group-hover/pin:opacity-100 transition-opacity duration-200 pointer-events-none bg-brand-charcoal text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-xl whitespace-nowrap z-50">
+                  <span>{lang === 'en' ? sec.titleEn : sec.titleHyd}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Brand Name & Reading Badge Container */}
-        <div className="flex items-center gap-3">
+        {/* Brand Name & Reading Progress Badge Container */}
+        <div className="flex items-center gap-2 sm:gap-3">
           <button 
             onClick={() => scrollToSection('hero')}
             className="flex items-center gap-2 cursor-pointer font-display text-base sm:text-lg font-extrabold text-brand-charcoal hover:text-brand-amber transition-colors shrink-0"
@@ -216,9 +370,73 @@ export default function FloatingNav() {
             <span className="tracking-tight">Simple <span className="text-brand-amber font-extrabold">AI</span></span>
           </button>
 
+          {/* Visual Guide Completion & Section Progress Feedback Pill (Tablet & Desktop) */}
+          <button
+            onClick={() => setIsTocOpen(!isTocOpen)}
+            className={`hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-full text-xs font-bold border transition-all cursor-pointer select-none shadow-sm ${
+              isGuideComplete
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300 shadow-emerald-100'
+                : 'bg-white/80 hover:bg-brand-sand text-brand-charcoal border-brand-amber/30'
+            }`}
+            title="Click to view all sections & progress"
+          >
+            {/* Circular Progress Ring */}
+            <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
+              {isGuideComplete ? (
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              ) : (
+                <svg className="w-4 h-4 transform -rotate-90" viewBox="0 0 36 36">
+                  <path
+                    className="text-brand-slate/15"
+                    strokeWidth="4"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                  <path
+                    className="text-brand-amber"
+                    strokeDasharray={`${Math.round(scrollProgress)}, 100`}
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    stroke="currentColor"
+                    fill="none"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                  />
+                </svg>
+              )}
+            </div>
+
+            {/* Completion Percentage & Section Feedback */}
+            <div className="flex items-center gap-1.5 text-[11px]">
+              <span className={`font-mono font-black ${isGuideComplete ? 'text-emerald-700' : 'text-brand-amber-dark'}`}>
+                {Math.round(scrollProgress)}%
+              </span>
+              <span className="text-brand-slate/40">•</span>
+              <span className="text-brand-slate font-semibold truncate max-w-[140px] md:max-w-[200px]">
+                {isGuideComplete 
+                  ? (lang === 'en' ? 'Completed 🎉' : 'Mukammal 🎉') 
+                  : (lang === 'en' ? `Sec ${currentSectionNum}/${totalSections}: ${currentSectionObj.shortEn}` : `Hissa ${currentSectionNum}/${totalSections}: ${currentSectionObj.titleHyd}`)}
+              </span>
+            </div>
+          </button>
+
+          {/* Compact Mobile Progress Pill */}
+          <button
+            onClick={() => setIsTocOpen(!isTocOpen)}
+            className={`sm:hidden flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border transition-all cursor-pointer select-none ${
+              isGuideComplete
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-300'
+                : 'bg-white/90 text-brand-charcoal border-brand-amber/30'
+            }`}
+            title="Click to view progress & contents"
+          >
+            <span className="font-mono font-black text-brand-amber-dark">{Math.round(scrollProgress)}%</span>
+            <span className="text-[9px] text-brand-slate opacity-75">Sec {currentSectionNum}/8</span>
+          </button>
+
           {/* Small Glassmorphic Reading Time Badge with interactive details */}
           <div 
-            className="group relative glass-panel px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold text-brand-amber border border-brand-amber/30 hidden min-[400px]:flex items-center gap-1.5 shadow-sm shrink-0 cursor-help transition-all duration-300 hover:border-brand-amber/60 hover:bg-white/60"
+            className="group relative glass-panel px-2.5 py-1 rounded-full text-[9px] sm:text-[10px] font-bold text-brand-amber border border-brand-amber/30 hidden lg:flex items-center gap-1.5 shadow-sm shrink-0 cursor-help transition-all duration-300 hover:border-brand-amber/60 hover:bg-white/60"
             title={`${wordCount.toLocaleString()} words on page`}
           >
             <BookOpen className="w-3 h-3 text-brand-amber shrink-0 group-hover:scale-110 transition-transform" />
@@ -234,11 +452,152 @@ export default function FloatingNav() {
 
 
         {/* Subtle Ambient Sound Toggle & Settings & Mobile Menu Trigger */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Table of Contents Dropdown Menu Trigger */}
+          <div className="relative" ref={tocRef}>
+            <button
+              onClick={() => setIsTocOpen(!isTocOpen)}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer select-none border shadow-sm active:scale-95 group ${
+                isTocOpen 
+                  ? 'bg-brand-amber text-white border-brand-amber shadow-md' 
+                  : 'bg-white/80 hover:bg-brand-sand text-brand-charcoal border-brand-amber/20 hover:border-brand-amber/40'
+              }`}
+              title="Table of Contents (All Sections)"
+            >
+              <ListOrdered className="w-3.5 h-3.5 text-inherit" />
+              <span className="hidden md:inline text-[11px] font-extrabold">
+                {lang === 'en' ? 'Contents' : 'Fehrist'}
+              </span>
+              <ChevronDown className={`w-3 h-3 text-inherit transition-transform duration-200 ${isTocOpen ? 'rotate-180' : ''}`} />
+            </button>
+
+            {/* Persistent Table of Contents Dropdown Panel */}
+            <AnimatePresence>
+              {isTocOpen && (
+                <motion.div
+                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                  className="absolute right-0 sm:left-0 sm:right-auto mt-2 w-72 sm:w-80 bg-white/95 backdrop-blur-xl border border-brand-amber/25 rounded-2xl shadow-2xl p-3 z-50 overflow-hidden flex flex-col gap-2"
+                >
+                  <div className="flex items-center justify-between px-2 pb-2 border-b border-brand-slate/10">
+                    <div className="flex items-center gap-1.5">
+                      <Layers className="w-3.5 h-3.5 text-brand-amber" />
+                      <span className="text-xs font-black text-brand-charcoal uppercase tracking-wider">
+                        {lang === 'en' ? 'Table of Contents' : 'Sabaq Fehrist'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono font-bold text-brand-slate">
+                      8 Sections
+                    </span>
+                  </div>
+
+                  {/* Bookmark Quick Action in TOC Header */}
+                  <div className="bg-brand-sand/40 p-2 rounded-xl border border-brand-slate/5 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-1.5">
+                      <Bookmark className="w-3.5 h-3.5 text-brand-amber" />
+                      <span className="text-[10.5px] font-bold text-brand-charcoal truncate max-w-[130px]">
+                        {savedBookmark ? savedBookmark.sectionTitle : (lang === 'en' ? 'No bookmark' : 'Koi bookmark nahi')}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {savedBookmark && (
+                        <button
+                          onClick={handleJumpToBookmark}
+                          className="px-2 py-0.5 bg-brand-amber text-white text-[10px] font-bold rounded-lg hover:bg-brand-amber-dark transition-colors cursor-pointer"
+                        >
+                          {lang === 'en' ? 'Resume' : 'Chalo'}
+                        </button>
+                      )}
+                      <button
+                        onClick={handleSaveBookmark}
+                        className="px-2 py-0.5 bg-white text-brand-charcoal border border-brand-slate/15 text-[10px] font-bold rounded-lg hover:bg-brand-sand transition-colors cursor-pointer"
+                      >
+                        {lang === 'en' ? 'Save Here' : 'Save Karein'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Sections List */}
+                  <div className="max-h-[320px] overflow-y-auto space-y-1 pr-1 scrollbar-thin">
+                    {[
+                      { id: 'hero', titleEn: '1. Introduction & Overview', titleHyd: '1. Aghaz & Taaruf', read: '1 min' },
+                      { id: 'what-is-ai', titleEn: '2. What is AI? (Foundations)', titleHyd: '2. AI Kya Hai? (Buniyaad)', read: '2 min' },
+                      { id: 'family-tree', titleEn: '3. The AI Family Tree', titleHyd: '3. AI Shijra-e-Nasab', read: '3 min' },
+                      { id: 'prompting-rag', titleEn: '4. Prompting & RAG Architecture', titleHyd: '4. Prompting & RAG Nizaam', read: '3 min' },
+                      { id: 'ai-tools-directory', titleEn: '5. AI Tools Directory', titleHyd: '5. AI Tools Fehrist', read: '2 min' },
+                      { id: 'deeper', titleEn: '6. 12 Core Concepts Deep Dive', titleHyd: '6. 12 Buniyaadi Sabaq', read: '6 min' },
+                      { id: 'flashcards', titleEn: '7. AI Flashcard Deck (Recall)', titleHyd: '7. AI Flashcard Deck', read: '3 min' },
+                      { id: 'classroom-hub', titleEn: '8. Classroom Hub & Notes', titleHyd: '8. Classroom Hub & Sabaq', read: '2 min' },
+                      { id: 'ai-arena', titleEn: '9. AI Arena & Knowledge Quiz', titleHyd: '9. Quiz Arena & Imtehaan', read: '3 min' },
+                    ].map((item) => {
+                      const isActive = activeSection === item.id;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            scrollToSection(item.id);
+                            setIsTocOpen(false);
+                          }}
+                          className={`w-full text-left px-2.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer group ${
+                            isActive
+                              ? 'bg-brand-amber/15 text-brand-amber-dark font-black border border-brand-amber/30'
+                              : 'text-brand-slate hover:bg-brand-sand/60 hover:text-brand-charcoal'
+                          }`}
+                        >
+                          <span className="truncate pr-2">
+                            {lang === 'en' ? item.titleEn : item.titleHyd}
+                          </span>
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <span className="text-[9px] font-mono text-brand-muted opacity-70">
+                              {item.read}
+                            </span>
+                            {isActive && <Check className="w-3 h-3 text-brand-amber stroke-[3]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Bookmark Current Scroll Position Button */}
+          <div className="relative">
+            <button
+              onClick={savedBookmark ? handleJumpToBookmark : handleSaveBookmark}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                handleSaveBookmark();
+              }}
+              className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full text-xs font-black transition-all cursor-pointer select-none border shadow-sm active:scale-95 group ${
+                savedBookmark 
+                  ? 'bg-brand-amber/10 hover:bg-brand-amber/20 text-brand-amber border-brand-amber/30' 
+                  : 'bg-white/80 hover:bg-brand-sand text-brand-charcoal border-brand-amber/20 hover:border-brand-amber/40'
+              }`}
+              title={savedBookmark 
+                ? (lang === 'en' ? `Jump to saved bookmark (${savedBookmark.sectionTitle}). Right-click or TOC to update.` : `Saved bookmark par jayein (${savedBookmark.sectionTitle})`) 
+                : (lang === 'en' ? 'Bookmark current scroll position' : 'Scroll position bookmark karein')}
+            >
+              {savedBookmark ? (
+                <BookmarkCheck className="w-3.5 h-3.5 text-brand-amber fill-brand-amber/20" />
+              ) : (
+                <Bookmark className="w-3.5 h-3.5 text-brand-slate group-hover:text-brand-amber transition-colors" />
+              )}
+              <span className="hidden sm:inline text-[11px] font-extrabold">
+                {savedBookmark 
+                  ? (lang === 'en' ? 'Resume' : 'Wapas') 
+                  : (lang === 'en' ? 'Bookmark' : 'Bookmark')}
+              </span>
+            </button>
+          </div>
+
           {/* Ask Clay / Global Search Button */}
           <button
             onClick={() => setIsSearchOpen(true)}
-            className="flex items-center gap-2 px-3 py-1.5 bg-white/80 hover:bg-brand-amber/15 text-brand-charcoal border border-brand-amber/20 hover:border-brand-amber/40 rounded-full text-xs font-black transition-all cursor-pointer select-none shadow-sm hover:shadow-md active:scale-95 group"
+            className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 bg-white/80 hover:bg-brand-amber/15 text-brand-charcoal border border-brand-amber/20 hover:border-brand-amber/40 rounded-full text-xs font-black transition-all cursor-pointer select-none shadow-sm hover:shadow-md active:scale-95 group"
             title={lang === 'en' ? 'Ask Clay a Question (Cmd+K)' : 'Clay se Sawaal Poochho (Cmd+K)'}
           >
             <ClayLogo size={18} />
@@ -271,9 +630,7 @@ export default function FloatingNav() {
             <span className="lg:hidden">{isAmbientOn ? (lang === 'en' ? 'Lo-Fi' : 'On') : (lang === 'en' ? 'Mute' : 'Mute')}</span>
           </button>
 
-          {/* Settings button removed from main screen to declutter - moved to the slide-out menu bar toggle */}
-
-          {/* Interactive Menu Trigger - Responsive on both PC and mobile, Polished and Easy to Learn */}
+          {/* Interactive Menu Trigger */}
           <button 
             onClick={() => setIsMenuOpen(!isMenuOpen)} 
             className="flex items-center gap-1.5 px-3 py-1 bg-brand-amber/10 hover:bg-brand-amber/20 border border-brand-amber/20 rounded-full cursor-pointer transition-all active:scale-95 shadow-sm select-none"
@@ -290,6 +647,58 @@ export default function FloatingNav() {
           </button>
         </div>
       </div>
+
+      {/* Floating Bookmark Toast Notification */}
+      <AnimatePresence>
+        {bookmarkToast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 bg-brand-charcoal text-white text-xs font-bold px-4 py-2 rounded-full shadow-2xl z-50 flex items-center gap-2 border border-brand-amber/30 pointer-events-none"
+          >
+            <BookmarkCheck className="w-3.5 h-3.5 text-brand-amber" />
+            <span>{bookmarkToast}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Return to Bookmark Banner (when returning to the page) */}
+      <AnimatePresence>
+        {showResumeBanner && savedBookmark && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="bg-brand-amber text-white text-xs px-6 py-2 shadow-md flex items-center justify-between max-w-5xl mx-auto rounded-b-2xl"
+          >
+            <div className="flex items-center gap-2">
+              <Bookmark className="w-4 h-4" />
+              <span className="font-medium">
+                {lang === 'en' 
+                  ? `You have a saved reading bookmark at "${savedBookmark.sectionTitle}"` 
+                  : `Aap ka bookmark "${savedBookmark.sectionTitle}" par mehfooz hai`}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleJumpToBookmark}
+                className="px-3 py-0.5 bg-white text-brand-amber-dark font-black rounded-full hover:bg-brand-sand transition-all text-[11px] cursor-pointer flex items-center gap-1 shadow-sm"
+              >
+                <span>{lang === 'en' ? 'Resume Reading' : 'Wahan Jayein'}</span>
+                <ArrowRight className="w-3 h-3" />
+              </button>
+              <button
+                onClick={() => setShowResumeBanner(false)}
+                className="p-1 hover:bg-white/20 rounded-full cursor-pointer"
+                title="Dismiss"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Slide-out Hamburger Menu Sidebar for PC & Mobile (AnimatePresence) */}
       <AnimatePresence>

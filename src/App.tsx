@@ -14,6 +14,8 @@ import FloatingLanguageBubble from './components/FloatingLanguageBubble';
 import CheckYourKnowledge from './components/CheckYourKnowledge';
 import AIArena from './components/AIArena';
 import GoogleClassroomHub from './components/GoogleClassroomHub';
+import InteractiveFlashcards from './components/InteractiveFlashcards';
+import QuickTakeaway from './components/QuickTakeaway';
 import { Compass, Sparkles, BookOpen } from 'lucide-react';
 import { motion } from 'motion/react';
 import ClayLogo from './components/ClayLogo';
@@ -88,6 +90,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <WhatIsAI />
+          <QuickTakeaway sectionId="what-is-ai" />
           <CheckYourKnowledge sectionId="basics" />
         </motion.div>
 
@@ -109,6 +112,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <AIFamilyTree />
+          <QuickTakeaway sectionId="family-tree" />
           <CheckYourKnowledge sectionId="family-tree" />
         </motion.div>
 
@@ -120,6 +124,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <GenerativeAI />
+          <QuickTakeaway sectionId="generative-ai" />
         </motion.div>
 
         {/* Layer 3: Practical Use (Prompting styles & Retrieval-Augmented Generation flow) */}
@@ -130,6 +135,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <PromptingAndRAG />
+          <QuickTakeaway sectionId="prompting-rag" />
           <CheckYourKnowledge sectionId="prompting-rag" />
         </motion.div>
 
@@ -141,6 +147,7 @@ export default function App() {
           variants={sectionAnimation}
         >
           <AIToolsList />
+          <QuickTakeaway sectionId="tools" />
         </motion.div>
 
         {/* Layer 3 & 4: Closing, Future Outlook, and collapsible glossary terms */}
@@ -151,7 +158,18 @@ export default function App() {
           variants={sectionAnimation}
         >
           <ClosingAndDeeper />
+          <QuickTakeaway sectionId="deeper" />
           <CheckYourKnowledge sectionId="deeper" />
+        </motion.div>
+
+        {/* Interactive Flashcards Module - Reinforce Memory Retention */}
+        <motion.div
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={sectionAnimation}
+        >
+          <InteractiveFlashcards />
         </motion.div>
 
         {/* Google Classroom Hub - Synchronize learning tasks with real-world streams */}
