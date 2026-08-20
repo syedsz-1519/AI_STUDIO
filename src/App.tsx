@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import FloatingNav from './components/FloatingNav';
+import ScrollProgressIndicator from './components/ScrollProgressIndicator';
 import Hero from './components/Hero';
 import WhatIsAI from './components/WhatIsAI';
 import ClayExplainer from './components/ClayExplainer';
@@ -16,19 +17,35 @@ import AIArena from './components/AIArena';
 import GoogleClassroomHub from './components/GoogleClassroomHub';
 import InteractiveFlashcards from './components/InteractiveFlashcards';
 import QuickTakeaway from './components/QuickTakeaway';
-import { Compass, Sparkles, BookOpen } from 'lucide-react';
-import { motion } from 'motion/react';
+import AIMockInterviewer from './components/AIMockInterviewer';
+import StudentDashboard from './components/StudentDashboard';
+import AuthModal from './components/AuthModal';
+import { Compass, Sparkles, BookOpen, Video, TrendingUp, ArrowLeft } from 'lucide-react';
+import { motion, AnimatePresence } from 'motion/react';
 import ClayLogo from './components/ClayLogo';
 import { useLanguage } from './hooks/useLanguage';
 
 export default function App() {
   const { lang } = useLanguage();
+  const [currentView, setCurrentView] = useState<'guide' | 'interview' | 'dashboard'>('guide');
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
+    // Listen to custom navigation events from FloatingNav or subcomponents
+    const handleNavigateView = (e: CustomEvent<'guide' | 'interview' | 'dashboard'>) => {
+      if (e.detail) {
+        setCurrentView(e.detail);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    };
+
+    window.addEventListener('clay_navigate_view' as any, handleNavigateView);
+
     // Smoothly scroll to elements when the hash in the address bar changes dynamically
     const handleHashChange = () => {
       const hash = window.location.hash;
       if (hash) {
+        setCurrentView('guide');
         const targetId = hash.replace('#', '');
         const element = document.getElementById(targetId);
         if (element) {
@@ -39,6 +56,7 @@ export default function App() {
     window.addEventListener('hashchange', handleHashChange);
 
     return () => {
+      window.removeEventListener('clay_navigate_view' as any, handleNavigateView);
       window.removeEventListener('hashchange', handleHashChange);
     };
   }, []);
@@ -58,29 +76,68 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-brand-cream text-brand-charcoal selection:bg-brand-amber/10 selection:text-brand-amber font-sans antialiased overflow-x-hidden">
+      {/* Persistent Scroll Progress Indicator at the Top of Screen */}
+      <ScrollProgressIndicator />
+
       {/* Translucent Navigation Layer */}
       <FloatingNav />
 
-      {/* Floating Audio Guide for Clay */}
-      <AudioNarrationHub />
+      {/* Global Auth / Profile Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+
+      {/* Floating Audio Guide for Clay (Only shown in guide view) */}
+      {currentView === 'guide' && <AudioNarrationHub />}
 
       {/* Floating Language Change Bubble (Bottom Left) */}
       <FloatingLanguageBubble />
 
-      {/* Floating Theme Change Toggle has been moved inside the Settings dialog */}
+      {/* Main Content Area: Switch between Guide, Mock Interviewer, and Student Dashboard */}
+      {currentView === 'interview' && (
+        <div className="pt-16 min-h-screen">
+          <AIMockInterviewer
+            onBackToGuide={() => {
+              setCurrentView('guide');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onViewDashboard={() => {
+              setCurrentView('dashboard');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+          />
+        </div>
+      )}
 
-      {/* Main Narrative Scroll Flow */}
-      <main className="relative z-10 flex flex-col gap-4">
-        
-        {/* Layer 1: Hero Intro */}
-        <motion.div
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, margin: "-100px" }}
-          variants={sectionAnimation}
-        >
-          <Hero />
-        </motion.div>
+      {currentView === 'dashboard' && (
+        <div className="pt-16 min-h-screen">
+          <StudentDashboard
+            onStartInterview={() => {
+              setCurrentView('interview');
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
+            onNavigateSection={(secId) => {
+              setCurrentView('guide');
+              setTimeout(() => {
+                const el = document.getElementById(secId);
+                if (el) el.scrollIntoView({ behavior: 'smooth' });
+              }, 150);
+            }}
+          />
+        </div>
+      )}
+
+      {currentView === 'guide' && (
+        <main className="relative z-10 flex flex-col gap-4">
+          
+          {/* Layer 1: Hero Intro */}
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-100px" }}
+            variants={sectionAnimation}
+          >
+            <Hero />
+          </motion.div>
 
         {/* Layer 1: The Basics (What is AI, pocket grid, stage horizons) */}
         <motion.div
@@ -193,6 +250,7 @@ export default function App() {
         </motion.div>
 
       </main>
+      )}
 
       {/* Editorial Journal Styled Footer */}
       <footer className="bg-brand-sand/50 border-t border-brand-slate/10 py-16 relative z-10 text-left">

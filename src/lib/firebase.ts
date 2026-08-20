@@ -249,7 +249,7 @@ export function linkSocialPlatformManually(platform: string, platformUsername?: 
 // 1. Listen to Auth state changes and sync (HYBRID: supports local manual + firebase fallback)
 export function setupAuthListener(
   onUserChanged: (profile: UserProfile | null) => void,
-  onProgressChanged: (progress: UserProgress | null) => void
+  onProgressChanged?: (progress: UserProgress | null) => void
 ) {
   const syncLocalOrFirebaseState = async (firebaseUser: FirebaseUser | null) => {
     const localUser = getActiveLocalUser();
@@ -281,7 +281,7 @@ export function setupAuthListener(
       
       localStorage.setItem('clay_completed_terms', JSON.stringify(progress.completedTerms));
       localStorage.setItem('clay_bookmarks', JSON.stringify(progress.bookmarks));
-      onProgressChanged(progress);
+      if (onProgressChanged) onProgressChanged(progress);
 
       // 3. Load user's quiz
       const savedQuiz = localStorage.getItem(`clay_quiz_${localUser.uid}`);
@@ -381,7 +381,7 @@ export function setupAuthListener(
         // Update local storage
         localStorage.setItem('clay_completed_terms', JSON.stringify(progress.completedTerms));
         localStorage.setItem('clay_bookmarks', JSON.stringify(progress.bookmarks));
-        onProgressChanged(progress);
+        if (onProgressChanged) onProgressChanged(progress);
 
         // Fetch Quiz Progress
         try {

@@ -639,6 +639,30 @@ class AudioEngine {
     }
     return false;
   }
+
+  playLoFiChord() {
+    try {
+      this.initContext();
+      if (!this.ctx) return;
+      const ctx = this.ctx;
+      const now = ctx.currentTime;
+      // Synthesize a soft warm chime chord for tactile feedback
+      [523.25, 659.25, 783.99, 1046.5].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now + i * 0.04);
+        gain.gain.setValueAtTime(0.04, now + i * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.04);
+        osc.stop(now + 1.3);
+      });
+    } catch (e) {
+      console.warn("Audio playback error:", e);
+    }
+  }
 }
 
 export const audioEngine = new AudioEngine();

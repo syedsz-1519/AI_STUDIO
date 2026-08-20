@@ -308,56 +308,7 @@ export default function FloatingNav() {
   const isGuideComplete = scrollProgress >= 96;
 
   return (
-    <nav className="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300">
-      {/* Visual Multi-Section Progress Indicator at the Top */}
-      <div className="relative w-full h-[6px] bg-brand-sand/70 overflow-visible group/progress">
-        {/* Animated Progress Fill */}
-        <motion.div 
-          className="absolute top-0 left-0 h-full bg-gradient-to-r from-amber-400 via-brand-amber to-amber-600 shadow-[0_2px_10px_rgba(217,119,6,0.6)] origin-left" 
-          initial={{ scaleX: 0 }}
-          animate={{ scaleX: scrollProgress / 100 }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 140, 
-            damping: 18, 
-            mass: 0.5 
-          }}
-          style={{ width: '100%' }}
-        />
-
-        {/* Milestone Section Pins */}
-        <div className="absolute inset-0 flex justify-between items-center pointer-events-none px-1">
-          {GUIDE_SECTIONS.map((sec, idx) => {
-            const milestonePercent = (idx / (totalSections - 1)) * 100;
-            const isPassed = scrollProgress >= milestonePercent - 2;
-            const isCurrent = activeSection === sec.id;
-            return (
-              <div 
-                key={sec.id}
-                className="relative group/pin pointer-events-auto cursor-pointer flex flex-col items-center"
-                onClick={() => scrollToSection(sec.id)}
-              >
-                {/* Milestone Node */}
-                <div 
-                  className={`w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full transition-all duration-300 border ${
-                    isCurrent
-                      ? 'bg-white border-brand-amber ring-2 ring-brand-amber scale-125 shadow-md'
-                      : isPassed
-                      ? 'bg-brand-amber border-white/80'
-                      : 'bg-brand-sand border-brand-slate/20 hover:scale-110'
-                  }`}
-                />
-
-                {/* Popover on Hover */}
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 opacity-0 group-hover/pin:opacity-100 transition-opacity duration-200 pointer-events-none bg-brand-charcoal text-white text-[10px] font-bold px-2 py-1 rounded-md shadow-xl whitespace-nowrap z-50">
-                  <span>{lang === 'en' ? sec.titleEn : sec.titleHyd}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
+    <nav className="fixed top-0 left-0 right-0 z-50 glass-nav transition-all duration-300 pt-[4.5px]">
       <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
         {/* Brand Name & Reading Progress Badge Container */}
         <div className="flex items-center gap-2 sm:gap-3">
@@ -593,6 +544,34 @@ export default function FloatingNav() {
               </span>
             </button>
           </div>
+
+          {/* AI Mock Interviewer Direct Nav Button */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('clay_navigate_view', { detail: 'interview' }))}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-amber-500/15 via-brand-amber/15 to-orange-500/15 hover:from-amber-500/25 hover:to-orange-500/25 text-brand-charcoal border border-brand-amber/30 rounded-full text-xs font-black transition-all cursor-pointer select-none shadow-xs hover:shadow-md active:scale-95 group"
+            title="AI Mock Interviewer with Real Camera & Voice Tracking"
+          >
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-amber"></span>
+            </span>
+            <span className="text-[11px] font-extrabold text-brand-charcoal group-hover:text-brand-amber transition-colors flex items-center gap-1">
+              <span>{lang === 'en' ? 'Mock Interview' : 'Mock Interview'}</span>
+              <span className="hidden xl:inline text-[9px] font-mono text-brand-amber bg-brand-amber/15 px-1 rounded">LIVE HUD</span>
+            </span>
+          </button>
+
+          {/* Student Dashboard Nav Button */}
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('clay_navigate_view', { detail: 'dashboard' }))}
+            className="hidden md:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white/80 hover:bg-brand-sand text-brand-charcoal border border-brand-slate/15 hover:border-brand-amber/30 rounded-full text-xs font-black transition-all cursor-pointer select-none shadow-xs hover:shadow-md active:scale-95 group"
+            title="Student Dashboard, Roadmap & Interview Records"
+          >
+            <User className="w-3.5 h-3.5 text-brand-slate group-hover:text-brand-amber transition-colors" />
+            <span className="text-[11px] font-extrabold text-brand-charcoal group-hover:text-brand-amber transition-colors">
+              {lang === 'en' ? 'Dashboard' : 'Dashboard'}
+            </span>
+          </button>
 
           {/* Ask Clay / Global Search Button */}
           <button
