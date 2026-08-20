@@ -34,11 +34,27 @@ export interface GoDeeperItem {
 }
 
 // AI Mock Interviewer Types
+export type InterviewDifficulty = 'Beginner' | 'Intermediate' | 'Advanced' | 'Junior' | 'Mid-Level' | 'Senior' | 'Staff';
+
+export interface PracticeReminderSettings {
+  enabled: boolean;
+  frequency: 'daily' | 'weekdays' | 'weekly' | 'custom';
+  customIntervalDays?: number;
+  reminderTime: string; // "HH:MM" e.g. "09:00" or "18:30"
+  selectedDayOfWeek?: number; // 0 for Sun, 1 for Mon, etc.
+  preferredRoleId?: string;
+  preferredDifficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
+  browserNotifications: boolean;
+  soundAlerts: boolean;
+  lastReminderSentTimestamp?: number;
+  streakDays: number;
+}
+
 export interface InterviewQuestion {
   id: string;
   role: string;
   topic: string;
-  difficulty: 'Junior' | 'Mid-Level' | 'Senior' | 'Staff';
+  difficulty: InterviewDifficulty;
   question: string;
   questionUrdu?: string;
   contextOrCode?: string;
@@ -104,4 +120,23 @@ export interface MockInterviewRecord {
   topStrengths: string[];
   keyActionItems: string[];
 }
+
+export interface MockInterviewDraft {
+  id: string;
+  selectedRoleId: string;
+  selectedPersonaId: string;
+  difficulty: InterviewDifficulty;
+  isUrduMode: boolean;
+  currentQuestionIndex: number;
+  questions: InterviewQuestion[];
+  userAnswer: string;
+  userCode: string;
+  showCodePad: boolean;
+  attempts: QuestionAttempt[];
+  elapsedSeconds: number;
+  questionSeconds: number;
+  liveMetrics: CameraTrackingMetrics;
+  lastSavedTimestamp: number;
+}
+
 

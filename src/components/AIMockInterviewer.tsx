@@ -37,24 +37,33 @@ import {
   Check,
   RefreshCw,
   Sliders,
-  ChevronDown
+  ChevronDown,
+  Cloud,
+  Save,
+  Trash2,
+  PlayCircle,
+  History
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { 
   InterviewQuestion, 
   InterviewerPersona, 
   MockInterviewRecord, 
+  MockInterviewDraft,
   QuestionAttempt, 
-  CameraTrackingMetrics 
+  CameraTrackingMetrics,
+  InterviewDifficulty 
 } from '../types';
 import { 
   INTERVIEWER_PERSONAS, 
   INTERVIEW_ROLES, 
-  INTERVIEW_QUESTIONS_DATABASE 
+  INTERVIEW_QUESTIONS_DATABASE,
+  getFilteredInterviewQuestions
 } from '../data/interviewData';
 import CameraTrackerHUD from './CameraTrackerHUD';
 import InterviewPerformanceChart from './InterviewPerformanceChart';
 import CopyCodeButton from './CopyCodeButton';
+import PracticeReminderModal from './PracticeReminderModal';
 import { sendGeminiChat } from '../lib/geminiClient';
 import { audioEngine } from '../lib/audioEngine';
 
@@ -75,8 +84,9 @@ export default function AIMockInterviewer({
   // Selected configurations
   const [selectedRoleId, setSelectedRoleId] = useState<string>('ai_ml_engineer');
   const [selectedPersonaId, setSelectedPersonaId] = useState<string>('dr_sarah');
-  const [difficulty, setDifficulty] = useState<'Junior' | 'Mid-Level' | 'Senior' | 'Staff'>('Mid-Level');
+  const [difficulty, setDifficulty] = useState<InterviewDifficulty>('Intermediate');
   const [isUrduMode, setIsUrduMode] = useState<boolean>(lang === 'hyd');
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
 
   // Interview active session state
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -112,6 +122,93 @@ export default function AIMockInterviewer({
 
   // Scorecard state
   const [completedRecord, setCompletedRecord] = useState<MockInterviewRecord | null>(null);
+
+  // Auto-Save Draft State for Interrupted Session Recovery
+  const [savedDraft, setSavedDraft] = useState<MockInterviewDraft | null>(null);
+  const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
+  const [isAutoSaving, setIsAutoSaving] = useState<boolean>(false);
+
+  // Load any previously interrupted mock interview draft on mount
+  useEffect(() => {
+    const loadDraft = () => {
+      try {
+        const savedDraftJson = localStorage.getItem('clay_mock_interview_draft');
+        if (savedDraftJson) {
+          const parsed: MockInterviewDraft = JSON.parse(savedDraftJson);
+          if (parsed && parsed.questions && parsed.questions.length > 0) {
+            setSavedDraft(parsed);
+          } else {
+            setSavedDraft(null);
+          }
+        } else {
+          setSavedDraft(null);
+        }
+      } catch (e) {
+        console.warn('Failed to load mock interview draft:', e);
+      }
+    };
+
+    loadDraft();
+    window.addEventListener('clay_interview_draft_updated', loadDraft);
+    return () => {
+      window.removeEventListener('clay_interview_draft_updated', loadDraft);
+    };
+  }, []);
+
+  // Real-time auto-save debounced effect while an interview is actively in progress
+  useEffect(() => {
+    if (stage !== 'interview' || questions.length === 0) return;
+
+    setIsAutoSaving(true);
+    const timeout = setTimeout(() => {
+      try {
+        const draft: MockInterviewDraft = {
+          id: `draft_${selectedRoleId}`,
+          selectedRoleId,
+          selectedPersonaId,
+          difficulty,
+          isUrduMode,
+          currentQuestionIndex,
+          questions,
+          userAnswer,
+          userCode,
+          showCodePad,
+          attempts,
+          elapsedSeconds,
+          questionSeconds,
+          liveMetrics,
+          lastSavedTimestamp: Date.now(),
+        };
+
+        localStorage.setItem('clay_mock_interview_draft', JSON.stringify(draft));
+        setSavedDraft(draft);
+        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        setLastAutoSavedTime(nowStr);
+        window.dispatchEvent(new Event('clay_interview_draft_updated'));
+      } catch (err) {
+        console.warn('Auto-save failed:', err);
+      } finally {
+        setIsAutoSaving(false);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeout);
+  }, [
+    stage,
+    selectedRoleId,
+    selectedPersonaId,
+    difficulty,
+    isUrduMode,
+    currentQuestionIndex,
+    questions,
+    userAnswer,
+    userCode,
+    showCodePad,
+    attempts,
+    elapsedSeconds,
+    questionSeconds,
+    liveMetrics
+  ]);
 
   // Speech Recognition ref
   const recognitionRef = useRef<any>(null);
@@ -273,9 +370,15 @@ export default function AIMockInterviewer({
     }, 6500);
   };
 
-  // Start Full Interview Session
+  // Start Full Interview Session (Fresh)
   const handleStartInterview = () => {
-    const pool = INTERVIEW_QUESTIONS_DATABASE[selectedRoleId] || INTERVIEW_QUESTIONS_DATABASE['ai_ml_engineer'];
+    // Clear any previous draft
+    localStorage.removeItem('clay_mock_interview_draft');
+    setSavedDraft(null);
+    window.dispatchEvent(new Event('clay_interview_draft_updated'));
+
+    // Filter questions tailored to selected role & difficulty
+    const pool = getFilteredInterviewQuestions(selectedRoleId, difficulty);
     setQuestions(pool);
     setCurrentQuestionIndex(0);
     setUserAnswer('');
@@ -294,6 +397,46 @@ export default function AIMockInterviewer({
         speakText(qText, currentPersona);
       }, 400);
     }
+  };
+
+  // Resume an interrupted mock interview session
+  const handleResumeDraft = (draft: MockInterviewDraft) => {
+    setSelectedRoleId(draft.selectedRoleId);
+    setSelectedPersonaId(draft.selectedPersonaId);
+    setDifficulty(draft.difficulty);
+    setIsUrduMode(draft.isUrduMode);
+    setQuestions(draft.questions);
+    setCurrentQuestionIndex(draft.currentQuestionIndex);
+    setUserAnswer(draft.userAnswer || '');
+    setUserCode(draft.userCode || '');
+    setShowCodePad(draft.showCodePad || false);
+    setAttempts(draft.attempts || []);
+    setElapsedSeconds(draft.elapsedSeconds || 0);
+    setQuestionSeconds(draft.questionSeconds || 0);
+    if (draft.liveMetrics) {
+      setLiveMetrics(draft.liveMetrics);
+    }
+    setIsPaused(false);
+    setStage('interview');
+
+    const persona = INTERVIEWER_PERSONAS.find(p => p.id === draft.selectedPersonaId) || INTERVIEWER_PERSONAS[0];
+    const q = draft.questions[draft.currentQuestionIndex];
+    if (q) {
+      const qText = draft.isUrduMode && q.questionUrdu ? q.questionUrdu : q.question;
+      setInterviewerSpeechText(qText);
+      setTimeout(() => {
+        speakText(qText, persona);
+      }, 500);
+    }
+    audioEngine.playLoFiChord();
+  };
+
+  // Discard saved draft
+  const handleDiscardDraft = () => {
+    localStorage.removeItem('clay_mock_interview_draft');
+    setSavedDraft(null);
+    window.dispatchEvent(new Event('clay_interview_draft_updated'));
+    audioEngine.playLoFiChord();
   };
 
   // Main Timer loop
@@ -327,12 +470,18 @@ export default function AIMockInterviewer({
     let improvements: string[] = [];
 
     try {
-      const prompt = `You are ${currentPersona.name}, a ${currentPersona.role} conducting an AI technical mock interview.
+      const prompt = `You are ${currentPersona.name}, a ${currentPersona.role} conducting an AI technical mock interview for a ${difficulty} level candidate.
 Evaluate the candidate's answer for the following question:
 Question: "${currentQuestion.question}"
+Candidate Target Seniority: ${difficulty}
 Candidate Answer: "${fullAnswerText}"
 Candidate Code/Scratchpad: "${userCode || 'None'}"
 Key Expected Concepts: ${currentQuestion.keyConcepts.join(', ')}
+
+Rubric Guidelines for ${difficulty}:
+- If Beginner: Reward conceptual intuition, definitions, and understanding of core analogies. Provide encouraging guidance.
+- If Intermediate: Expect standard trade-offs, architecture flow, and clear algorithmic rationale.
+- If Advanced: Evaluate rigorous mathematical precision, scaling bottlenecks, distributed latency, and low-level trade-offs.
 
 Please provide a JSON response with:
 1. "score": number from 0 to 100
@@ -462,13 +611,16 @@ Please provide a JSON response with:
     setCompletedRecord(record);
     setStage('scorecard');
 
-    // Save record to local storage for Dashboard integration
+    // Save record to local storage for Dashboard integration and clear in-progress draft
     try {
       const savedHistory = localStorage.getItem('clay_mock_interviews');
       const parsedHistory: MockInterviewRecord[] = savedHistory ? JSON.parse(savedHistory) : [];
       parsedHistory.unshift(record);
       localStorage.setItem('clay_mock_interviews', JSON.stringify(parsedHistory));
+      localStorage.removeItem('clay_mock_interview_draft');
+      setSavedDraft(null);
       window.dispatchEvent(new Event('clay_interview_saved'));
+      window.dispatchEvent(new Event('clay_interview_draft_updated'));
     } catch (e) {
       console.warn('Failed to save interview record:', e);
     }
@@ -549,6 +701,58 @@ Please provide a JSON response with:
                 </div>
               </div>
             </div>
+
+            {/* Resume Interrupted Interview Banner (if auto-saved draft exists) */}
+            {savedDraft && (
+              <motion.div
+                initial={{ opacity: 0, y: -10, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                className="bg-gradient-to-r from-brand-amber/15 via-amber-50 to-orange-50 border-2 border-brand-amber/40 rounded-3xl p-5 sm:p-6 shadow-md text-left flex flex-col md:flex-row md:items-center justify-between gap-4 relative overflow-hidden"
+              >
+                <div className="flex items-start gap-4">
+                  <div className="p-3 bg-brand-amber text-white rounded-2xl shadow-sm shrink-0">
+                    <History className="w-6 h-6 animate-pulse" />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-brand-amber/20 text-brand-amber-dark text-[10px] font-mono font-bold uppercase tracking-wider">
+                        Interrupted Session Saved
+                      </span>
+                      <span className="text-[10px] font-mono text-brand-muted flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-brand-amber" />
+                        {savedDraft.lastSavedTimestamp ? new Date(savedDraft.lastSavedTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recently'}
+                      </span>
+                    </div>
+
+                    <h3 className="font-display text-base font-bold text-brand-charcoal">
+                      {INTERVIEW_ROLES.find(r => r.id === savedDraft.selectedRoleId)?.title || 'AI Technical Interview'} ({savedDraft.difficulty})
+                    </h3>
+
+                    <p className="text-xs text-brand-slate">
+                      Progress: <strong>Question {savedDraft.currentQuestionIndex + 1} of {savedDraft.questions.length}</strong> • {savedDraft.attempts.length} graded answers • Time elapsed: {formatTime(savedDraft.elapsedSeconds)}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 self-end md:self-center">
+                  <button
+                    onClick={() => handleResumeDraft(savedDraft)}
+                    className="px-4 py-2.5 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer"
+                  >
+                    <PlayCircle className="w-4 h-4" />
+                    <span>Resume Interview</span>
+                  </button>
+
+                  <button
+                    onClick={handleDiscardDraft}
+                    className="p-2.5 bg-white hover:bg-red-50 text-brand-muted hover:text-red-600 rounded-xl text-xs font-bold border border-brand-slate/15 transition-all cursor-pointer"
+                    title="Discard saved draft and start fresh"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
             {/* 1. Step: Select Role Track */}
             <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm text-left">
@@ -656,35 +860,109 @@ Please provide a JSON response with:
             </div>
 
             {/* 3. Step: Experience Level & Language Options */}
-            <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm text-left flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-              <div>
-                <h4 className="font-display font-bold text-xs text-brand-charcoal">
-                  {lang === 'en' ? "Target Seniority Level" : "Experience Level"}
-                </h4>
-                <div className="flex items-center gap-1.5 mt-2">
-                  {(['Junior', 'Mid-Level', 'Senior', 'Staff'] as const).map((lvl) => (
-                    <button
-                      key={lvl}
-                      onClick={() => setDifficulty(lvl)}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                        difficulty === lvl
-                          ? 'bg-brand-charcoal text-white shadow'
-                          : 'bg-brand-sand/40 text-brand-slate hover:bg-brand-sand'
-                      }`}
-                    >
-                      {lvl}
-                    </button>
-                  ))}
+            <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm text-left space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-brand-slate/10 pb-3">
+                <div>
+                  <h4 className="font-display font-bold text-sm text-brand-charcoal flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-brand-amber" />
+                    <span>{lang === 'en' ? "Question Difficulty & Complexity" : "Interview Difficulty Level"}</span>
+                  </h4>
+                  <p className="text-xs text-brand-muted mt-0.5">
+                    {lang === 'en' 
+                      ? "Calibrates question depth, rubric rigor, follow-up edge cases, and expected mathematical detail."
+                      : "Apni tajarba ke mutabiq sawalat ki pechidgi muntakhib karein."}
+                  </p>
                 </div>
+                
+                <button
+                  onClick={() => setIsReminderModalOpen(true)}
+                  className="px-3.5 py-1.5 rounded-xl border border-brand-slate/20 bg-brand-sand/30 hover:bg-brand-sand text-brand-charcoal text-xs font-bold transition-all flex items-center gap-1.5 self-start sm:self-auto cursor-pointer shadow-2xs"
+                >
+                  <Clock className="w-3.5 h-3.5 text-brand-amber" />
+                  <span>{lang === 'en' ? "Practice Reminders" : "Yad-dihani Set Karein"}</span>
+                </button>
               </div>
 
-              <div className="flex items-center gap-3">
+              {/* Difficulty Toggle Buttons Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {[
+                  {
+                    id: 'Beginner' as InterviewDifficulty,
+                    title: 'Beginner',
+                    badge: 'Foundations',
+                    description: 'Core concepts, intuitive analogies, vocabulary & fundamental principles.',
+                    color: 'from-emerald-500/10 to-teal-500/5 border-emerald-500/30 text-emerald-950',
+                    activeRing: 'ring-2 ring-emerald-500 border-emerald-500 bg-emerald-50/60'
+                  },
+                  {
+                    id: 'Intermediate' as InterviewDifficulty,
+                    title: 'Intermediate',
+                    badge: 'Standard Tech',
+                    description: 'Architectural trade-offs, standard formulas & real-world system design.',
+                    color: 'from-amber-500/10 to-orange-500/5 border-amber-500/30 text-amber-950',
+                    activeRing: 'ring-2 ring-amber-500 border-amber-500 bg-amber-50/60'
+                  },
+                  {
+                    id: 'Advanced' as InterviewDifficulty,
+                    title: 'Advanced',
+                    badge: 'Staff / Expert',
+                    description: 'Production scaling, low-level optimization, latency & deep derivations.',
+                    color: 'from-purple-500/10 to-indigo-500/5 border-purple-500/30 text-purple-950',
+                    activeRing: 'ring-2 ring-purple-500 border-purple-500 bg-purple-50/60'
+                  },
+                ].map((tier) => {
+                  const isSelected = difficulty === tier.id || 
+                    (difficulty === 'Junior' && tier.id === 'Beginner') ||
+                    (difficulty === 'Mid-Level' && tier.id === 'Intermediate') ||
+                    (difficulty === 'Senior' && tier.id === 'Advanced') ||
+                    (difficulty === 'Staff' && tier.id === 'Advanced');
+
+                  return (
+                    <button
+                      key={tier.id}
+                      onClick={() => setDifficulty(tier.id)}
+                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer relative flex flex-col justify-between gap-2 ${
+                        isSelected
+                          ? tier.activeRing
+                          : 'bg-white border-brand-slate/15 hover:bg-brand-sand/30'
+                      }`}
+                    >
+                      <div>
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="font-display font-bold text-xs text-brand-charcoal">
+                            {tier.title}
+                          </span>
+                          <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-md bg-white/80 border border-brand-slate/10 text-brand-slate">
+                            {tier.badge}
+                          </span>
+                        </div>
+                        <p className="text-[10.5px] text-brand-muted leading-relaxed mt-1.5">
+                          {tier.description}
+                        </p>
+                      </div>
+
+                      {isSelected && (
+                        <div className="flex items-center gap-1 text-[10px] font-mono font-bold text-brand-charcoal pt-1 border-t border-brand-slate/10">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span>Active Complexity</span>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Language Mode Toggle */}
+              <div className="pt-2 border-t border-brand-slate/10 flex items-center justify-between">
+                <span className="text-xs text-brand-muted">
+                  Language & Narration Accent:
+                </span>
                 <button
                   onClick={() => setIsUrduMode(!isUrduMode)}
-                  className={`px-3 py-2 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                  className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
                     isUrduMode 
-                      ? 'bg-brand-amber/15 border-brand-amber text-brand-amber-dark' 
-                      : 'bg-brand-sand/30 border-brand-slate/15 text-brand-slate'
+                      ? 'bg-brand-amber/15 border-brand-amber text-brand-amber-dark shadow-2xs' 
+                      : 'bg-brand-sand/30 border-brand-slate/15 text-brand-slate hover:bg-brand-sand'
                   }`}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
@@ -730,8 +1008,17 @@ Please provide a JSON response with:
                 </div>
               </div>
 
-              {/* Timers & Pause Controls */}
-              <div className="flex items-center gap-3">
+              {/* Timers, Auto-Save Status & Pause Controls */}
+              <div className="flex items-center gap-2.5">
+                {/* Real-time Auto-Save Live Badge */}
+                <div 
+                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-[10px] font-mono font-medium shadow-2xs"
+                  title="Your session is auto-saved in real-time. You can safely close or refresh and resume anytime."
+                >
+                  <Cloud className={`w-3 h-3 text-emerald-600 ${isAutoSaving ? 'animate-bounce' : ''}`} />
+                  <span>{isAutoSaving ? 'Saving...' : lastAutoSavedTime ? `Saved ${lastAutoSavedTime}` : 'Auto-saved'}</span>
+                </div>
+
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-sand/50 rounded-xl font-mono text-xs text-brand-charcoal font-bold">
                   <Clock className="w-3.5 h-3.5 text-brand-amber" />
                   <span>{formatTime(questionSeconds)}</span>
@@ -1224,6 +1511,12 @@ Please provide a JSON response with:
         )}
 
       </div>
+
+      {/* Practice Reminders Modal */}
+      <PracticeReminderModal 
+        isOpen={isReminderModalOpen}
+        onClose={() => setIsReminderModalOpen(false)}
+      />
     </section>
   );
 }

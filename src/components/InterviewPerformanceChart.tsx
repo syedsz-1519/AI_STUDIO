@@ -9,6 +9,8 @@ import {
   Radar,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -31,7 +33,8 @@ import {
   CheckCircle2, 
   ListOrdered,
   Calendar,
-  Layers
+  Layers,
+  LineChart as LineChartIcon
 } from 'lucide-react';
 import { MockInterviewRecord } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
@@ -54,7 +57,7 @@ export default function InterviewPerformanceChart({
   compact = false
 }: InterviewPerformanceChartProps) {
   const { lang } = useLanguage();
-  const [chartType, setChartType] = useState<'radar' | 'bar' | 'progression' | 'questions'>('radar');
+  const [chartType, setChartType] = useState<'line' | 'radar' | 'bar' | 'progression' | 'questions'>('line');
 
   if (!records || records.length === 0) {
     return (
@@ -154,20 +157,68 @@ export default function InterviewPerformanceChart({
     duration: att.durationSeconds,
   }));
 
-  // 4. Progression Data across recent interview sessions
+  // 4. Progression Data across recent interview sessions (chronological order)
   const progressionData = [...records].reverse().map((rec, idx) => ({
     session: `Session ${idx + 1}`,
+    shortDate: rec.dateStr ? rec.dateStr.split(',')[0] : `S${idx + 1}`,
     role: rec.roleTrack,
-    overall: rec.overallScore,
-    technical: rec.technicalScore,
-    communication: rec.communicationScore,
-    confidence: rec.confidenceScore,
+    overall: rec.overallScore || 0,
+    technical: rec.technicalScore || 0,
+    communication: rec.communicationScore || 0,
+    confidence: rec.confidenceScore || 0,
+    eyeContact: rec.eyeContactScore || 0,
+    decision: rec.hiringDecision,
   }));
 
   // Determine highest & lowest scoring competencies for AI coaching pill
   const sortedMetrics = [...radarData].sort((a, b) => b.score - a.score);
   const highestMetric = sortedMetrics[0];
   const lowestMetric = sortedMetrics[sortedMetrics.length - 1];
+
+  // Custom Line Tooltip for Progress Tracking
+  const CustomLineTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+      return (
+        <div className="bg-brand-charcoal/95 backdrop-blur-md text-white text-xs p-3.5 rounded-2xl border border-white/15 shadow-2xl space-y-2 min-w-[200px]">
+          <div className="flex items-center justify-between border-b border-white/15 pb-1.5">
+            <span className="font-display font-black text-brand-amber">{data.session}</span>
+            <span className="text-[10px] font-mono text-white/70">{data.shortDate}</span>
+          </div>
+          <div className="text-[11px] text-white/90 font-medium truncate">
+            {data.role}
+          </div>
+          <div className="space-y-1 text-[11px] font-mono">
+            <div className="flex items-center justify-between text-amber-400">
+              <span>Overall Score:</span>
+              <span className="font-bold">{data.overall}%</span>
+            </div>
+            <div className="flex items-center justify-between text-blue-400">
+              <span>Technical Accuracy:</span>
+              <span className="font-bold">{data.technical}%</span>
+            </div>
+            <div className="flex items-center justify-between text-emerald-400">
+              <span>Communication Clarity:</span>
+              <span className="font-bold">{data.communication}%</span>
+            </div>
+            <div className="flex items-center justify-between text-purple-400">
+              <span>Eye Contact & Poise:</span>
+              <span className="font-bold">{data.confidence || data.eyeContact}%</span>
+            </div>
+          </div>
+          <div className="pt-1.5 border-t border-white/10 flex items-center justify-between text-[10px]">
+            <span className="text-white/60">Hiring Bar: 85%</span>
+            <span className={`px-1.5 py-0.5 rounded font-bold ${
+              data.overall >= 85 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+            }`}>
+              {data.decision || (data.overall >= 85 ? 'Target Met' : 'In Progress')}
+            </span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
 
   // Custom Radar Tooltip
   const CustomRadarTooltip = ({ active, payload }: any) => {
@@ -223,19 +274,24 @@ export default function InterviewPerformanceChart({
 
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 15 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className={`bg-white rounded-3xl p-5 sm:p-6 border border-brand-slate/15 shadow-sm space-y-5 ${compact ? 'p-4' : ''}`}
+      initial={{ opacity: 0, y: 20, scale: 0.99 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      whileHover={{ y: -2, boxShadow: "0 12px 28px -8px rgba(0, 0, 0, 0.08)" }}
+      transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
+      className={`bg-white rounded-3xl p-5 sm:p-6 border border-brand-slate/15 shadow-sm space-y-5 transition-shadow ${compact ? 'p-4' : ''}`}
     >
       
       {/* Header & View Switchers */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-brand-slate/10 pb-4">
         <div>
           <div className="flex items-center gap-2">
-            <div className="p-1.5 rounded-xl bg-brand-amber/15 text-brand-amber-dark">
+            <motion.div 
+              whileHover={{ rotate: 15, scale: 1.1 }}
+              transition={{ type: 'spring', stiffness: 300 }}
+              className="p-1.5 rounded-xl bg-brand-amber/15 text-brand-amber-dark"
+            >
               <Target className="w-4 h-4" />
-            </div>
+            </motion.div>
             <h3 className="font-display text-base font-bold text-brand-charcoal">
               {title || (lang === 'en' ? "Performance Metrics & Competency Radar" : "Performance Analytics")}
             </h3>
@@ -247,69 +303,95 @@ export default function InterviewPerformanceChart({
           </p>
         </div>
 
-        {/* Chart View Mode Tabs with subtle motion button hover states */}
-        <div className="flex items-center gap-1 bg-brand-sand/40 p-1 rounded-xl border border-brand-slate/10 self-start sm:self-auto">
+        {/* Chart View Mode Tabs with smooth motion layout transitions */}
+        <div className="flex items-center gap-1 bg-brand-sand/40 p-1 rounded-xl border border-brand-slate/10 self-start sm:self-auto relative overflow-x-auto max-w-full">
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => setChartType('line')}
+            className={`relative px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer z-10 shrink-0 ${
+              chartType === 'line'
+                ? 'text-brand-charcoal font-extrabold'
+                : 'text-brand-slate hover:text-brand-charcoal'
+            }`}
+            title="Progress Trend Over Time Line Chart"
+          >
+            {chartType === 'line' && (
+              <motion.div
+                layoutId="activeChartTab"
+                className="absolute inset-0 bg-white rounded-lg shadow-2xs -z-10"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <TrendingUp className="w-3.5 h-3.5 text-brand-amber" />
+            <span>Progress Line</span>
+          </motion.button>
+
+          <motion.button
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => setChartType('radar')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`relative px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer z-10 shrink-0 ${
               chartType === 'radar'
-                ? 'bg-white text-brand-charcoal shadow-2xs font-extrabold'
+                ? 'text-brand-charcoal font-extrabold'
                 : 'text-brand-slate hover:text-brand-charcoal'
             }`}
             title="Competency Radar Spider Chart"
           >
-            <Activity className="w-3.5 h-3.5 text-brand-amber" />
-            <span className="hidden sm:inline">Radar</span>
+            {chartType === 'radar' && (
+              <motion.div
+                layoutId="activeChartTab"
+                className="absolute inset-0 bg-white rounded-lg shadow-2xs -z-10"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <Activity className="w-3.5 h-3.5 text-purple-600" />
+            <span>Radar</span>
           </motion.button>
 
           <motion.button
-            whileHover={{ scale: 1.03 }}
-            whileTap={{ scale: 0.97 }}
+            whileHover={{ scale: 1.04 }}
+            whileTap={{ scale: 0.96 }}
             onClick={() => setChartType('bar')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+            className={`relative px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer z-10 shrink-0 ${
               chartType === 'bar'
-                ? 'bg-white text-brand-charcoal shadow-2xs font-extrabold'
+                ? 'text-brand-charcoal font-extrabold'
                 : 'text-brand-slate hover:text-brand-charcoal'
             }`}
             title="Pillar Breakdown Bars"
           >
-            <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
-            <span className="hidden sm:inline">Metrics</span>
+            {chartType === 'bar' && (
+              <motion.div
+                layoutId="activeChartTab"
+                className="absolute inset-0 bg-white rounded-lg shadow-2xs -z-10"
+                transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+              />
+            )}
+            <BarChart3 className="w-3.5 h-3.5 text-blue-600" />
+            <span>Pillars</span>
           </motion.button>
 
           {questionBarData.length > 1 && (
             <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.04 }}
+              whileTap={{ scale: 0.96 }}
               onClick={() => setChartType('questions')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+              className={`relative px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer z-10 shrink-0 ${
                 chartType === 'questions'
-                  ? 'bg-white text-brand-charcoal shadow-2xs font-extrabold'
+                  ? 'text-brand-charcoal font-extrabold'
                   : 'text-brand-slate hover:text-brand-charcoal'
               }`}
               title="Question-by-Question Breakdown"
             >
-              <ListOrdered className="w-3.5 h-3.5 text-blue-600" />
-              <span className="hidden sm:inline">Questions</span>
-            </motion.button>
-          )}
-
-          {records.length > 1 && (
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => setChartType('progression')}
-              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                chartType === 'progression'
-                  ? 'bg-white text-brand-charcoal shadow-2xs font-extrabold'
-                  : 'text-brand-slate hover:text-brand-charcoal'
-              }`}
-              title="Progression Across Sessions"
-            >
-              <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />
-              <span className="hidden sm:inline">Trend</span>
+              {chartType === 'questions' && (
+                <motion.div
+                  layoutId="activeChartTab"
+                  className="absolute inset-0 bg-white rounded-lg shadow-2xs -z-10"
+                  transition={{ type: 'spring', stiffness: 500, damping: 35 }}
+                />
+              )}
+              <ListOrdered className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Questions</span>
             </motion.button>
           )}
         </div>
@@ -405,7 +487,87 @@ export default function InterviewPerformanceChart({
             transition={{ duration: 0.25, ease: 'easeOut' }}
             className="w-full h-full"
           >
-            {/* 1. RADAR CHART VIEW */}
+            {/* 1. PROGRESSION LINE CHART VIEW */}
+            {chartType === 'line' && (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={progressionData}
+                  margin={{ top: 15, right: 25, left: -10, bottom: 25 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis 
+                    dataKey="session" 
+                    tick={{ fill: '#475569', fontSize: 11, fontWeight: 600 }}
+                  />
+                  <YAxis 
+                    domain={[40, 100]} 
+                    tick={{ fill: '#94a3b8', fontSize: 10 }}
+                    unit="%"
+                  />
+                  <Tooltip content={<CustomLineTooltip />} />
+                  <Legend 
+                    verticalAlign="bottom" 
+                    height={36} 
+                    iconType="circle"
+                    wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} 
+                  />
+                  <ReferenceLine 
+                    y={85} 
+                    stroke="#d97706" 
+                    strokeDasharray="4 4" 
+                    label={{ value: 'Hire Target (85%)', position: 'top', fill: '#d97706', fontSize: 10, fontWeight: 'bold' }} 
+                  />
+                  {/* Overall Composite Score */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="overall" 
+                    name="Overall Score" 
+                    stroke="#f59e0b" 
+                    strokeWidth={3} 
+                    dot={{ r: 5, fill: '#f59e0b', strokeWidth: 2, stroke: '#fff' }}
+                    activeDot={{ r: 8, stroke: '#d97706', strokeWidth: 3 }}
+                    isAnimationActive={true}
+                    animationDuration={900}
+                  />
+                  {/* Technical Accuracy */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="technical" 
+                    name="Technical" 
+                    stroke="#3b82f6" 
+                    strokeWidth={2} 
+                    strokeDasharray="2 2"
+                    dot={{ r: 4, fill: '#3b82f6' }}
+                    isAnimationActive={true}
+                    animationDuration={1100}
+                  />
+                  {/* Communication */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="communication" 
+                    name="Communication" 
+                    stroke="#10b981" 
+                    strokeWidth={2} 
+                    dot={{ r: 4, fill: '#10b981' }}
+                    isAnimationActive={true}
+                    animationDuration={1300}
+                  />
+                  {/* Confidence / Eye Gaze */}
+                  <Line 
+                    type="monotone" 
+                    dataKey="confidence" 
+                    name="Confidence" 
+                    stroke="#8b5cf6" 
+                    strokeWidth={2} 
+                    dot={{ r: 4, fill: '#8b5cf6' }}
+                    isAnimationActive={true}
+                    animationDuration={1500}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+
+            {/* 2. RADAR CHART VIEW */}
             {chartType === 'radar' && (
               <ResponsiveContainer width="100%" height="100%">
                 <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
@@ -428,6 +590,9 @@ export default function InterviewPerformanceChart({
                     strokeDasharray="4 4"
                     fill="#94a3b8"
                     fillOpacity={0.06}
+                    isAnimationActive={true}
+                    animationDuration={800}
+                    animationEasing="ease-out"
                   />
                   
                   {/* Candidate Performance Polygon */}
@@ -438,6 +603,9 @@ export default function InterviewPerformanceChart({
                     strokeWidth={2.5}
                     fill="#f59e0b"
                     fillOpacity={0.35}
+                    isAnimationActive={true}
+                    animationDuration={1000}
+                    animationEasing="ease-out"
                   />
                   
                   <Tooltip content={<CustomRadarTooltip />} />
@@ -476,7 +644,15 @@ export default function InterviewPerformanceChart({
                     strokeDasharray="3 3" 
                     label={{ value: 'Hire Target (85%)', position: 'top', fill: '#d97706', fontSize: 10 }} 
                   />
-                  <Bar dataKey="score" name="Score" radius={[8, 8, 0, 0]} maxBarSize={48}>
+                  <Bar 
+                    dataKey="score" 
+                    name="Score" 
+                    radius={[8, 8, 0, 0]} 
+                    maxBarSize={48}
+                    isAnimationActive={true}
+                    animationDuration={850}
+                    animationEasing="ease-out"
+                  >
                     {barMetricData.map((entry, index) => (
                       <Cell 
                         key={`cell-${index}`} 
@@ -515,7 +691,16 @@ export default function InterviewPerformanceChart({
                     strokeDasharray="3 3" 
                     label={{ value: 'Target Bar (85%)', position: 'top', fill: '#059669', fontSize: 10 }} 
                   />
-                  <Bar dataKey="score" name="Question Score" radius={[8, 8, 0, 0]} maxBarSize={56} fill="#6366f1">
+                  <Bar 
+                    dataKey="score" 
+                    name="Question Score" 
+                    radius={[8, 8, 0, 0]} 
+                    maxBarSize={56} 
+                    fill="#6366f1"
+                    isAnimationActive={true}
+                    animationDuration={850}
+                    animationEasing="ease-out"
+                  >
                     {questionBarData.map((entry, index) => (
                       <Cell 
                         key={`q-cell-${index}`} 
@@ -549,9 +734,9 @@ export default function InterviewPerformanceChart({
                   />
                   <Tooltip content={<CustomBarTooltip />} />
                   <Legend verticalAlign="bottom" height={36} wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
-                  <Bar dataKey="overall" name="Overall" fill="#f59e0b" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="technical" name="Technical" fill="#3b82f6" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="communication" name="Communication" fill="#10b981" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="overall" name="Overall" fill="#f59e0b" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={850} animationEasing="ease-out" />
+                  <Bar dataKey="technical" name="Technical" fill="#3b82f6" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={850} animationEasing="ease-out" />
+                  <Bar dataKey="communication" name="Communication" fill="#10b981" radius={[6, 6, 0, 0]} isAnimationActive={true} animationDuration={850} animationEasing="ease-out" />
                 </BarChart>
               </ResponsiveContainer>
             )}

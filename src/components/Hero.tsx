@@ -58,7 +58,7 @@ export default function Hero() {
       onMouseMove={handleMouseMove}
       className="relative min-h-[95vh] flex flex-col justify-center items-center px-6 overflow-hidden pt-20 pb-16 select-none"
     >
-      {/* Progressive AI Background Image with Soft Mask & Parallax Motion (Increased Transparency) */}
+      {/* Progressive AI Background Image with High Clarity & Parallax Motion */}
       <motion.div 
         style={{ scale: bgImageScale, x: bgImageTranslate }}
         className="absolute inset-0 pointer-events-none z-0 overflow-hidden"
@@ -67,11 +67,10 @@ export default function Hero() {
           src={aiHeroBg}
           alt="Abstract Neural Network AI Visual Architecture"
           referrerPolicy="no-referrer"
-          className="w-full h-full object-cover object-center opacity-[0.08] mix-blend-multiply filter contrast-110 saturate-100"
+          className="w-full h-full object-cover object-center opacity-90 sm:opacity-95 filter contrast-105 saturate-110"
         />
-        {/* Soft Radial Vignette Mask so text has pristine contrast */}
-        <div className="absolute inset-0 bg-radial-[circle_at_center_rgba(245,242,237,0.85)_0%,var(--brand-cream)_90%] pointer-events-none" />
-        <div className="absolute inset-0 bg-gradient-to-b from-brand-cream/90 via-transparent to-brand-cream pointer-events-none" />
+        {/* Subtle bottom fade so background transitions smoothly into the next content section */}
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-brand-cream via-brand-cream/60 to-transparent pointer-events-none" />
       </motion.div>
 
       {/* Dynamic Background Graphic Elements (Softened & Transparent) */}

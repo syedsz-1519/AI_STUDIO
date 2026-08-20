@@ -30,14 +30,17 @@ import {
   Activity,
   BarChart3,
   Download,
-  Printer
+  Printer,
+  PlayCircle,
+  Calendar
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
-import { MockInterviewRecord } from '../types';
+import { MockInterviewRecord, MockInterviewDraft } from '../types';
 import { UserProfile, setupAuthListener, logoutUserManually } from '../lib/firebase';
 import { audioEngine } from '../lib/audioEngine';
 import InterviewPerformanceChart from './InterviewPerformanceChart';
 import InterviewReportModal from './InterviewReportModal';
+import PracticeReminderModal from './PracticeReminderModal';
 
 interface StudentDashboardProps {
   onStartInterview: () => void;
@@ -67,12 +70,38 @@ export default function StudentDashboard({
   const [selectedChartSessionId, setSelectedChartSessionId] = useState<string | null>(null);
   const [masteredConcepts, setMasteredConcepts] = useState<string[]>(['c1', 'c2', 'c6']);
   const [expandedInterviewId, setExpandedInterviewId] = useState<string | null>(null);
+  const [activeDraft, setActiveDraft] = useState<MockInterviewDraft | null>(null);
+  const [selectedReportRecord, setSelectedReportRecord] = useState<MockInterviewRecord | null>(null);
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
 
   // Sync user and mock interview records
   useEffect(() => {
     const unsub = setupAuthListener((user) => {
       setCurrentUser(user);
     });
+
+    // Check for auto-saved interview draft
+    const checkDraft = () => {
+      try {
+        const savedDraftJson = localStorage.getItem('clay_mock_interview_draft');
+        if (savedDraftJson) {
+          const parsed: MockInterviewDraft = JSON.parse(savedDraftJson);
+          if (parsed && parsed.questions && parsed.questions.length > 0) {
+            setActiveDraft(parsed);
+          } else {
+            setActiveDraft(null);
+          }
+        } else {
+          setActiveDraft(null);
+        }
+      } catch (e) {
+        console.warn('Failed to load draft in dashboard:', e);
+      }
+    };
+
+    checkDraft();
+    window.addEventListener('clay_interview_draft_updated', checkDraft);
 
     // Load interviews from local storage
     const loadInterviews = () => {
@@ -143,6 +172,7 @@ export default function StudentDashboard({
     return () => {
       unsub();
       window.removeEventListener('clay_interview_saved', loadInterviews);
+      window.removeEventListener('clay_interview_draft_updated', checkDraft);
     };
   }, []);
 
@@ -222,30 +252,93 @@ export default function StudentDashboard({
 
             {/* Quick Actions & Auth */}
             <div className="flex flex-wrap items-center gap-2.5">
-              <button
+              <motion.button
+                whileHover={{ scale: 1.03, y: -1 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => setIsReminderModalOpen(true)}
+                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold border border-white/15 transition-all flex items-center gap-2 cursor-pointer"
+                title="Configure daily/weekly mock interview practice reminders"
+              >
+                <Clock className="w-4 h-4 text-brand-amber" />
+                <span>{lang === 'en' ? "Practice Reminders" : "Reminders"}</span>
+              </motion.button>
+
+              <motion.button
+                whileHover={{ scale: 1.03, y: -1 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={onStartInterview}
                 className="px-5 py-2.5 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-2xl text-xs font-bold shadow-lg hover:shadow-xl transition-all flex items-center gap-2 cursor-pointer"
               >
                 <Video className="w-4 h-4" />
                 <span>{lang === 'en' ? "Launch AI Mock Interview" : "Mock Interview Shuru Karein"}</span>
-              </button>
+              </motion.button>
 
-              <button
+              <motion.button
+                whileHover={{ scale: 1.03, y: -1 }}
+                whileTap={{ scale: 0.97 }}
                 onClick={onOpenAuth}
                 className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-2xl text-xs font-bold border border-white/15 transition-all flex items-center gap-2 cursor-pointer"
               >
                 <Settings className="w-4 h-4 text-brand-amber" />
                 <span>{currentUser ? (lang === 'en' ? "Profile & Settings" : "Settings") : (lang === 'en' ? "Login / Sign Up" : "Login Karein")}</span>
-              </button>
+              </motion.button>
             </div>
           </div>
         </div>
 
         {/* ========================================================================= */}
-        {/* STATS OVERVIEW CARDS */}
+        {/* ACTIVE DRAFT RESUME ALERT BANNER (If Mock Interview in progress) */}
+        {/* ========================================================================= */}
+        {activeDraft && (
+          <motion.div
+            initial={{ opacity: 0, y: -12, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            whileHover={{ y: -2, boxShadow: "0 10px 25px -5px rgba(217, 119, 6, 0.15)" }}
+            transition={{ duration: 0.3 }}
+            className="bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-orange-500/10 border-2 border-brand-amber/40 rounded-3xl p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
+          >
+            <div className="flex items-center gap-3.5">
+              <div className="p-2.5 bg-brand-amber text-white rounded-2xl shadow-sm shrink-0">
+                <Clock className="w-5 h-5 animate-pulse" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-brand-amber/20 text-brand-amber-dark text-[9px] font-mono font-bold uppercase">
+                    Unfinished Interview Saved
+                  </span>
+                  <span className="text-[10px] font-mono text-brand-muted">
+                    Question {activeDraft.currentQuestionIndex + 1} of {activeDraft.questions.length}
+                  </span>
+                </div>
+                <h4 className="font-display text-sm font-bold text-brand-charcoal mt-0.5">
+                  Resume your interrupted mock interview session
+                </h4>
+              </div>
+            </div>
+
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={onStartInterview}
+              className="px-4 py-2 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-xl text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center gap-2 cursor-pointer shrink-0 self-end sm:self-auto"
+            >
+              <Play className="w-3.5 h-3.5 fill-current" />
+              <span>Resume Now</span>
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* STATS OVERVIEW CARDS WITH FRAMER MOTION HOVER */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -4, scale: 1.02, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)" }}
+            transition={{ duration: 0.3 }}
+            className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs transition-shadow cursor-default"
+          >
             <div className="flex items-center gap-1.5 text-brand-amber mb-1">
               <TrendingUp className="w-4 h-4" />
               <span className="text-[9px] font-mono font-bold uppercase">Avg Interview Score</span>
@@ -254,9 +347,15 @@ export default function StudentDashboard({
               {averageInterviewScore ? `${averageInterviewScore}%` : 'N/A'}
             </div>
             <span className="text-[9px] text-brand-muted mt-0.5 block">Across all mock rounds</span>
-          </div>
+          </motion.div>
 
-          <div className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 }}
+            whileHover={{ y: -4, scale: 1.02, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)" }}
+            className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs transition-shadow cursor-default"
+          >
             <div className="flex items-center gap-1.5 text-emerald-600 mb-1">
               <Eye className="w-4 h-4" />
               <span className="text-[9px] font-mono font-bold uppercase">Avg Eye Contact</span>
@@ -265,9 +364,15 @@ export default function StudentDashboard({
               {averageEyeContact ? `${averageEyeContact}%` : '92%'}
             </div>
             <span className="text-[9px] text-brand-muted mt-0.5 block">Camera tracker gaze</span>
-          </div>
+          </motion.div>
 
-          <div className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.1 }}
+            whileHover={{ y: -4, scale: 1.02, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)" }}
+            className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs transition-shadow cursor-default"
+          >
             <div className="flex items-center gap-1.5 text-purple-600 mb-1">
               <Brain className="w-4 h-4" />
               <span className="text-[9px] font-mono font-bold uppercase">Curriculum Mastery</span>
@@ -276,9 +381,15 @@ export default function StudentDashboard({
               {masteryPercent}%
             </div>
             <span className="text-[9px] text-brand-muted mt-0.5 block">{masteredConcepts.length} of {AI_CURRICULUM_CONCEPTS.length} concepts</span>
-          </div>
+          </motion.div>
 
-          <div className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs">
+          <motion.div 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: 0.15 }}
+            whileHover={{ y: -4, scale: 1.02, boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08)" }}
+            className="bg-white rounded-2xl p-4 border border-brand-slate/15 shadow-2xs transition-shadow cursor-default"
+          >
             <div className="flex items-center gap-1.5 text-blue-600 mb-1">
               <Clock className="w-4 h-4" />
               <span className="text-[9px] font-mono font-bold uppercase">Study Time</span>
@@ -287,7 +398,7 @@ export default function StudentDashboard({
               4.2 Hrs
             </div>
             <span className="text-[9px] text-brand-muted mt-0.5 block">Total active practice</span>
-          </div>
+          </motion.div>
         </div>
 
         {/* ========================================================================= */}
@@ -350,9 +461,10 @@ export default function StudentDashboard({
                   {interviewHistory.map((rec) => {
                     const isExpanded = expandedInterviewId === rec.id;
                     return (
-                      <div
+                      <motion.div
                         key={rec.id}
-                        className="rounded-2xl border border-brand-slate/15 bg-white hover:border-brand-slate/30 transition-all overflow-hidden shadow-2xs"
+                        whileHover={{ borderColor: 'rgba(217, 119, 6, 0.4)', boxShadow: '0 4px 14px rgba(0, 0, 0, 0.04)' }}
+                        className="rounded-2xl border border-brand-slate/15 bg-white transition-all overflow-hidden shadow-2xs"
                       >
                         {/* Summary Header Row */}
                         <div
@@ -379,7 +491,7 @@ export default function StudentDashboard({
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2 sm:gap-4">
                             <div className="text-right">
                               <span className="text-[9px] font-mono uppercase text-brand-muted block font-bold">Score</span>
                               <span className="font-display font-black text-base text-brand-charcoal">
@@ -393,6 +505,23 @@ export default function StudentDashboard({
                                 {rec.eyeContactScore}%
                               </span>
                             </div>
+
+                            {/* Replay & Scorecard Trigger Button */}
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedReportRecord(rec);
+                                setIsReportModalOpen(true);
+                                audioEngine.playLoFiChord();
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-brand-charcoal text-white hover:bg-slate-800 text-[10.5px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Replay performance summary and download scorecard"
+                            >
+                              <PlayCircle className="w-3.5 h-3.5 text-brand-amber" />
+                              <span className="hidden sm:inline">Replay</span>
+                            </motion.button>
 
                             <div className="p-1 rounded-lg bg-brand-sand/40 text-brand-slate">
                               {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
@@ -416,20 +545,64 @@ export default function StudentDashboard({
                                 <p>{rec.summaryFeedback}</p>
                               </div>
 
-                              {/* Quick session focus button */}
-                              <div className="flex items-center justify-between pt-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedChartSessionId(rec.id);
-                                    audioEngine.playLoFiChord();
-                                    window.scrollTo({ top: 180, behavior: 'smooth' });
-                                  }}
-                                  className="px-3 py-1.5 rounded-xl bg-brand-amber/15 text-brand-amber-dark hover:bg-brand-amber/25 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                                >
-                                  <Activity className="w-3.5 h-3.5" />
-                                  <span>Inspect Metrics on Radar Chart</span>
-                                </button>
+                              {/* Question Attempts Count Preview */}
+                              {rec.attempts && rec.attempts.length > 0 && (
+                                <div className="space-y-1.5">
+                                  <span className="text-[10px] font-mono font-bold text-brand-slate uppercase block">
+                                    Question Breakdown ({rec.attempts.length} Questions):
+                                  </span>
+                                  <div className="grid grid-cols-1 gap-1.5">
+                                    {rec.attempts.map((att, attIdx) => (
+                                      <div 
+                                        key={attIdx} 
+                                        className="p-2 rounded-xl bg-white border border-brand-slate/10 text-xs flex items-center justify-between gap-2"
+                                      >
+                                        <div className="truncate flex-1">
+                                          <span className="font-bold text-brand-amber mr-1.5">Q{attIdx + 1}:</span>
+                                          <span className="text-brand-charcoal text-[11px] font-medium">{att.questionText}</span>
+                                        </div>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold shrink-0 ${
+                                          att.score >= 85 ? 'bg-emerald-100 text-emerald-800' :
+                                          att.score >= 75 ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                                        }`}>
+                                          {att.score}%
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Quick session focus and replay actions */}
+                              <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-brand-slate/10">
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedReportRecord(rec);
+                                      setIsReportModalOpen(true);
+                                      audioEngine.playLoFiChord();
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl bg-brand-charcoal text-white hover:bg-slate-800 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                  >
+                                    <FileText className="w-3.5 h-3.5 text-brand-amber" />
+                                    <span>Replay Full AI Scorecard & PDF</span>
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedChartSessionId(rec.id);
+                                      audioEngine.playLoFiChord();
+                                      window.scrollTo({ top: 180, behavior: 'smooth' });
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl bg-brand-amber/15 text-brand-amber-dark hover:bg-brand-amber/25 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                                  >
+                                    <Activity className="w-3.5 h-3.5" />
+                                    <span>Inspect on Charts</span>
+                                  </button>
+                                </div>
+
                                 <span className="text-[10px] font-mono text-brand-muted">
                                   Duration: {Math.round(rec.durationSeconds / 60)} mins
                                 </span>
@@ -437,7 +610,7 @@ export default function StudentDashboard({
                             </motion.div>
                           )}
                         </AnimatePresence>
-                      </div>
+                      </motion.div>
                     );
                   })}
                 </div>
@@ -473,12 +646,14 @@ export default function StudentDashboard({
                 {AI_CURRICULUM_CONCEPTS.map((concept) => {
                   const isMastered = masteredConcepts.includes(concept.id);
                   return (
-                    <button
+                    <motion.button
                       key={concept.id}
+                      whileHover={{ scale: 1.015, x: 2 }}
+                      whileTap={{ scale: 0.985 }}
                       onClick={() => toggleConceptMastery(concept.id)}
                       className={`w-full p-2.5 rounded-xl border text-left flex items-center justify-between gap-2 transition-all cursor-pointer ${
                         isMastered
-                          ? 'bg-emerald-500/[0.04] border-emerald-500/30 text-emerald-950'
+                          ? 'bg-emerald-500/[0.04] border-emerald-500/30 text-emerald-950 shadow-2xs'
                           : 'bg-brand-sand/20 border-brand-slate/10 text-brand-slate hover:bg-brand-sand/40'
                       }`}
                     >
@@ -495,7 +670,7 @@ export default function StudentDashboard({
                       <span className="text-[9px] font-mono text-brand-muted shrink-0">
                         {concept.level}
                       </span>
-                    </button>
+                    </motion.button>
                   );
                 })}
               </div>
@@ -541,6 +716,17 @@ export default function StudentDashboard({
                   </span>
                   <ChevronRight className="w-3.5 h-3.5 text-brand-muted" />
                 </button>
+
+                <button
+                  onClick={() => setIsReminderModalOpen(true)}
+                  className="p-2.5 rounded-xl bg-brand-amber/10 hover:bg-brand-amber/20 text-brand-charcoal font-bold flex items-center justify-between transition-all cursor-pointer border border-brand-amber/20"
+                >
+                  <span className="flex items-center gap-2">
+                    <Clock className="w-3.5 h-3.5 text-brand-amber" />
+                    Schedule Practice Reminders
+                  </span>
+                  <ChevronRight className="w-3.5 h-3.5 text-brand-amber" />
+                </button>
               </div>
             </div>
 
@@ -548,6 +734,24 @@ export default function StudentDashboard({
         </div>
 
       </div>
+
+      {/* Comprehensive Interview Performance & Scorecard Modal */}
+      <InterviewReportModal
+        isOpen={isReportModalOpen}
+        onClose={() => {
+          setIsReportModalOpen(false);
+          setSelectedReportRecord(null);
+        }}
+        record={selectedReportRecord}
+        studentName={currentUser?.displayName || 'AI Explorer Student'}
+        studentEmail={currentUser?.email || 'scholar@clay.edu'}
+      />
+
+      {/* Practice Reminders Scheduling Modal */}
+      <PracticeReminderModal
+        isOpen={isReminderModalOpen}
+        onClose={() => setIsReminderModalOpen(false)}
+      />
     </section>
   );
 }

@@ -20,6 +20,7 @@ import QuickTakeaway from './components/QuickTakeaway';
 import AIMockInterviewer from './components/AIMockInterviewer';
 import StudentDashboard from './components/StudentDashboard';
 import AuthModal from './components/AuthModal';
+import DidYouKnowNotification from './components/DidYouKnowNotification';
 import { Compass, Sparkles, BookOpen, Video, TrendingUp, ArrowLeft } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ClayLogo from './components/ClayLogo';
@@ -88,8 +89,11 @@ export default function App() {
       {/* Floating Audio Guide for Clay (Only shown in guide view) */}
       {currentView === 'guide' && <AudioNarrationHub />}
 
-      {/* Floating Language Change Bubble (Bottom Left) */}
+      {/* Floating Language Change Bubble (Bottom Right) */}
       <FloatingLanguageBubble />
+
+      {/* Contextual 'Did You Know' Floating AI Trivia Notification (Bottom Left) */}
+      <DidYouKnowNotification currentView={currentView} />
 
       {/* Main Content Area: Switch between Guide, Mock Interviewer, and Student Dashboard */}
       {currentView === 'interview' && (
