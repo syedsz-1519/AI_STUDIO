@@ -41,6 +41,7 @@ import ClayLogo from './ClayLogo';
 import Confetti from './Confetti';
 import Leaderboard from './Leaderboard';
 import BadgeShareModal from './BadgeShareModal';
+import ReadSectionButton from './ReadSectionButton';
 
 // Browser Audio Synthesizer for Retro Game SFX
 const playTone = (frequency: number, type: OscillatorType, duration: number, volume = 0.1) => {
@@ -824,7 +825,9 @@ export default function AIArena() {
           </div>
 
           {/* Sound, Reset & Points HUD */}
-          <div className="flex items-center gap-3 self-end sm:self-auto">
+          <div className="flex items-center gap-3 self-end sm:self-auto flex-wrap">
+            <ReadSectionButton sectionId="ai-arena" variant="compact" />
+
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
               className="p-2.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-colors cursor-pointer"

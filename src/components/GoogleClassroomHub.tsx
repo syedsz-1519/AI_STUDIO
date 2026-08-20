@@ -16,6 +16,8 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
+import ReadSectionButton from './ReadSectionButton';
+import CopyCodeButton from './CopyCodeButton';
 import { 
   googleSignInForClassroom, 
   getCachedClassroomToken, 
@@ -244,11 +246,12 @@ export default function GoogleClassroomHub() {
               <GraduationCap className="w-7 h-7 text-brand-amber shrink-0" />
               {lang === 'en' ? "Google Classroom Hub" : "Google Classroom Hub"}
             </h2>
-            <p className="text-xs md:text-sm text-brand-slate leading-relaxed text-left">
+            <p className="text-xs md:text-sm text-brand-slate leading-relaxed text-left mb-3">
               {lang === 'en' 
                 ? "Connect your real-world Google Classroom account. Instantly synchronize course streams, distribute Simple AI learning assignments, and share live interactive sandboxes with your students."
                 : "Apne real-world Google Classroom account ko jorhein. Apne students ke sath fauri tor par learning materials share karein aur Simple AI ke challenges ko ba-zaria assignments bheinjein."}
             </p>
+            <ReadSectionButton sectionId="classroom-hub" variant="compact" />
           </div>
 
           <div className="flex items-center gap-2.5 shrink-0">
@@ -463,9 +466,18 @@ export default function GoogleClassroomHub() {
 
                       {/* Announcement Templates */}
                       <div className="space-y-1.5">
-                        <span className="text-[10px] text-brand-muted font-mono font-bold block">
-                          {lang === 'en' ? "Quick Templates:" : "Aasan Sabaq Templates:"}
-                        </span>
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] text-brand-muted font-mono font-bold block">
+                            {lang === 'en' ? "Quick Templates:" : "Aasan Sabaq Templates:"}
+                          </span>
+                          {announcementText.trim() && (
+                            <CopyCodeButton
+                              text={announcementText}
+                              label={lang === 'en' ? "Copy Text" : "Text Copy"}
+                              variant="compact"
+                            />
+                          )}
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {presetAnnouncements.map((preset, idx) => (
                             <button
@@ -524,12 +536,21 @@ export default function GoogleClassroomHub() {
                                 {assignment.desc}
                               </p>
                             </div>
-                            <button
-                              onClick={() => handleCreateAssignment(lang === 'en' ? assignment.titleEn : assignment.titleUr, assignment.desc)}
-                              className="w-full py-1.5 bg-white dark:bg-white/[0.03] border border-brand-slate/10 hover:border-brand-amber text-brand-charcoal font-bold text-[10px] rounded-lg cursor-pointer transition-all mt-2"
-                            >
-                              {lang === 'en' ? "Create Assignment" : "Assignment Banayein"}
-                            </button>
+                            <div className="flex items-center gap-2 mt-2">
+                              <button
+                                onClick={() => handleCreateAssignment(lang === 'en' ? assignment.titleEn : assignment.titleUr, assignment.desc)}
+                                className="flex-1 py-1.5 bg-white dark:bg-white/[0.03] border border-brand-slate/10 hover:border-brand-amber text-brand-charcoal font-bold text-[10px] rounded-lg cursor-pointer transition-all"
+                              >
+                                {lang === 'en' ? "Create Assignment" : "Assignment Banayein"}
+                              </button>
+                              <CopyCodeButton
+                                text={`${lang === 'en' ? assignment.titleEn : assignment.titleUr}\n\n${assignment.desc}`}
+                                label={lang === 'en' ? "Copy" : "Copy"}
+                                variant="compact"
+                                showIconOnly={true}
+                                title={lang === 'en' ? "Copy assignment description" : "Assignment description copy karo"}
+                              />
+                            </div>
                           </div>
                         ))}
                       </div>

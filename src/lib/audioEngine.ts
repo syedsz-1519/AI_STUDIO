@@ -409,6 +409,110 @@ class AudioEngine {
   }
 
   // --- TEXT TO SPEECH NARRATION ---
+  private activeSectionQueue: {
+    sectionId: string;
+    sentences: string[];
+    currentIndex: number;
+    langCode: 'en' | 'hyd';
+    onSentenceChange?: (index: number) => void;
+    onEnd?: () => void;
+  } | null = null;
+
+  pauseSpeaking() {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.pause();
+      if (this.onSpeakStateChange) this.onSpeakStateChange(false);
+      window.dispatchEvent(new CustomEvent('clay_narration_state_changed', {
+        detail: { status: 'paused', sectionId: this.activeSectionQueue?.sectionId }
+      }));
+    }
+  }
+
+  resumeSpeaking() {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      window.speechSynthesis.resume();
+      if (this.onSpeakStateChange) this.onSpeakStateChange(true);
+      window.dispatchEvent(new CustomEvent('clay_narration_state_changed', {
+        detail: { status: 'playing', sectionId: this.activeSectionQueue?.sectionId }
+      }));
+    }
+  }
+
+  isPaused(): boolean {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      return window.speechSynthesis.paused;
+    }
+    return false;
+  }
+
+  getCurrentSectionId(): string | null {
+    return this.activeSectionQueue?.sectionId || null;
+  }
+
+  speakSectionSentences(
+    sectionId: string,
+    sentences: string[],
+    langCode: 'en' | 'hyd' = 'en',
+    onSentenceChange?: (index: number) => void,
+    onEnd?: () => void
+  ) {
+    if (typeof window === 'undefined' || !window.speechSynthesis) return;
+
+    this.stopSpeaking();
+
+    if (!sentences || sentences.length === 0) return;
+
+    this.activeSectionQueue = {
+      sectionId,
+      sentences,
+      currentIndex: 0,
+      langCode,
+      onSentenceChange,
+      onEnd
+    };
+
+    this.playNextSentence();
+  }
+
+  private playNextSentence() {
+    if (!this.activeSectionQueue) return;
+
+    const { sectionId, sentences, currentIndex, langCode, onSentenceChange, onEnd } = this.activeSectionQueue;
+
+    if (currentIndex >= sentences.length) {
+      this.activeSectionQueue = null;
+      if (this.onSpeakStateChange) this.onSpeakStateChange(false);
+      window.dispatchEvent(new CustomEvent('clay_narration_state_changed', {
+        detail: { status: 'stopped', sectionId }
+      }));
+      if (onEnd) onEnd();
+      return;
+    }
+
+    const currentSentence = sentences[currentIndex];
+    if (onSentenceChange) onSentenceChange(currentIndex);
+
+    window.dispatchEvent(new CustomEvent('clay_narration_state_changed', {
+      detail: {
+        status: 'playing',
+        sectionId,
+        sentenceIndex: currentIndex,
+        totalSentences: sentences.length,
+        sentenceText: currentSentence
+      }
+    }));
+
+    this.speak(currentSentence, langCode, () => {
+      if (this.activeSectionQueue && this.activeSectionQueue.sectionId === sectionId) {
+        this.activeSectionQueue.currentIndex += 1;
+        // Small pleasant pause between sentences
+        setTimeout(() => {
+          this.playNextSentence();
+        }, 180);
+      }
+    });
+  }
+
   speak(text: string, langCode: 'en' | 'hyd' = 'en', onEnd?: () => void) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
@@ -491,12 +595,13 @@ class AudioEngine {
     }
 
     // Set properties for a soft, precise, and highly listenable narrator voice
+    const rateFactor = (this.userSpeechRate || 1.0);
     if (langCode === 'hyd') {
-      this.activeUtterance.pitch = 1.05; // Warm, friendly regional tone
-      this.activeUtterance.rate = 0.94;  // Slower, clear pacing for regional dialect readability
+      this.activeUtterance.pitch = this.userPitch || 1.05; // Warm, friendly regional tone
+      this.activeUtterance.rate = 0.94 * rateFactor;  // Slower, clear pacing for regional dialect readability
     } else {
-      this.activeUtterance.pitch = 1.1;  // Crisp, engaging youthful English voice
-      this.activeUtterance.rate = 0.96;  // Paced beautifully for easy listening
+      this.activeUtterance.pitch = this.userPitch || 1.1;  // Crisp, engaging youthful English voice
+      this.activeUtterance.rate = 0.96 * rateFactor;  // Paced beautifully for easy listening
     }
     this.activeUtterance.volume = Math.max(0, Math.min(1, this.userVolume / 100)); // Comfortable volume level
 
@@ -518,9 +623,13 @@ class AudioEngine {
   }
 
   stopSpeaking() {
+    this.activeSectionQueue = null;
     if (typeof window !== 'undefined' && window.speechSynthesis) {
       window.speechSynthesis.cancel();
       if (this.onSpeakStateChange) this.onSpeakStateChange(false);
+      window.dispatchEvent(new CustomEvent('clay_narration_state_changed', {
+        detail: { status: 'stopped' }
+      }));
     }
   }
 

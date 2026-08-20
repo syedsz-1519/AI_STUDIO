@@ -25,6 +25,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { roadmapSections, type Section, type Term } from '../data/roadmapTerms';
 import { audioEngine } from '../lib/audioEngine';
 import { useLanguage } from '../hooks/useLanguage';
+import ReadSectionButton from './ReadSectionButton';
+import CopyCodeButton from './CopyCodeButton';
 
 interface FlashcardItem {
   id: string;
@@ -263,11 +265,12 @@ export default function InteractiveFlashcards() {
               <h2 className="font-display text-2xl sm:text-3xl font-black text-brand-charcoal tracking-tight">
                 {lang === 'en' ? 'Interactive AI Flashcards' : 'Interactive AI Flashcards'}
               </h2>
-              <p className="text-sm text-brand-slate max-w-xl mt-1">
+              <p className="text-sm text-brand-slate max-w-xl mt-1 mb-3">
                 {lang === 'en' 
                   ? 'Flip cards to test your understanding of machine learning architectures, training pipelines, and generative concepts.'
                   : 'Card paltiye aur machine learning, deep neural networks, aur generative AI ki buniyaad ko dimaag mein pakka karein.'}
               </p>
+              <ReadSectionButton sectionId="flashcards" variant="compact" />
             </div>
           </div>
 
@@ -541,6 +544,16 @@ export default function InteractiveFlashcards() {
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {/* Copy Flashcard Button */}
+                    <CopyCodeButton
+                      text={`${currentCard.term} (${currentCard.sectionTitle})\n\nDefinition:\n${currentCard.definition}${currentCard.analogy ? `\n\nAnalogy:\n${currentCard.analogy}` : ''}`}
+                      label={lang === 'en' ? "Copy" : "Copy"}
+                      variant="dark"
+                      showIconOnly={true}
+                      title={lang === 'en' ? "Copy flashcard text" : "Flashcard text copy karo"}
+                      className="p-2! rounded-xl!"
+                    />
+
                     {/* Voice Read Button */}
                     <button
                       onClick={(e) => handleSpeak(currentCard, e)}
