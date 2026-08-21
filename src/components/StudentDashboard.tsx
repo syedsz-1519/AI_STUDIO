@@ -32,7 +32,14 @@ import {
   Download,
   Printer,
   PlayCircle,
-  Calendar
+  Calendar,
+  Wifi,
+  WifiOff,
+  FolderDown,
+  HardDrive,
+  Check,
+  RefreshCw,
+  Edit3
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MockInterviewRecord, MockInterviewDraft } from '../types';
@@ -41,6 +48,10 @@ import { audioEngine } from '../lib/audioEngine';
 import InterviewPerformanceChart from './InterviewPerformanceChart';
 import InterviewReportModal from './InterviewReportModal';
 import PracticeReminderModal from './PracticeReminderModal';
+import TakeawaysNotesExportModal from './TakeawaysNotesExportModal';
+import { streakManager, type DailyStreakState } from '../lib/streakManager';
+import { offlineLessonCache, type OfflineCacheStats } from '../lib/offlineLessonCache';
+import { getStudentKnowledgeNotes } from '../lib/notesExporter';
 
 interface StudentDashboardProps {
   onStartInterview: () => void;
@@ -74,12 +85,49 @@ export default function StudentDashboard({
   const [selectedReportRecord, setSelectedReportRecord] = useState<MockInterviewRecord | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+  const [isExportNotesModalOpen, setIsExportNotesModalOpen] = useState(false);
+
+  // Daily Streak State
+  const [streakState, setStreakState] = useState<DailyStreakState>(() => streakManager.getStreakState());
+  const [streakCelebrate, setStreakCelebrate] = useState(false);
+
+  // Offline Cache State
+  const [isOnline, setIsOnline] = useState(() => offlineLessonCache.isOnline());
+  const [cacheStats, setCacheStats] = useState<OfflineCacheStats>(() => offlineLessonCache.getStats());
+  const [isSyncingCache, setIsSyncingCache] = useState(false);
+
+  // Student Notes count
+  const [savedNotesCount, setSavedNotesCount] = useState<number>(() => {
+    return Object.keys(getStudentKnowledgeNotes()).length;
+  });
 
   // Sync user and mock interview records
   useEffect(() => {
     const unsub = setupAuthListener((user) => {
       setCurrentUser(user);
     });
+
+    const updateStreak = () => {
+      setStreakState(streakManager.getStreakState());
+    };
+
+    const updateNotes = () => {
+      setSavedNotesCount(Object.keys(getStudentKnowledgeNotes()).length);
+    };
+
+    const updateConnectivity = (e: any) => {
+      setIsOnline(e.detail?.online ?? navigator.onLine);
+    };
+
+    const updateCache = () => {
+      setCacheStats(offlineLessonCache.getStats());
+    };
+
+    window.addEventListener('clay_streak_updated' as any, updateStreak);
+    window.addEventListener('clay_lesson_completed' as any, updateStreak);
+    window.addEventListener('clay_notes_updated' as any, updateNotes);
+    window.addEventListener('clay_connectivity_change' as any, updateConnectivity);
+    window.addEventListener('clay_cache_synced' as any, updateCache);
 
     // Check for auto-saved interview draft
     const checkDraft = () => {
@@ -197,6 +245,24 @@ export default function StudentDashboard({
 
   const masteryPercent = Math.round((masteredConcepts.length / AI_CURRICULUM_CONCEPTS.length) * 100);
 
+  const handleMarkTodayComplete = () => {
+    audioEngine.playLoFiChord();
+    const updated = streakManager.recordLessonCompletion('dashboard-checkin');
+    setStreakState(updated);
+    setStreakCelebrate(true);
+    setTimeout(() => setStreakCelebrate(false), 3500);
+  };
+
+  const handleSyncCacheManually = () => {
+    setIsSyncingCache(true);
+    audioEngine.playLoFiChord();
+    setTimeout(() => {
+      const stats = offlineLessonCache.syncCache();
+      setCacheStats(stats);
+      setIsSyncingCache(false);
+    }, 600);
+  };
+
   return (
     <section className="w-full min-h-screen bg-brand-cream py-8 px-4 sm:px-6 select-none">
       <div className="max-w-6xl mx-auto space-y-6 text-left">
@@ -241,10 +307,16 @@ export default function StudentDashboard({
                 {/* Badges / Streaks */}
                 <div className="flex items-center gap-3 mt-2 text-[11px] font-mono">
                   <span className="flex items-center gap-1 text-orange-400 font-bold bg-orange-500/15 px-2.5 py-0.5 rounded-lg">
-                    <Flame className="w-3.5 h-3.5" /> 5 Day Streak
+                    <Flame className="w-3.5 h-3.5" /> {streakState.currentStreak} Day Streak {streakState.todayCompleted ? '🔥' : '⏳'}
                   </span>
                   <span className="flex items-center gap-1 text-emerald-400 font-bold bg-emerald-500/15 px-2.5 py-0.5 rounded-lg">
                     <ShieldCheck className="w-3.5 h-3.5" /> {interviewHistory.length} Interviews Attempted
+                  </span>
+                  <span className={`hidden sm:flex items-center gap-1 font-bold px-2.5 py-0.5 rounded-lg ${
+                    isOnline ? 'text-blue-300 bg-blue-500/15' : 'text-amber-300 bg-amber-500/15'
+                  }`}>
+                    {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+                    <span>{isOnline ? 'Online Sync' : 'Offline Cache Ready'}</span>
                   </span>
                 </div>
               </div>
@@ -399,6 +471,233 @@ export default function StudentDashboard({
             </div>
             <span className="text-[9px] text-brand-muted mt-0.5 block">Total active practice</span>
           </motion.div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 1. DAILY STREAK & CONSISTENCY HABIT TRACKER */}
+        {/* ========================================================================= */}
+        <div className="bg-gradient-to-br from-amber-500/10 via-white to-orange-500/10 border-2 border-brand-amber/35 rounded-3xl p-6 shadow-sm space-y-5">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            
+            {/* Streak Number & Status */}
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md relative group">
+                <Flame className="w-7 h-7 animate-bounce stroke-[2.5]" />
+                {streakState.todayCompleted && (
+                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold border-2 border-white">
+                    ✓
+                  </span>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-brand-amber/20 text-brand-amber-dark border border-brand-amber/30">
+                    Daily Consistency Tracker
+                  </span>
+                  <span className="text-xs font-mono font-bold text-brand-muted">
+                    Best: {streakState.longestStreak} Days
+                  </span>
+                </div>
+                <h2 className="font-display text-xl sm:text-2xl font-black text-brand-charcoal mt-0.5 flex items-center gap-2">
+                  <span>{streakState.currentStreak} Consecutive Days Streak</span>
+                  <span className="text-lg">{streakState.todayCompleted ? '🔥' : '⏳'}</span>
+                </h2>
+                <p className="text-xs text-brand-slate">
+                  {streakState.todayCompleted
+                    ? (lang === 'en' ? "Awesome job! Today's learning streak is secured." : "Zabardast! Aaj ka sabaq mukammal ho gaya.")
+                    : (lang === 'en' ? "Complete a lesson or knowledge check today to maintain your streak!" : "Streak bachane ke liye aaj ka sabaq mukammal karein!")}
+                </p>
+              </div>
+            </div>
+
+            {/* Action / Celebration */}
+            <div className="flex items-center gap-3">
+              {streakCelebrate ? (
+                <div className="px-4 py-2.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-md animate-pulse">
+                  <Sparkles className="w-4 h-4" />
+                  <span>Streak Recorded for Today! 🎉</span>
+                </div>
+              ) : (
+                <button
+                  onClick={handleMarkTodayComplete}
+                  className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer ${
+                    streakState.todayCompleted
+                      ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 hover:bg-emerald-500/25'
+                      : 'bg-brand-charcoal hover:bg-black text-white'
+                  }`}
+                >
+                  {streakState.todayCompleted ? (
+                    <>
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                      <span>Today's Learning Verified</span>
+                    </>
+                  ) : (
+                    <>
+                      <Flame className="w-4 h-4 text-brand-amber" />
+                      <span>Check In & Mark Today Complete</span>
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* 7-Day Weekly Streak Dots & Milestone Strip */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 pt-4 border-t border-brand-amber/15 items-center">
+            
+            {/* 7-Day Visual Dots */}
+            <div className="md:col-span-7 flex items-center justify-between gap-1.5 sm:gap-2 p-3 rounded-2xl bg-white/80 border border-brand-slate/10">
+              {streakState.weeklyActivity.map((day, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-1 text-center min-w-[36px]">
+                  <span className="text-[10px] font-mono font-bold text-brand-muted">
+                    {day.dayName}
+                  </span>
+                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                    day.completed
+                      ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-xs font-bold text-xs'
+                      : day.isToday
+                      ? 'border-2 border-dashed border-brand-amber bg-brand-amber/10 text-brand-amber text-xs'
+                      : 'bg-brand-sand/50 text-brand-slate/40 text-xs'
+                  }`}>
+                    {day.completed ? (
+                      <Check className="w-4 h-4 stroke-[3]" />
+                    ) : day.isToday ? (
+                      <span className="w-2 h-2 rounded-full bg-brand-amber animate-ping" />
+                    ) : (
+                      <span className="text-[10px] font-mono">{day.dayNumber}</span>
+                    )}
+                  </div>
+                  <span className={`text-[9px] font-mono font-semibold ${day.isToday ? 'text-brand-amber font-bold' : 'text-brand-slate/50'}`}>
+                    {day.isToday ? 'Today' : ''}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Milestone Badge & Progress */}
+            <div className="md:col-span-5 p-3 rounded-2xl bg-white/80 border border-brand-slate/10 space-y-1.5">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-bold text-brand-charcoal flex items-center gap-1.5">
+                  <span>{streakState.currentMilestone.badgeEmoji}</span>
+                  <span>{streakState.currentMilestone.title}</span>
+                </span>
+                <span className="font-mono text-[11px] font-bold text-brand-amber">
+                  Target: {streakState.currentMilestone.nextMilestoneDays} Days
+                </span>
+              </div>
+
+              <div className="w-full h-2 bg-brand-sand rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-brand-amber to-orange-500 rounded-full transition-all duration-500"
+                  style={{ width: `${streakState.currentMilestone.progressPercent}%` }}
+                />
+              </div>
+
+              <p className="text-[10px] text-brand-muted">
+                {streakState.currentMilestone.description}
+              </p>
+            </div>
+
+          </div>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* 2. OFFLINE LESSON CACHE & KNOWLEDGE NOTES EXPORT HUB */}
+        {/* ========================================================================= */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          
+          {/* Offline Cache Card */}
+          <div className="bg-white rounded-3xl p-5 border border-brand-slate/15 shadow-sm space-y-3 flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`p-2 rounded-xl ${isOnline ? 'bg-emerald-500/15 text-emerald-700' : 'bg-amber-500/15 text-amber-700'}`}>
+                    {isOnline ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm font-bold text-brand-charcoal">
+                      Offline Curriculum Cache
+                    </h3>
+                    <span className="text-[10px] font-mono text-brand-muted block">
+                      {isOnline ? 'Sync: Connected' : 'Offline Reading Active'}
+                    </span>
+                  </div>
+                </div>
+
+                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 text-[10px] font-mono font-bold">
+                  100% Cached
+                </span>
+              </div>
+
+              <p className="text-xs text-brand-slate leading-relaxed">
+                All 9 core curriculum lessons, 85+ glossary terms, and quick takeaways are stored locally in your browser so you can study without internet.
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-brand-slate/10 flex items-center justify-between">
+              <span className="text-[11px] font-mono text-brand-muted">
+                Storage: {cacheStats.estimatedSizeKB} KB • 9 Lessons
+              </span>
+
+              <button
+                onClick={handleSyncCacheManually}
+                disabled={isSyncingCache}
+                className="px-3 py-1.5 rounded-xl bg-brand-sand/60 hover:bg-brand-sand border border-brand-slate/20 text-brand-charcoal text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-brand-amber ${isSyncingCache ? 'animate-spin' : ''}`} />
+                <span>{isSyncingCache ? 'Updating Cache...' : 'Refresh Offline Data'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Knowledge Notes & Takeaways Exporter Card */}
+          <div className="bg-white rounded-3xl p-5 border border-brand-slate/15 shadow-sm space-y-3 flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-brand-amber/15 text-brand-amber">
+                    <FolderDown className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm font-bold text-brand-charcoal">
+                      Knowledge Notes & Takeaways Exporter
+                    </h3>
+                    <span className="text-[10px] font-mono text-brand-muted block">
+                      {savedNotesCount} Custom Lesson Notes Saved
+                    </span>
+                  </div>
+                </div>
+
+                <span className="px-2.5 py-0.5 rounded-full bg-brand-amber/15 border border-brand-amber/30 text-brand-amber-dark text-[10px] font-mono font-bold">
+                  PDF / TXT / MD
+                </span>
+              </div>
+
+              <p className="text-xs text-brand-slate leading-relaxed">
+                Export all lesson key points, mental models, TL;DR summaries, and your personal study notes into downloadable PDF or plain text files.
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-brand-slate/10 flex items-center justify-between gap-2">
+              <button
+                onClick={() => setIsExportNotesModalOpen(true)}
+                className="px-3 py-1.5 rounded-xl bg-brand-sand/60 hover:bg-brand-sand border border-brand-slate/20 text-brand-charcoal text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-blue-600" />
+                <span>Edit Notes</span>
+              </button>
+
+              <button
+                onClick={() => setIsExportNotesModalOpen(true)}
+                className="px-4 py-1.5 rounded-xl bg-brand-charcoal hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+              >
+                <Download className="w-3.5 h-3.5 text-brand-amber" />
+                <span>Export Study Notebook</span>
+              </button>
+            </div>
+          </div>
+
         </div>
 
         {/* ========================================================================= */}
@@ -751,6 +1050,12 @@ export default function StudentDashboard({
       <PracticeReminderModal
         isOpen={isReminderModalOpen}
         onClose={() => setIsReminderModalOpen(false)}
+      />
+
+      {/* Quick Takeaways & Personal Knowledge Notes Export Modal */}
+      <TakeawaysNotesExportModal
+        isOpen={isExportNotesModalOpen}
+        onClose={() => setIsExportNotesModalOpen(false)}
       />
     </section>
   );

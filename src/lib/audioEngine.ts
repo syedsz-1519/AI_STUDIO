@@ -413,7 +413,7 @@ class AudioEngine {
     sectionId: string;
     sentences: string[];
     currentIndex: number;
-    langCode: 'en' | 'hyd';
+    langCode: string;
     onSentenceChange?: (index: number) => void;
     onEnd?: () => void;
   } | null = null;
@@ -452,7 +452,7 @@ class AudioEngine {
   speakSectionSentences(
     sectionId: string,
     sentences: string[],
-    langCode: 'en' | 'hyd' = 'en',
+    langCode: string = 'en',
     onSentenceChange?: (index: number) => void,
     onEnd?: () => void
   ) {
@@ -513,7 +513,7 @@ class AudioEngine {
     });
   }
 
-  speak(text: string, langCode: 'en' | 'hyd' = 'en', onEnd?: () => void) {
+  speak(text: string, langCode: string = 'en', onEnd?: () => void) {
     if (typeof window === 'undefined' || !window.speechSynthesis) return;
 
     window.speechSynthesis.cancel(); // Cancel any active speech
@@ -528,7 +528,7 @@ class AudioEngine {
     
     // Choose voice
     const voices = window.speechSynthesis.getVoices();
-    let preferredVoice = null;
+    let preferredVoice: SpeechSynthesisVoice | null = null;
 
     // Helper to find premium / natural / neural voices
     const findBestVoice = (lang: string, fallbackPrefixes: string[]): SpeechSynthesisVoice | null => {
@@ -549,10 +549,13 @@ class AudioEngine {
       // Tier 2: Specific matching voice names
       found = voices.find(v => 
         v.lang.toLowerCase().replace('_', '-').startsWith(lowerLang) && (
-          v.name.toLowerCase().includes('david') ||
-          v.name.toLowerCase().includes('ravi') ||
-          v.name.toLowerCase().includes('heera') ||
-          v.name.toLowerCase().includes('harsh')
+          v.name.toLowerCase().includes('david') || 
+          v.name.toLowerCase().includes('ravi') || 
+          v.name.toLowerCase().includes('heera') || 
+          v.name.toLowerCase().includes('harsh') ||
+          v.name.toLowerCase().includes('neerja') ||
+          v.name.toLowerCase().includes('geeta') ||
+          v.name.toLowerCase().includes('swapna')
         )
       );
       if (found) return found;
@@ -579,15 +582,33 @@ class AudioEngine {
       return null;
     };
 
-    if (langCode === 'hyd') {
-      // For Hyderabadi: ur-IN or hi-IN, fallback en-IN
+    if (langCode === 'te') {
+      preferredVoice = findBestVoice('te-in', ['te', 'hi-in', 'en-in']);
+    } else if (langCode === 'hi') {
+      preferredVoice = findBestVoice('hi-in', ['hi', 'ur-in', 'en-in']);
+    } else if (langCode === 'ur' || langCode === 'hyd') {
+      // For Urdu & Hyderabadi: ur-IN or hi-IN, fallback en-IN
       preferredVoice = findBestVoice('ur-in', ['ur', 'hi-in', 'hi', 'en-in']);
       if (!preferredVoice) {
         preferredVoice = findBestVoice('hi', ['ur', 'en-in']);
       }
+    } else if (langCode === 'ta') {
+      preferredVoice = findBestVoice('ta-in', ['ta', 'en-in']);
+    } else if (langCode === 'kn') {
+      preferredVoice = findBestVoice('kn-in', ['kn', 'en-in']);
+    } else if (langCode === 'ml') {
+      preferredVoice = findBestVoice('ml-in', ['ml', 'en-in']);
+    } else if (langCode === 'bn') {
+      preferredVoice = findBestVoice('bn-in', ['bn', 'hi-in', 'en-in']);
+    } else if (langCode === 'mr') {
+      preferredVoice = findBestVoice('mr-in', ['mr', 'hi-in', 'en-in']);
+    } else if (langCode === 'gu') {
+      preferredVoice = findBestVoice('gu-in', ['gu', 'hi-in', 'en-in']);
+    } else if (langCode === 'pa') {
+      preferredVoice = findBestVoice('pa-in', ['pa', 'hi-in', 'en-in']);
     } else {
-      // English
-      preferredVoice = findBestVoice('en-us', ['en', 'en-gb']);
+      // English default
+      preferredVoice = findBestVoice('en-us', ['en', 'en-gb', 'en-in']);
     }
 
     if (preferredVoice) {
@@ -596,7 +617,7 @@ class AudioEngine {
 
     // Set properties for a soft, precise, and highly listenable narrator voice
     const rateFactor = (this.userSpeechRate || 1.0);
-    if (langCode === 'hyd') {
+    if (langCode === 'hyd' || langCode === 'ur' || langCode === 'hi' || langCode === 'te') {
       this.activeUtterance.pitch = this.userPitch || 1.05; // Warm, friendly regional tone
       this.activeUtterance.rate = 0.94 * rateFactor;  // Slower, clear pacing for regional dialect readability
     } else {

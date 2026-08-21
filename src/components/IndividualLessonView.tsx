@@ -4,6 +4,8 @@ import {
   ArrowRight, 
   BookOpen, 
   Clock, 
+  Timer,
+  Zap,
   CheckCircle2, 
   Sparkles, 
   Bookmark, 
@@ -17,11 +19,15 @@ import {
   Layers,
   Flame,
   HelpCircle,
-  PlayCircle
+  PlayCircle,
+  Download,
+  FileText
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { LESSON_MODULES, type LessonModule } from './HomeCurriculumGrid';
+import { streakManager } from '../lib/streakManager';
+import TakeawaysNotesExportModal from './TakeawaysNotesExportModal';
 
 // Import Section Subcomponents
 import WhatIsAI from './WhatIsAI';
@@ -128,12 +134,15 @@ export default function IndividualLessonView({
   const [activeSubTopicId, setActiveSubTopicId] = useState<string>(subTopics[0]?.id || '');
   const [scrollProgress, setScrollProgress] = useState<number>(0);
   const [isSubTopicMenuOpen, setIsSubTopicMenuOpen] = useState<boolean>(false);
+  const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
   const contentRef = useRef<HTMLDivElement>(null);
+  const recordedStreakRef = useRef<boolean>(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setActiveSubTopicId(subTopics[0]?.id || '');
     setScrollProgress(0);
+    recordedStreakRef.current = false;
   }, [lessonId]);
 
   // ScrollSpy & Progress Calculation
@@ -145,6 +154,12 @@ export default function IndividualLessonView({
         const current = window.scrollY;
         const progress = Math.min(100, Math.max(0, Math.round((current / totalScrollable) * 100)));
         setScrollProgress(progress);
+
+        // Record streak completion when student scrolls through 50%+ of lesson
+        if (progress >= 50 && !recordedStreakRef.current) {
+          recordedStreakRef.current = true;
+          streakManager.recordLessonCompletion(lessonId);
+        }
       }
 
       // 2. Identify active sub-topic based on viewport position
@@ -206,13 +221,17 @@ export default function IndividualLessonView({
                 0{currentModule.lessonNum}
               </span>
               
-              <div className="truncate flex items-center gap-1 text-xs">
+              <div className="truncate flex items-center gap-1.5 text-xs">
                 <span className="font-bold text-brand-charcoal truncate">
                   {lang === 'en' ? currentModule.titleEn : currentModule.titleHyd}
                 </span>
                 <span className="text-brand-slate/40 hidden md:inline">•</span>
                 <span className="text-[11px] font-mono text-brand-amber font-bold hidden md:inline truncate">
                   {lang === 'en' ? activeSubTopic.titleEn : activeSubTopic.titleHyd}
+                </span>
+                <span className="hidden xl:inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-brand-amber/15 text-brand-amber-dark border border-brand-amber/30 px-2 py-0.5 rounded-full shrink-0">
+                  <Clock className="w-3 h-3 text-brand-amber" />
+                  <span>{currentModule.readTime} read</span>
                 </span>
               </div>
             </div>
@@ -369,44 +388,110 @@ export default function IndividualLessonView({
               </div>
 
               {/* Lesson Hero Banner */}
-              <div className="mt-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-white via-brand-sand/40 to-brand-sand/70 border border-brand-amber/20 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-brand-charcoal text-white font-mono text-[11px] font-black uppercase tracking-wider">
-                      Lesson 0{currentModule.lessonNum}
-                    </span>
-                    <span className="text-xs font-mono font-bold text-brand-amber uppercase tracking-wider">
-                      {lang === 'en' ? currentModule.categoryEn : currentModule.categoryHyd}
-                    </span>
-                    <span className="text-brand-slate/40">•</span>
-                    <span className="flex items-center gap-1 text-xs font-mono text-brand-muted">
-                      <Clock className="w-3 h-3 text-brand-amber" />
-                      <span>{currentModule.readTime}</span>
-                    </span>
+              <div className="mt-6 p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-white via-brand-sand/40 to-brand-sand/70 border border-brand-amber/20 shadow-sm space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="px-2.5 py-0.5 rounded-full bg-brand-charcoal text-white font-mono text-[11px] font-black uppercase tracking-wider">
+                        Lesson 0{currentModule.lessonNum}
+                      </span>
+                      <span className="text-xs font-mono font-bold text-brand-amber uppercase tracking-wider">
+                        {lang === 'en' ? currentModule.categoryEn : currentModule.categoryHyd}
+                      </span>
+                      <span className="text-brand-slate/40 hidden sm:inline">•</span>
+                      
+                      {/* Prominent Estimated Reading Time Pill */}
+                      <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-brand-amber/15 border border-brand-amber/35 text-brand-charcoal text-xs font-mono font-bold shadow-2xs">
+                        <Timer className="w-3.5 h-3.5 text-brand-amber" />
+                        <span>
+                          {lang === 'en' ? "Est. Reading Time:" : lang === 'te' ? "అంచనా పఠన సమయం:" : "Padhne ka Waqt:"} 
+                        </span>
+                        <strong className="text-brand-amber-dark">{currentModule.readTime}</strong>
+                      </div>
+                    </div>
+
+                    <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-brand-charcoal tracking-tight">
+                      {lang === 'en' ? currentModule.titleEn : currentModule.titleHyd}
+                    </h1>
+
+                    <p className="text-xs sm:text-sm text-brand-slate max-w-2xl leading-relaxed">
+                      {lang === 'en' ? currentModule.subtitleEn : currentModule.subtitleHyd}
+                    </p>
                   </div>
 
-                  <h1 className="font-display text-2xl sm:text-3xl md:text-4xl font-black text-brand-charcoal tracking-tight">
-                    {lang === 'en' ? currentModule.titleEn : currentModule.titleHyd}
-                  </h1>
-
-                  <p className="text-xs sm:text-sm text-brand-slate max-w-2xl leading-relaxed">
-                    {lang === 'en' ? currentModule.subtitleEn : currentModule.subtitleHyd}
-                  </p>
+                  {/* Lesson Progress Badge */}
+                  <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-brand-amber/30 shrink-0 shadow-xs">
+                    <span className="text-[10px] font-mono font-bold text-brand-muted uppercase">
+                      {lang === 'en' ? "Curriculum Progress" : "Course Progress"}
+                    </span>
+                    <span className="font-mono font-black text-2xl text-brand-amber mt-0.5">
+                      {currentModule.lessonNum} / {LESSON_MODULES.length}
+                    </span>
+                    <div className="w-24 h-1.5 bg-brand-slate/15 rounded-full mt-2 overflow-hidden">
+                      <div 
+                        className="h-full bg-brand-amber rounded-full transition-all duration-500"
+                        style={{ width: `${(currentModule.lessonNum / LESSON_MODULES.length) * 100}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
 
-                {/* Lesson Progress Badge */}
-                <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-brand-amber/30 shrink-0 shadow-xs">
-                  <span className="text-[10px] font-mono font-bold text-brand-muted uppercase">
-                    {lang === 'en' ? "Curriculum Progress" : "Course Progress"}
-                  </span>
-                  <span className="font-mono font-black text-2xl text-brand-amber mt-0.5">
-                    {currentModule.lessonNum} / {LESSON_MODULES.length}
-                  </span>
-                  <div className="w-24 h-1.5 bg-brand-slate/15 rounded-full mt-2 overflow-hidden">
-                    <div 
-                      className="h-full bg-brand-amber rounded-full transition-all duration-500"
-                      style={{ width: `${(currentModule.lessonNum / LESSON_MODULES.length) * 100}%` }}
-                    />
+                {/* Estimated Study Metrics & Reading Gauge Strip */}
+                <div className="pt-4 border-t border-brand-slate/10 grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="p-3 rounded-2xl bg-white/90 border border-brand-slate/10 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-brand-amber/15 text-brand-amber flex items-center justify-center shrink-0">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[10px] font-mono uppercase text-brand-muted font-bold">
+                        {lang === 'en' ? "Total Read Time" : "Kul Waqt"}
+                      </span>
+                      <span className="font-black text-brand-charcoal truncate block">
+                        ~{currentModule.readTime}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white/90 border border-brand-slate/10 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-orange-500/15 text-orange-600 flex items-center justify-center shrink-0">
+                      <Layers className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[10px] font-mono uppercase text-brand-muted font-bold">
+                        {lang === 'en' ? "Sub-Topics" : "Hissay"}
+                      </span>
+                      <span className="font-black text-brand-charcoal truncate block">
+                        {subTopics.length} {lang === 'en' ? "Sections" : "Sections"}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white/90 border border-brand-slate/10 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-blue-500/15 text-blue-600 flex items-center justify-center shrink-0">
+                      <Zap className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[10px] font-mono uppercase text-brand-muted font-bold">
+                        {lang === 'en' ? "Reading Pace" : "Raftaar"}
+                      </span>
+                      <span className="font-black text-brand-charcoal truncate block">
+                        ~180-220 wpm
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-2xl bg-white/90 border border-brand-slate/10 flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 flex items-center justify-center shrink-0">
+                      <Sparkles className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <span className="block text-[10px] font-mono uppercase text-brand-muted font-bold">
+                        {lang === 'en' ? "Difficulty" : "Darja"}
+                      </span>
+                      <span className="font-black text-emerald-700 truncate block">
+                        {lang === 'en' ? "Beginner Safe" : "Bina Math ke"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -660,6 +745,17 @@ export default function IndividualLessonView({
               {/* Fast Jump Card / Shortcuts */}
               <div className="pt-3 border-t border-brand-slate/10 flex flex-col gap-2">
                 <button
+                  onClick={() => setIsExportModalOpen(true)}
+                  className="flex items-center justify-between p-2 rounded-xl bg-brand-charcoal hover:bg-black text-xs font-bold text-white transition-colors cursor-pointer shadow-2xs"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Download className="w-3.5 h-3.5 text-brand-amber" />
+                    <span>{lang === 'en' ? "Export Notes & PDF" : "Notes Export Karein"}</span>
+                  </span>
+                  <FileText className="w-3.5 h-3.5 text-brand-amber" />
+                </button>
+
+                <button
                   onClick={() => {
                     const quizEl = document.getElementById('sub-quiz') || document.getElementById('sub-takeaways');
                     if (quizEl) {
@@ -693,6 +789,13 @@ export default function IndividualLessonView({
 
         </div>
       </div>
+
+      {/* Quick Takeaways & Personal Knowledge Notes Export Modal */}
+      <TakeawaysNotesExportModal
+        isOpen={isExportModalOpen}
+        onClose={() => setIsExportModalOpen(false)}
+        initialLessonId={lessonId}
+      />
     </div>
   );
 }

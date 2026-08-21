@@ -24,6 +24,7 @@ import {
   Volume1,
   VolumeX,
   Palette,
+  Contrast,
   Music,
   Sliders,
   RefreshCw,
@@ -95,7 +96,7 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { lang } = useLanguage();
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, highContrast, toggleHighContrast } = useTheme();
   
   // Tabs & Preferences States
   const [activeTab, setActiveTab] = useState<'account' | 'visuals' | 'audio' | 'advanced' | 'faq'>('account');
@@ -912,6 +913,68 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </button>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* High Contrast Mode Toggle (Accessibility & Visual Impairments) */}
+            <div className="pt-3 border-t border-brand-slate/10">
+              <div className="p-3 rounded-2xl bg-brand-sand/30 border border-brand-slate/10 hover:border-brand-amber/30 transition-all">
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 pr-3">
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <div className={`p-1.5 rounded-lg transition-colors ${highContrast ? 'bg-brand-amber text-white' : 'bg-brand-sand text-brand-charcoal'}`}>
+                        <Contrast className="w-3.5 h-3.5" />
+                      </div>
+                      <h5 className="font-display font-bold text-xs text-brand-charcoal">
+                        {lang === 'en' ? "High Contrast Mode" : "Tez Contrast Mode"}
+                      </h5>
+                      <span className={`text-[8px] font-mono font-black px-1.5 py-0.5 rounded-full border ${
+                        highContrast
+                          ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
+                          : 'bg-brand-slate/10 text-brand-slate border-brand-slate/15'
+                      }`}>
+                        {highContrast ? 'WCAG AAA ON' : 'WCAG AA'}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-brand-muted leading-tight">
+                      {lang === 'en'
+                        ? "Maximizes text contrast, adds solid backdrops, and enhances outlines for users with visual impairments."
+                        : "Likhai aur cards ka contrast bada kar aasan banata hai taake aankhon par zor na pade."}
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      toggleHighContrast();
+                      playTone(highContrast ? 320 : 640, 'sine', 0.1, 0.05);
+                    }}
+                    className={`w-11 h-6 rounded-full transition-colors relative shrink-0 cursor-pointer ${
+                      highContrast ? 'bg-brand-amber' : 'bg-brand-slate/25'
+                    }`}
+                    title={highContrast ? "Disable High Contrast Mode" : "Enable High Contrast Mode"}
+                  >
+                    <span
+                      className={`absolute top-1 left-1 bg-white w-4 h-4 rounded-full shadow-xs transition-transform ${
+                        highContrast ? 'translate-x-5' : 'translate-x-0'
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {highContrast && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    className="mt-2 pt-2 border-t border-brand-slate/10 flex items-center justify-between text-[9px] font-mono text-brand-slate"
+                  >
+                    <span className="font-bold">Active: Stark High-Contrast Ratio (21:1)</span>
+                    <span className="text-emerald-700 font-extrabold flex items-center gap-1">
+                      <Check className="w-3 h-3" /> Enabled
+                    </span>
+                  </motion.div>
+                )}
               </div>
             </div>
 
