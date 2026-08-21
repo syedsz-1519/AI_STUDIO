@@ -25,7 +25,8 @@ import {
   CheckCircle2,
   Video,
   LayoutDashboard,
-  GraduationCap
+  GraduationCap,
+  Flame
 } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
@@ -66,6 +67,35 @@ export default function FloatingNav() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [streakCount, setStreakCount] = useState<number>(() => {
+    try {
+      const cached = localStorage.getItem('clay_quiz_streak_count');
+      if (cached) {
+        const parsed = parseInt(cached, 10);
+        if (!isNaN(parsed) && parsed > 0) return parsed;
+      }
+    } catch {}
+    return 1;
+  });
+
+  useEffect(() => {
+    const handleStreakUpdate = () => {
+      try {
+        const cached = localStorage.getItem('clay_quiz_streak_count');
+        if (cached) {
+          const parsed = parseInt(cached, 10);
+          if (!isNaN(parsed) && parsed > 0) setStreakCount(parsed);
+        }
+      } catch {}
+    };
+
+    window.addEventListener('storage', handleStreakUpdate);
+    window.addEventListener('clay_streak_updated' as any, handleStreakUpdate);
+    return () => {
+      window.removeEventListener('storage', handleStreakUpdate);
+      window.removeEventListener('clay_streak_updated' as any, handleStreakUpdate);
+    };
+  }, []);
   
   // LocalStorage scroll position bookmark system
   const [savedBookmark, setSavedBookmark] = useState<BookmarkData | null>(null);
@@ -390,9 +420,19 @@ export default function FloatingNav() {
           </div>
         </div>
 
-        {/* Right: Ask Clay, Ambient Audio, and Explore Button in place of 3-line hamburger menu */}
+        {/* Right: Streak Indicator, Ask Clay, Ambient Audio, and Explore Button */}
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           
+          {/* Daily Learning Streak Badge */}
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500/15 via-orange-500/15 to-amber-500/10 hover:from-amber-500/25 hover:to-orange-500/20 text-brand-charcoal border border-amber-500/30 text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs hover:scale-105 active:scale-95 group"
+            title={`${streakCount}-Day Learning Streak Active! Click to view Scholar Profile & Stats.`}
+          >
+            <Flame className="w-3.5 h-3.5 text-amber-500 fill-amber-500/40 group-hover:scale-110 transition-transform animate-pulse" />
+            <span className="font-black text-amber-700 text-[11px]">{streakCount}d</span>
+          </button>
+
           {/* Ask Clay / Global Search Button */}
           <button
             onClick={() => setIsSearchOpen(true)}
@@ -414,6 +454,21 @@ export default function FloatingNav() {
           >
             {isAmbientOn ? <Volume2 className="w-3.5 h-3.5 text-brand-amber animate-pulse" /> : <VolumeX className="w-3.5 h-3.5 text-brand-slate" />}
             <span className="hidden lg:inline text-[11px] font-bold">{lang === 'en' ? 'Lo-Fi' : 'Lo-Fi'}: {isAmbientOn ? 'ON' : 'OFF'}</span>
+          </button>
+
+          {/* Learning Hub Direct Nav Button (Desktop) */}
+          <button
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('clay_navigate_view', { detail: 'learning-hub' }));
+              setIsExploreOpen(false);
+            }}
+            className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-brand-amber/10 hover:bg-brand-amber/20 text-brand-charcoal border border-brand-amber/30 text-xs font-black transition-all cursor-pointer select-none shadow-2xs hover:scale-105 active:scale-95 group"
+            title="Open all 9 AI Lessons, Tools, Quizzes & Flashcards in the Learning Hub"
+          >
+            <GraduationCap className="w-3.5 h-3.5 text-brand-amber group-hover:scale-110 transition-transform" />
+            <span className="text-[11px] font-extrabold tracking-tight">
+              {lang === 'en' ? 'Learning Hub' : lang === 'te' ? 'లెర్నింగ్ హబ్' : 'Learning Hub'}
+            </span>
           </button>
 
           {/* EXPLORE BUTTON - Placed in the position of the 3-lined menu button */}
@@ -459,19 +514,44 @@ export default function FloatingNav() {
                           setIsAuthModalOpen(true);
                           setIsExploreOpen(false);
                         }}
+                        className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/10 text-amber-700 font-mono text-[10px] font-bold border border-amber-500/20 hover:bg-amber-500/20 transition-colors cursor-pointer"
+                        title={lang === 'en' ? 'Scholar Profile & Streak' : 'Settings & Streak'}
+                      >
+                        <Flame className="w-3 h-3 text-amber-500 fill-amber-500/30" />
+                        <span>{streakCount}d Streak</span>
+                      </button>
+                      <button
+                        onClick={() => {
+                          setIsAuthModalOpen(true);
+                          setIsExploreOpen(false);
+                        }}
                         className="p-1 rounded-lg text-brand-slate hover:text-brand-amber hover:bg-brand-sand transition-colors cursor-pointer"
                         title={lang === 'en' ? 'Scholar Profile & Settings' : 'Settings & Profile'}
                       >
                         <Settings className="w-3.5 h-3.5" />
                       </button>
-                      <span className="text-[10px] font-mono font-bold text-brand-slate bg-brand-sand/60 px-2 py-0.5 rounded-full border border-brand-slate/10">
-                        3 Apps • 9 Sections
-                      </span>
                     </div>
                   </div>
 
                   {/* 1. Core Apps & Modules Grid */}
-                  <div className="grid grid-cols-3 gap-1.5">
+                  <div className="grid grid-cols-4 gap-1.5">
+                    {/* Learning Hub All-in-One Button */}
+                    <button
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('clay_navigate_view', { detail: 'learning-hub' }));
+                        setIsExploreOpen(false);
+                      }}
+                      className="flex flex-col items-center text-center p-2 rounded-2xl bg-amber-500/10 hover:bg-amber-500/20 border border-brand-amber/30 transition-all cursor-pointer group"
+                    >
+                      <div className="w-7 h-7 rounded-xl bg-brand-amber text-white flex items-center justify-center mb-1 group-hover:scale-105 transition-transform shadow-xs">
+                        <GraduationCap className="w-3.5 h-3.5" />
+                      </div>
+                      <span className="text-[10px] font-bold text-brand-charcoal leading-tight">
+                        {lang === 'en' ? 'Hub' : 'Hub'}
+                      </span>
+                      <span className="text-[7.5px] font-mono text-brand-amber font-black">All 9</span>
+                    </button>
+
                     {/* Learn / Complete Guide Button */}
                     <button
                       onClick={() => {
@@ -480,13 +560,13 @@ export default function FloatingNav() {
                       }}
                       className="flex flex-col items-center text-center p-2 rounded-2xl bg-brand-sand/30 hover:bg-brand-sand/70 border border-brand-slate/10 hover:border-brand-amber/30 transition-all cursor-pointer group"
                     >
-                      <div className="w-8 h-8 rounded-xl bg-amber-500/15 flex items-center justify-center text-brand-amber mb-1 group-hover:scale-105 transition-transform">
-                        <BookOpen className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-xl bg-amber-500/15 flex items-center justify-center text-brand-amber mb-1 group-hover:scale-105 transition-transform">
+                        <BookOpen className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-[11px] font-bold text-brand-charcoal leading-tight">
+                      <span className="text-[10px] font-bold text-brand-charcoal leading-tight">
                         {lang === 'en' ? 'Guide' : 'Sabaq'}
                       </span>
-                      <span className="text-[8px] font-mono text-brand-muted">Chapters</span>
+                      <span className="text-[7.5px] font-mono text-brand-muted">Chapters</span>
                     </button>
 
                     {/* Mock Interview Button */}
@@ -501,13 +581,13 @@ export default function FloatingNav() {
                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
                         <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-brand-amber"></span>
                       </span>
-                      <div className="w-8 h-8 rounded-xl bg-brand-amber text-white flex items-center justify-center mb-1 group-hover:scale-105 transition-transform shadow-xs">
-                        <Video className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-xl bg-orange-500 text-white flex items-center justify-center mb-1 group-hover:scale-105 transition-transform shadow-xs">
+                        <Video className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-[11px] font-bold text-brand-charcoal leading-tight">
+                      <span className="text-[10px] font-bold text-brand-charcoal leading-tight">
                         {lang === 'en' ? 'Mock AI' : 'Interview'}
                       </span>
-                      <span className="text-[8px] font-mono text-brand-amber font-bold">LIVE HUD</span>
+                      <span className="text-[7.5px] font-mono text-brand-amber font-bold">LIVE</span>
                     </button>
 
                     {/* Student Dashboard Button */}
@@ -518,13 +598,13 @@ export default function FloatingNav() {
                       }}
                       className="flex flex-col items-center text-center p-2 rounded-2xl bg-brand-sand/30 hover:bg-brand-sand/70 border border-brand-slate/10 hover:border-brand-amber/30 transition-all cursor-pointer group"
                     >
-                      <div className="w-8 h-8 rounded-xl bg-slate-800/10 flex items-center justify-center text-slate-800 mb-1 group-hover:scale-105 transition-transform">
-                        <LayoutDashboard className="w-4 h-4" />
+                      <div className="w-7 h-7 rounded-xl bg-slate-800/10 flex items-center justify-center text-slate-800 mb-1 group-hover:scale-105 transition-transform">
+                        <LayoutDashboard className="w-3.5 h-3.5" />
                       </div>
-                      <span className="text-[11px] font-bold text-brand-charcoal leading-tight">
-                        {lang === 'en' ? 'Dashboard' : 'Profile'}
+                      <span className="text-[10px] font-bold text-brand-charcoal leading-tight">
+                        {lang === 'en' ? 'Profile' : 'Profile'}
                       </span>
-                      <span className="text-[8px] font-mono text-brand-muted">Records</span>
+                      <span className="text-[7.5px] font-mono text-brand-muted">Stats</span>
                     </button>
                   </div>
 

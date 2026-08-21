@@ -229,8 +229,17 @@ export default function QuickTakeaway({ sectionId, defaultOpen = true }: QuickTa
     });
   };
 
+  // Determine subtle slide direction (alternate between subtle left and right slide)
+  const slideDirection = ['what-is-ai', 'generative-ai', 'tools'].includes(sectionId) ? -28 : 28;
+
   return (
-    <div className="max-w-4xl mx-auto px-6 py-6 transition-all duration-300">
+    <motion.div 
+      initial={{ opacity: 0, x: slideDirection, y: 15 }}
+      whileInView={{ opacity: 1, x: 0, y: 0 }}
+      viewport={{ once: true, margin: "-60px" }}
+      transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+      className="max-w-4xl mx-auto px-6 py-6 transition-all duration-300"
+    >
       <div className="bg-gradient-to-br from-white via-[#FAF7F2] to-[#F5EFE6] rounded-3xl border border-brand-amber/30 shadow-md hover:shadow-lg transition-all overflow-hidden">
         {/* Clickable Header Bar */}
         <div 
@@ -357,6 +366,6 @@ export default function QuickTakeaway({ sectionId, defaultOpen = true }: QuickTa
           )}
         </AnimatePresence>
       </div>
-    </div>
+    </motion.div>
   );
 }

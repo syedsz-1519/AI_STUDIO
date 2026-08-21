@@ -1,6 +1,6 @@
 import { useState, useEffect, type MouseEvent } from 'react';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { Sparkles, ArrowDown, Activity, Cpu, Network, Binary, Lightbulb, Compass, CheckCircle2, Video, TrendingUp, ChevronRight } from 'lucide-react';
+import { Sparkles, ArrowDown, Activity, Cpu, Network, Binary, Lightbulb, Compass, CheckCircle2 } from 'lucide-react';
 import ClayLogo from './ClayLogo';
 import { useLanguage } from '../hooks/useLanguage';
 import aiHeroBg from '../assets/images/ai_hero_bg_1787017861246.jpg';
@@ -238,36 +238,6 @@ export default function Hero() {
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
             <span>{lang === 'en' ? "3-Language support (EN / HYD / TEL)" : lang === 'te' ? "3 భాషల మద్దతు (EN / HYD / TEL)" : "3 Zabaano mein support"}</span>
           </div>
-        </motion.div>
-
-        {/* Hero Interactive Feature Triggers: AI Mock Interviewer & Learning Dashboard */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.45 }}
-          className="flex flex-wrap items-center justify-center gap-3.5 mb-10 z-20"
-        >
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('clay_navigate_view', { detail: 'interview' }))}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 via-brand-amber to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
-          >
-            <div className="p-1 rounded-lg bg-white/20">
-              <Video className="w-4 h-4 text-white" />
-            </div>
-            <span>{lang === 'en' ? "Try AI Mock Interview" : lang === 'te' ? "AI మాక్ ఇంటర్వ్యూ ప్రారంభించండి" : "AI Mock Interview Shuru Karein"}</span>
-            <span className="bg-white/25 text-[10px] uppercase font-mono px-2 py-0.5 rounded-md text-white font-black tracking-wider">
-              Live HUD
-            </span>
-          </button>
-
-          <button
-            onClick={() => window.dispatchEvent(new CustomEvent('clay_navigate_view', { detail: 'dashboard' }))}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white/90 hover:bg-brand-sand text-brand-charcoal border border-brand-slate/20 hover:border-brand-amber/40 rounded-xl font-bold text-sm shadow-sm hover:shadow-md hover:scale-[1.02] active:scale-[0.98] transition-all cursor-pointer group"
-          >
-            <TrendingUp className="w-4 h-4 text-brand-amber" />
-            <span>{lang === 'en' ? "Student Dashboard & Stats" : lang === 'te' ? "విద్యార్థి డాష్‌బోర్డ్" : "Student Dashboard"}</span>
-            <ChevronRight className="w-4 h-4 text-brand-muted group-hover:translate-x-0.5 transition-transform" />
-          </button>
         </motion.div>
 
         {/* Tactile Interactive Pattern Canvas */}
