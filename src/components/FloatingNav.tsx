@@ -26,7 +26,10 @@ import {
   Video,
   LayoutDashboard,
   GraduationCap,
-  Flame
+  Flame,
+  Heart,
+  School,
+  Info
 } from 'lucide-react';
 import { audioEngine } from '../lib/audioEngine';
 import ClayLogo from './ClayLogo';
@@ -35,6 +38,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { roadmapSections } from '../data/roadmapTerms';
 import AuthModal from './AuthModal';
 import SearchModal from './SearchModal';
+import AboutClayverseModal from './AboutClayverseModal';
 
 interface BookmarkData {
   scrollY: number;
@@ -65,6 +69,7 @@ export default function FloatingNav() {
   const [wordCount, setWordCount] = useState(1200); // Default fallback
   const [isAmbientOn, setIsAmbientOn] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isAboutModalOpen, setIsAboutModalOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [streakCount, setStreakCount] = useState<number>(() => {
@@ -608,7 +613,48 @@ export default function FloatingNav() {
                     </button>
                   </div>
 
-                  {/* 2. Reading Bookmark Manager Bar */}
+                  {/* 2. Featured Clayverse AI Mission Section */}
+                  <div className="p-3 rounded-2xl bg-gradient-to-br from-amber-500/15 via-orange-500/10 to-amber-500/5 border border-brand-amber/30 flex flex-col gap-2 relative overflow-hidden">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-5 h-5 rounded-lg bg-brand-amber text-white flex items-center justify-center shadow-2xs">
+                          <Heart className="w-3 h-3 fill-white" />
+                        </div>
+                        <span className="text-[11px] font-black text-brand-charcoal uppercase tracking-wider">
+                          {lang === 'en' ? 'About Clayverse AI' : 'Clayverse AI Mission'}
+                        </span>
+                      </div>
+                      <span className="text-[8px] font-mono font-extrabold bg-emerald-500/15 text-emerald-700 px-1.5 py-0.5 rounded-full border border-emerald-500/30">
+                        100% Free
+                      </span>
+                    </div>
+
+                    <p className="text-[10.5px] text-brand-slate leading-relaxed">
+                      {lang === 'en'
+                        ? 'Empowering non-native learners, Madrasa students, and Telugu & Indian language speakers to master AI with zero math and zero jargon.'
+                        : lang === 'te'
+                        ? 'కృత్రిమ మేధస్సును సులభంగా, మాతృభాషలో మరియు మదరసా విద్యార్థులకు ఉచితంగా అందించే ప్రజా వేదిక.'
+                        : 'Madrasa ke bache, Telugu aur doosri zabaano ke log bina dimaag ki dahi kare mufat AI seekh sakte hain.'}
+                    </p>
+
+                    <div className="flex items-center justify-between pt-1 border-t border-brand-amber/20">
+                      <span className="text-[9px] font-mono text-brand-muted">
+                        By Syed Shahnawaz & Team
+                      </span>
+                      <button
+                        onClick={() => {
+                          setIsAboutModalOpen(true);
+                          setIsExploreOpen(false);
+                        }}
+                        className="px-2.5 py-1 bg-brand-amber hover:bg-brand-amber-dark text-white rounded-lg text-[9.5px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-xs"
+                      >
+                        <span>{lang === 'en' ? 'Who & What Are We?' : 'Hamara Mission'}</span>
+                        <ArrowRight className="w-2.5 h-2.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 3. Reading Bookmark Manager Bar */}
                   <div className="bg-brand-sand/40 p-2.5 rounded-2xl border border-brand-slate/10 flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2 min-w-0 pr-1">
                       <div className="p-1.5 rounded-lg bg-white border border-brand-slate/10 shrink-0">
@@ -642,14 +688,14 @@ export default function FloatingNav() {
                     </div>
                   </div>
 
-                  {/* 3. Table of Contents List */}
+                  {/* 4. Table of Contents List */}
                   <div className="flex flex-col gap-1">
                     <div className="flex items-center justify-between px-1 text-[10px] font-mono font-bold text-brand-muted uppercase">
                       <span>{lang === 'en' ? 'Guide Chapters' : 'Sabaq Fehrist'}</span>
                       <span>{GUIDE_SECTIONS.length} Lessons</span>
                     </div>
 
-                    <div className="max-h-[220px] overflow-y-auto space-y-1 pr-1 scrollbar-thin">
+                    <div className="max-h-[190px] overflow-y-auto space-y-1 pr-1 scrollbar-thin">
                       {[
                         { id: 'hero', titleEn: '1. Introduction & Core Philosophy', titleHyd: '1. Aghaz & Taaruf', read: '1m' },
                         { id: 'what-is-ai', titleEn: '2. What is AI? (Foundations)', titleHyd: '2. AI Kya Hai? (Buniyaad)', read: '2m' },

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-export type Language = 'en' | 'hyd' | 'te';
+export type Language = 'en' | 'hyd' | 'te' | 'hi' | 'ur' | 'ta' | 'kn' | 'ml' | 'bn' | 'mr' | 'gu' | 'pa' | 'or' | 'as' | 'sa' | string;
 
 interface LanguageContextType {
   lang: Language;
@@ -386,7 +386,7 @@ const dictionary: Record<Language, Record<string, string>> = {
 export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [lang, setLangState] = useState<Language>(() => {
     const saved = localStorage.getItem('app_language');
-    return (saved === 'hyd' || saved === 'te' ? saved : 'en') as Language;
+    return (saved ? saved : 'en') as Language;
   });
 
   const setLang = (newLang: Language) => {
