@@ -455,8 +455,8 @@ You are an expert AI tutor. Explain machine learning concepts clearly to curious
 ai = genai.Client()
 
 # 1. Retrieve relevant facts from vector store / private DB
-trusted_context = "Simple AI was created to make machine learning intuitive."
-user_question = "What is the core philosophy of Simple AI?"
+trusted_context = "Clayverse AI was created to make machine learning intuitive."
+user_question = "What is the core philosophy of Clayverse AI?"
 
 # 2. Augment prompt with retrieved verified context
 prompt = f"""Use ONLY the following context to answer:

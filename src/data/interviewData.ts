@@ -35,7 +35,7 @@ export const INTERVIEWER_PERSONAS: InterviewerPersona[] = [
     id: 'clay_tutor',
     name: 'Clay AI Mentor',
     role: 'Tactile Learning & Foundations Coach',
-    company: 'Simple AI Academy',
+    company: 'Clayverse Academy',
     avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=ClayMentorAI',
     voiceGender: 'male',
     tone: 'Patient, warm, supportive, perfect for students and interview beginners.',

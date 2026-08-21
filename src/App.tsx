@@ -318,7 +318,7 @@ export default function App() {
         </div>
 
         <div className="max-w-5xl mx-auto px-6 mt-12 pt-6 border-t border-brand-slate/5 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-brand-muted">
-          <span>© 2026 Simple AI. By Syed Shahnawaz.</span>
+          <span>© 2026 Clayverse AI. By Syed Shahnawaz.</span>
           <div className="flex gap-4">
             <span className="hover:text-brand-amber transition-colors cursor-pointer">{lang === 'en' ? "Editorial Policies" : lang === 'te' ? "విధానాలు" : "Khaas Policies"}</span>
             <span className="hover:text-brand-amber transition-colors cursor-pointer">{lang === 'en' ? "Privacy Principles" : lang === 'te' ? "గోప్యతా సూత్రాలు" : "Privacy ke Rules"}</span>

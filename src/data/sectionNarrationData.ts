@@ -18,16 +18,16 @@ export const SECTION_NARRATION_ITEMS: SectionNarrationItem[] = [
     targetElementId: 'hero',
     badgeEn: 'Introduction • Guide Overview',
     badgeHyd: 'Aghaz • Guide ka Taaruf',
-    titleEn: 'Welcome to Simple AI',
-    titleHyd: 'Simple AI me Khush Amdeed',
+    titleEn: 'Welcome to Clayverse AI',
+    titleHyd: 'Clayverse AI me Khush Amdeed',
     durationSeconds: 35,
     sentencesEn: [
-      "Welcome to Simple AI, an interactive and sensory-friendly guide designed to demystify artificial intelligence from the ground up.",
+      "Welcome to Clayverse AI, an interactive and sensory-friendly guide designed to demystify artificial intelligence from the ground up.",
       "Instead of confusing mathematical jargon, we explain every concept through tangible real-world analogies, tactile sandboxes, and bite-sized lessons.",
       "Explore the guide at your own pace, try the interactive playgrounds, test your knowledge in the quizzes, and listen to any section aloud with this audio narrator."
     ],
     sentencesHyd: [
-      "Arey salaam yaaron! Simple AI me aapka khush amdeed hai.",
+      "Arey salaam yaaron! Clayverse AI me aapka khush amdeed hai.",
       "Hum yahan AI ko mushkil formulas ke bajaye asan misalon, mazedar sandboxes aur interactive dhang se samjhate hain.",
       "Aap aaram se har hisse ko padhein, interactive widgets chalayein, aur kisi bhi sabaq ko aawaz me sunne ke liye speaker dabayein."
     ],
@@ -214,11 +214,11 @@ export const SECTION_NARRATION_ITEMS: SectionNarrationItem[] = [
     titleHyd: 'Classroom Hub aur Sanad',
     durationSeconds: 30,
     sentencesEn: [
-      "Sync your Simple AI progress with Google Classroom to share assignment completions and study notes directly with your teachers.",
+      "Sync your Clayverse AI progress with Google Classroom to share assignment completions and study notes directly with your teachers.",
       "Export your customized milestone certificates, track completed glossary units, and collaborate with your study group."
     ],
     sentencesHyd: [
-      "Apni Simple AI ki progress ko Google Classroom ke sath sync karein taaki teachers aapke milestones dekh sakein.",
+      "Apni Clayverse AI ki progress ko Google Classroom ke sath sync karein taaki teachers aapke milestones dekh sakein.",
       "Apni completion certificate export karein aur doston ke sath mil kar seekhein."
     ],
     takeawayEn: 'Bridge self-directed interactive exploration with structured classroom curricula and verification.',

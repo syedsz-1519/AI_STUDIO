@@ -20,10 +20,10 @@ const dictionary: Record<Language, Record<string, string>> = {
     'nav.toolbox': 'AI Toolbox',
     'nav.deeper': 'Want to Go Deeper?',
     'nav.close': 'Deeper',
-    'brand.title': 'Simple AI',
+    'brand.title': 'Clayverse AI',
     'brand.slogan': 'AI, Explained Simply',
     'brand.desc': 'An interactive, beginner-safe editorial journal dedicated to demystifying modern artificial intelligence, machine learning structures, and generative algorithms through clean visual logic.',
-    'brand.constructed': '© 2026 Simple AI. By Syed Shahnawaz.',
+    'brand.constructed': '© 2026 Clayverse AI. By Syed Shahnawaz.',
 
     // Hero Section
     'hero.badge': '✨ 100% Beginner-Safe • Zero Math & Zero Jargon',
@@ -143,10 +143,10 @@ const dictionary: Record<Language, Record<string, string>> = {
     'nav.toolbox': 'AI Toolbox',
     'nav.deeper': 'Deedari / Deeper?',
     'nav.close': 'Deedari',
-    'brand.title': 'Simple AI',
+    'brand.title': 'Clayverse AI',
     'brand.slogan': 'Arey, AI Bole to Ekdam Asaan',
     'brand.desc': 'Ekdam naye logon ke waaste ek pyaara guide jo AI, machine learning, aur Generative AI ko asaan zabaan mein bina dimaag ki dahi kare samjhata hai.',
-    'brand.constructed': '© 2026 Simple AI. Syed Shahnawaz ki taraf se.',
+    'brand.constructed': '© 2026 Clayverse AI. Syed Shahnawaz ki taraf se.',
 
     // Hero Section
     'hero.badge': '✨ 100% Asaan Sabaq • Na Koi Math, Na Koi Jargon',
@@ -266,10 +266,10 @@ const dictionary: Record<Language, Record<string, string>> = {
     'nav.toolbox': 'AI టూల్‌బాక్స్',
     'nav.deeper': 'ఇంకా లోతుగా తెలుసుకోవాలా?',
     'nav.close': 'డీపర్',
-    'brand.title': 'Simple AI',
+    'brand.title': 'Clayverse AI',
     'brand.slogan': 'AI, సులభంగా అర్థమయ్యేలా',
     'brand.desc': 'కృత్రిమ మేధస్సు (AI), మెషిన్ లెర్నింగ్, జనరేటివ్ AI లను గణితం మరియు కష్టమైన పదాలు లేకుండా దృశ్య రూపంలో సులభంగా వివరించే సరళమైన గైడ్.',
-    'brand.constructed': '© 2026 Simple AI. సయ్యద్ షానవాజ్ ద్వారా.',
+    'brand.constructed': '© 2026 Clayverse AI. సయ్యద్ షానవాజ్ ద్వారా.',
 
     // Hero Section
     'hero.badge': '✨ 100% ప్రారంభకులకు అనుకూలం • మ్యాథ్స్ & కష్టమైన పదాలు లేవు',
