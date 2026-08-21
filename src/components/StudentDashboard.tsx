@@ -43,7 +43,11 @@ import {
   Users,
   Compass,
   Lightbulb,
-  AlertCircle
+  AlertCircle,
+  Search,
+  Filter,
+  FileSpreadsheet,
+  Tag
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MockInterviewRecord, MockInterviewDraft } from '../types';
@@ -51,12 +55,21 @@ import { UserProfile, setupAuthListener, logoutUserManually } from '../lib/fireb
 import { audioEngine } from '../lib/audioEngine';
 import InterviewPerformanceChart from './InterviewPerformanceChart';
 import InterviewReportModal from './InterviewReportModal';
+import InterviewAudioReplayModal from './InterviewAudioReplayModal';
+import DailyLearningGoalTracker from './DailyLearningGoalTracker';
 import PracticeReminderModal from './PracticeReminderModal';
 import TakeawaysNotesExportModal from './TakeawaysNotesExportModal';
 import StudyGroupsSection from './StudyGroupsSection';
 import { streakManager, type DailyStreakState } from '../lib/streakManager';
 import { offlineLessonCache, type OfflineCacheStats } from '../lib/offlineLessonCache';
 import { getStudentKnowledgeNotes } from '../lib/notesExporter';
+import { 
+  deriveSessionTags, 
+  TOPIC_TAG_DEFINITIONS, 
+  getTopicTagMeta,
+  exportSingleInterviewToCsv, 
+  exportAllInterviewsToCsv 
+} from '../lib/interviewExportAndTags';
 
 interface StudentDashboardProps {
   onStartInterview: () => void;
@@ -89,6 +102,8 @@ export default function StudentDashboard({
   const [activeDraft, setActiveDraft] = useState<MockInterviewDraft | null>(null);
   const [selectedReportRecord, setSelectedReportRecord] = useState<MockInterviewRecord | null>(null);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [selectedReplayRecord, setSelectedReplayRecord] = useState<MockInterviewRecord | null>(null);
+  const [isAudioReplayOpen, setIsAudioReplayOpen] = useState(false);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [isExportNotesModalOpen, setIsExportNotesModalOpen] = useState(false);
 
@@ -99,15 +114,106 @@ export default function StudentDashboard({
   const [streakState, setStreakState] = useState<DailyStreakState>(() => streakManager.getStreakState());
   const [streakCelebrate, setStreakCelebrate] = useState(false);
 
+  // Check-in / mark activity complete
+  const handleMarkDailyCheckin = () => {
+    const nextState = streakManager.recordLessonCompletion('daily-checkin');
+    setStreakState(nextState);
+    setStreakCelebrate(true);
+    audioEngine.playLoFiChord();
+    setTimeout(() => setStreakCelebrate(false), 4000);
+  };
+
   // Offline Cache State
   const [isOnline, setIsOnline] = useState(() => offlineLessonCache.isOnline());
   const [cacheStats, setCacheStats] = useState<OfflineCacheStats>(() => offlineLessonCache.getStats());
   const [isSyncingCache, setIsSyncingCache] = useState(false);
 
+  // Auto-Tagging & Filtering State for Interview History
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedTopicFilter, setSelectedTopicFilter] = useState<string>('all');
+  const [selectedDifficultyFilter, setSelectedDifficultyFilter] = useState<string>('all');
+  const [csvToast, setCsvToast] = useState<string | null>(null);
+
   // Student Notes count
   const [savedNotesCount, setSavedNotesCount] = useState<number>(() => {
     return Object.keys(getStudentKnowledgeNotes()).length;
   });
+
+  // Categorize each record with derived auto-tags
+  const taggedInterviewHistory = useMemo(() => {
+    return interviewHistory.map((rec) => {
+      const derived = deriveSessionTags(rec);
+      return {
+        record: rec,
+        derivedTags: derived
+      };
+    });
+  }, [interviewHistory]);
+
+  // Extract unique topic tags present across records with counts
+  const availableTopicTagsWithCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    taggedInterviewHistory.forEach(({ derivedTags }) => {
+      derivedTags.topicTags.forEach((topic) => {
+        map[topic] = (map[topic] || 0) + 1;
+      });
+    });
+    return map;
+  }, [taggedInterviewHistory]);
+
+  // Filtered interview records
+  const filteredInterviewRecords = useMemo(() => {
+    return taggedInterviewHistory.filter(({ record, derivedTags }) => {
+      // Topic filter
+      if (selectedTopicFilter !== 'all') {
+        const hasTopic = derivedTags.topicTags.some(t => t.toLowerCase() === selectedTopicFilter.toLowerCase());
+        if (!hasTopic) return false;
+      }
+
+      // Difficulty filter
+      if (selectedDifficultyFilter !== 'all') {
+        if (derivedTags.difficultyTag.toLowerCase() !== selectedDifficultyFilter.toLowerCase()) {
+          return false;
+        }
+      }
+
+      // Search query
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchRole = record.roleTrack.toLowerCase().includes(q);
+        const matchInterviewer = record.interviewerName.toLowerCase().includes(q);
+        const matchFeedback = (record.summaryFeedback || '').toLowerCase().includes(q);
+        const matchDecision = record.hiringDecision.toLowerCase().includes(q);
+        const matchTopic = derivedTags.topicTags.some(t => t.toLowerCase().includes(q));
+        const matchQuestions = record.attempts?.some(a => 
+          (a.questionText || '').toLowerCase().includes(q) || 
+          (a.userAnswer || '').toLowerCase().includes(q)
+        );
+        
+        if (!matchRole && !matchInterviewer && !matchFeedback && !matchDecision && !matchTopic && !matchQuestions) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [taggedInterviewHistory, selectedTopicFilter, selectedDifficultyFilter, searchQuery]);
+
+  // CSV Export handlers
+  const handleExportSingleCsv = (rec: MockInterviewRecord) => {
+    audioEngine.playLoFiChord();
+    exportSingleInterviewToCsv(rec, currentUser?.displayName || 'AI Scholar Student');
+    setCsvToast(`Exported CSV metrics for ${rec.roleTrack}`);
+    setTimeout(() => setCsvToast(null), 3500);
+  };
+
+  const handleExportAllCsv = () => {
+    if (interviewHistory.length === 0) return;
+    audioEngine.playLoFiChord();
+    exportAllInterviewsToCsv(interviewHistory, currentUser?.displayName || 'AI Scholar Student');
+    setCsvToast(`Exported all ${interviewHistory.length} mock interview sessions to CSV!`);
+    setTimeout(() => setCsvToast(null), 3500);
+  };
 
   // Calculate intelligent 'Recommended Next Step' based on progress & quiz performance
   const recommendedNextStep = useMemo(() => {
@@ -617,6 +723,19 @@ export default function StudentDashboard({
         )}
 
         {/* ========================================================================= */}
+        {/* DAILY LEARNING GOAL PROGRESS TRACKER & BADGES */}
+        {/* ========================================================================= */}
+        <DailyLearningGoalTracker
+          streakState={streakState}
+          interviewHistory={interviewHistory}
+          masteredConceptsCount={masteredConcepts.length}
+          totalConceptsCount={AI_CURRICULUM_CONCEPTS.length}
+          onLaunchInterview={onStartInterview}
+          onNavigateLesson={onNavigateSection}
+          onMarkLessonComplete={handleMarkDailyCheckin}
+        />
+
+        {/* ========================================================================= */}
         {/* STATS OVERVIEW CARDS WITH FRAMER MOTION HOVER */}
         {/* ========================================================================= */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -936,26 +1055,164 @@ export default function StudentDashboard({
               />
             )}
 
-            <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
+            <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm space-y-5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div>
                   <h3 className="font-display text-base font-bold text-brand-charcoal flex items-center gap-2">
                     <Video className="w-4 h-4 text-brand-amber" />
                     {lang === 'en' ? "Mock Interview History & Scorecards" : "Mock Interview Records"}
                   </h3>
                   <p className="text-xs text-brand-muted mt-0.5">
-                    {lang === 'en' ? "Detailed AI feedback, technical scores, and eye-contact ratings." : "Aapki pichli mock interviews ke nataij."}
+                    {lang === 'en' 
+                      ? "Auto-categorized by topic & difficulty, with audio replays and downloadable CSV/PDF metrics." 
+                      : "Pichli mock interviews ke nataij, audio replays aur CSV/PDF export."}
                   </p>
                 </div>
 
-                <button
-                  onClick={onStartInterview}
-                  className="px-3.5 py-1.5 rounded-xl bg-brand-amber/10 border border-brand-amber/30 text-brand-amber-dark hover:bg-brand-amber/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>{lang === 'en' ? "New Interview" : "Nayi Interview"}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  {interviewHistory.length > 0 && (
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={handleExportAllCsv}
+                      className="px-3 py-1.5 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      title="Export all interview session records to a combined CSV file"
+                    >
+                      <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Export All (CSV)</span>
+                    </motion.button>
+                  )}
+
+                  <button
+                    onClick={onStartInterview}
+                    className="px-3.5 py-1.5 rounded-xl bg-brand-amber/10 border border-brand-amber/30 text-brand-amber-dark hover:bg-brand-amber/20 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>{lang === 'en' ? "New Interview" : "Nayi Interview"}</span>
+                  </button>
+                </div>
               </div>
+
+              {/* =================================================================== */}
+              {/* SEARCH & AUTO-TAG TOPIC / DIFFICULTY FILTER TOOLBAR */}
+              {/* =================================================================== */}
+              {interviewHistory.length > 0 && (
+                <div className="p-3.5 rounded-2xl bg-brand-sand/15 border border-brand-slate/15 space-y-3">
+                  <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                    {/* Search Input */}
+                    <div className="relative flex-1">
+                      <Search className="w-3.5 h-3.5 text-brand-muted absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        placeholder="Search by role, topic, interviewer, questions..."
+                        className="w-full pl-8.5 pr-8 py-1.5 rounded-xl bg-white border border-brand-slate/20 text-xs text-brand-charcoal placeholder:text-brand-muted focus:outline-hidden focus:border-brand-amber focus:ring-1 focus:ring-brand-amber"
+                      />
+                      {searchQuery && (
+                        <button
+                          onClick={() => setSearchQuery('')}
+                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-brand-muted hover:text-brand-charcoal text-xs font-bold"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Difficulty Quick Filter */}
+                    <div className="flex items-center gap-1 shrink-0 overflow-x-auto pb-1 sm:pb-0">
+                      <span className="text-[10px] font-mono font-bold uppercase text-brand-muted mr-1 hidden sm:inline">
+                        Level:
+                      </span>
+                      {['all', 'Beginner', 'Mid-Level', 'Senior', 'Staff'].map((diff) => (
+                        <button
+                          key={diff}
+                          onClick={() => setSelectedDifficultyFilter(diff)}
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer whitespace-nowrap ${
+                            selectedDifficultyFilter === diff
+                              ? 'bg-brand-charcoal text-white shadow-2xs'
+                              : 'bg-white border border-brand-slate/15 text-brand-slate hover:bg-brand-sand/30'
+                          }`}
+                        >
+                          {diff === 'all' ? 'All Levels' : diff}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Topic Auto-Tag Pills */}
+                  <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-brand-slate/10">
+                    <div className="flex items-center gap-1 text-[10px] font-mono font-bold uppercase text-brand-muted mr-1">
+                      <Tag className="w-3 h-3 text-brand-amber" />
+                      <span>Topic Tags:</span>
+                    </div>
+
+                    <button
+                      onClick={() => setSelectedTopicFilter('all')}
+                      className={`px-2.5 py-1 rounded-lg text-[10.5px] font-bold transition-all cursor-pointer ${
+                        selectedTopicFilter === 'all'
+                          ? 'bg-brand-amber text-white shadow-2xs'
+                          : 'bg-white border border-brand-slate/15 text-brand-slate hover:bg-brand-sand/30'
+                      }`}
+                    >
+                      All Topics ({interviewHistory.length})
+                    </button>
+
+                    {Object.entries(availableTopicTagsWithCounts).map(([topic, count]) => {
+                      const isSelected = selectedTopicFilter.toLowerCase() === topic.toLowerCase();
+                      const meta = getTopicTagMeta(topic);
+                      const badgeTheme = meta 
+                        ? `${meta.badgeBg} ${meta.badgeText} ${meta.borderColor} border` 
+                        : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200';
+                      return (
+                        <button
+                          key={topic}
+                          onClick={() => setSelectedTopicFilter(isSelected ? 'all' : topic)}
+                          className={`px-2.5 py-1 rounded-lg text-[10.5px] font-medium transition-all cursor-pointer flex items-center gap-1 ${
+                            isSelected
+                              ? 'bg-brand-charcoal text-white font-bold shadow-2xs ring-2 ring-brand-amber/50'
+                              : badgeTheme
+                          }`}
+                        >
+                          <span>{topic}</span>
+                          <span className={`text-[9.5px] font-mono font-bold px-1 rounded-full ${
+                            isSelected ? 'bg-white/20 text-white' : 'bg-black/10 text-brand-charcoal'
+                          }`}>
+                            {count}
+                          </span>
+                        </button>
+                      );
+                    })}
+
+                    {/* Reset Button if filtered */}
+                    {(searchQuery || selectedTopicFilter !== 'all' || selectedDifficultyFilter !== 'all') && (
+                      <button
+                        onClick={() => {
+                          setSearchQuery('');
+                          setSelectedTopicFilter('all');
+                          setSelectedDifficultyFilter('all');
+                        }}
+                        className="ml-auto text-[10px] font-mono text-brand-amber hover:underline font-bold cursor-pointer"
+                      >
+                        Reset Filters
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Filter results count banner */}
+                  <div className="flex items-center justify-between text-[10.5px] font-mono text-brand-muted pt-0.5">
+                    <span>
+                      Showing <strong>{filteredInterviewRecords.length}</strong> of {interviewHistory.length} recorded interview sessions
+                    </span>
+                    {(selectedTopicFilter !== 'all' || selectedDifficultyFilter !== 'all' || searchQuery) && (
+                      <span className="text-brand-amber font-bold flex items-center gap-1">
+                        <Filter className="w-3 h-3" />
+                        Active filters applied
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* History List */}
               {interviewHistory.length === 0 ? (
@@ -971,9 +1228,25 @@ export default function StudentDashboard({
                     Start First Interview
                   </button>
                 </div>
+              ) : filteredInterviewRecords.length === 0 ? (
+                <div className="p-6 rounded-2xl bg-brand-sand/15 border border-dashed border-brand-slate/20 text-center space-y-2">
+                  <p className="text-xs text-brand-slate font-medium">
+                    No past mock interviews match your current search or topic filters.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedTopicFilter('all');
+                      setSelectedDifficultyFilter('all');
+                    }}
+                    className="text-xs font-bold text-brand-amber hover:underline cursor-pointer"
+                  >
+                    Clear Search & Reset All Filters
+                  </button>
+                </div>
               ) : (
                 <div className="space-y-3">
-                  {interviewHistory.map((rec) => {
+                  {filteredInterviewRecords.map(({ record: rec, derivedTags }) => {
                     const isExpanded = expandedInterviewId === rec.id;
                     return (
                       <motion.div
@@ -986,11 +1259,23 @@ export default function StudentDashboard({
                           onClick={() => setExpandedInterviewId(isExpanded ? null : rec.id)}
                           className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-brand-sand/10 transition-colors"
                         >
-                          <div className="space-y-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-display font-bold text-xs text-brand-charcoal">
+                          <div className="space-y-1.5">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-display font-bold text-xs sm:text-sm text-brand-charcoal">
                                 {rec.roleTrack}
                               </span>
+
+                              {/* Difficulty Tag */}
+                              <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md ${
+                                derivedTags.difficultyTag === 'Staff' ? 'bg-purple-100 text-purple-800 border border-purple-200' :
+                                derivedTags.difficultyTag === 'Senior' ? 'bg-indigo-100 text-indigo-800 border border-indigo-200' :
+                                derivedTags.difficultyTag === 'Mid-Level' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                                'bg-emerald-100 text-emerald-800 border border-emerald-200'
+                              }`}>
+                                {derivedTags.difficultyTag}
+                              </span>
+
+                              {/* Hiring Decision Tag */}
                               <span className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-md ${
                                 rec.hiringDecision === 'Strong Hire' ? 'bg-emerald-100 text-emerald-800' :
                                 rec.hiringDecision === 'Hire' ? 'bg-teal-100 text-teal-800' :
@@ -999,14 +1284,40 @@ export default function StudentDashboard({
                                 {rec.hiringDecision}
                               </span>
                             </div>
+
+                            {/* Auto-detected Topic Tags Row */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {derivedTags.topicTags.map((topic) => {
+                                const meta = getTopicTagMeta(topic);
+                                const badgeClass = meta 
+                                  ? `${meta.badgeBg} ${meta.badgeText} ${meta.borderColor} border`
+                                  : 'bg-slate-100 text-slate-700 border border-slate-200';
+                                return (
+                                  <span
+                                    key={topic}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedTopicFilter(topic);
+                                    }}
+                                    className={`text-[9.5px] font-medium px-2 py-0.5 rounded-md transition-transform hover:scale-105 cursor-pointer ${badgeClass}`}
+                                    title={`Click to filter interviews by ${topic}`}
+                                  >
+                                    #{topic}
+                                  </span>
+                                );
+                              })}
+                            </div>
+
                             <div className="flex items-center gap-3 text-[10px] font-mono text-brand-muted">
                               <span>Interviewer: {rec.interviewerName}</span>
                               <span>•</span>
                               <span>{rec.dateStr}</span>
+                              <span>•</span>
+                              <span>{Math.round(rec.durationSeconds / 60)} mins</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-2 sm:gap-4">
+                          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
                             <div className="text-right">
                               <span className="text-[9px] font-mono uppercase text-brand-muted block font-bold">Score</span>
                               <span className="font-display font-black text-base text-brand-charcoal">
@@ -1021,7 +1332,39 @@ export default function StudentDashboard({
                               </span>
                             </div>
 
-                            {/* Replay & Scorecard Trigger Button */}
+                            {/* CSV Export Action Button */}
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleExportSingleCsv(rec);
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 hover:bg-emerald-100 text-[10.5px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Export individual session performance metrics to CSV"
+                            >
+                              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                              <span className="hidden sm:inline">CSV</span>
+                            </motion.button>
+
+                            {/* Replay Audio & Transcript Trigger Button */}
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedReplayRecord(rec);
+                                setIsAudioReplayOpen(true);
+                                audioEngine.playLoFiChord();
+                              }}
+                              className="px-2.5 py-1.5 rounded-xl bg-brand-amber text-white hover:bg-brand-amber-dark text-[10.5px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
+                              title="Replay audio speech and full transcript"
+                            >
+                              <PlayCircle className="w-3.5 h-3.5 fill-current" />
+                              <span className="hidden sm:inline">Replay</span>
+                            </motion.button>
+
+                            {/* Scorecard Report Trigger Button */}
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
@@ -1032,10 +1375,10 @@ export default function StudentDashboard({
                                 audioEngine.playLoFiChord();
                               }}
                               className="px-2.5 py-1.5 rounded-xl bg-brand-charcoal text-white hover:bg-slate-800 text-[10.5px] font-bold transition-all flex items-center gap-1 cursor-pointer shadow-2xs"
-                              title="Replay performance summary and download scorecard"
+                              title="Download summary report & PDF"
                             >
-                              <PlayCircle className="w-3.5 h-3.5 text-brand-amber" />
-                              <span className="hidden sm:inline">Replay</span>
+                              <Download className="w-3.5 h-3.5 text-brand-amber" />
+                              <span className="hidden sm:inline">PDF</span>
                             </motion.button>
 
                             <div className="p-1 rounded-lg bg-brand-sand/40 text-brand-slate">
@@ -1090,7 +1433,31 @@ export default function StudentDashboard({
 
                               {/* Quick session focus and replay actions */}
                               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-brand-slate/10">
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleExportSingleCsv(rec);
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                  >
+                                    <FileSpreadsheet className="w-3.5 h-3.5" />
+                                    <span>Export CSV Metrics</span>
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setSelectedReplayRecord(rec);
+                                      setIsAudioReplayOpen(true);
+                                      audioEngine.playLoFiChord();
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl bg-brand-amber text-white hover:bg-brand-amber-dark text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
+                                  >
+                                    <PlayCircle className="w-3.5 h-3.5 fill-current" />
+                                    <span>Replay Audio & Speech</span>
+                                  </button>
+
                                   <button
                                     onClick={(e) => {
                                       e.stopPropagation();
@@ -1100,8 +1467,8 @@ export default function StudentDashboard({
                                     }}
                                     className="px-3.5 py-1.5 rounded-xl bg-brand-charcoal text-white hover:bg-slate-800 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-xs"
                                   >
-                                    <FileText className="w-3.5 h-3.5 text-brand-amber" />
-                                    <span>Replay Full AI Scorecard & PDF</span>
+                                    <Download className="w-3.5 h-3.5 text-brand-amber" />
+                                    <span>Scorecard & Download PDF</span>
                                   </button>
 
                                   <button
@@ -1265,6 +1632,17 @@ export default function StudentDashboard({
         studentEmail={currentUser?.email || 'scholar@clay.edu'}
       />
 
+      {/* Audio & Transcript Replay Modal */}
+      <InterviewAudioReplayModal
+        isOpen={isAudioReplayOpen}
+        onClose={() => {
+          setIsAudioReplayOpen(false);
+          setSelectedReplayRecord(null);
+        }}
+        record={selectedReplayRecord}
+        studentName={currentUser?.displayName || 'AI Explorer Student'}
+      />
+
       {/* Practice Reminders Scheduling Modal */}
       <PracticeReminderModal
         isOpen={isReminderModalOpen}
@@ -1276,6 +1654,32 @@ export default function StudentDashboard({
         isOpen={isExportNotesModalOpen}
         onClose={() => setIsExportNotesModalOpen(false)}
       />
+
+      {/* CSV Export & Action Feedback Toast Notification */}
+      <AnimatePresence>
+        {csvToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-slate-900 text-white rounded-2xl shadow-2xl border border-emerald-500/40 text-xs font-medium backdrop-blur-md"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
+            </div>
+            <div>
+              <p className="font-bold text-white text-xs">Spreadsheet Export Complete</p>
+              <p className="text-[11px] text-white/70">{csvToast}</p>
+            </div>
+            <button
+              onClick={() => setCsvToast(null)}
+              className="ml-2 text-white/40 hover:text-white text-xs p-1"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </section>
   );
 }

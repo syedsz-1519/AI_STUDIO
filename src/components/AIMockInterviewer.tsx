@@ -62,6 +62,7 @@ import {
 } from '../data/interviewData';
 import CameraTrackerHUD from './CameraTrackerHUD';
 import InterviewPerformanceChart from './InterviewPerformanceChart';
+import InterviewProTipsSidebar from './InterviewProTipsSidebar';
 import CopyCodeButton from './CopyCodeButton';
 import PracticeReminderModal from './PracticeReminderModal';
 import { sendGeminiChat } from '../lib/geminiClient';
@@ -127,6 +128,55 @@ export default function AIMockInterviewer({
   const [savedDraft, setSavedDraft] = useState<MockInterviewDraft | null>(null);
   const [lastAutoSavedTime, setLastAutoSavedTime] = useState<string | null>(null);
   const [isAutoSaving, setIsAutoSaving] = useState<boolean>(false);
+  const [saveToast, setSaveToast] = useState<{
+    show: boolean;
+    timeStr: string;
+    questionNumber: number;
+    totalQuestions: number;
+    isManual?: boolean;
+  } | null>(null);
+
+  // Manual save trigger
+  const triggerManualSave = () => {
+    if (stage !== 'interview' || questions.length === 0) return;
+    try {
+      const draft: MockInterviewDraft = {
+        id: `draft_${selectedRoleId}`,
+        selectedRoleId,
+        selectedPersonaId,
+        difficulty,
+        isUrduMode,
+        currentQuestionIndex,
+        questions,
+        userAnswer,
+        userCode,
+        showCodePad,
+        attempts,
+        elapsedSeconds,
+        questionSeconds,
+        liveMetrics,
+        lastSavedTimestamp: Date.now(),
+      };
+      localStorage.setItem('clay_mock_interview_draft', JSON.stringify(draft));
+      setSavedDraft(draft);
+      const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      setLastAutoSavedTime(nowStr);
+      setSaveToast({
+        show: true,
+        timeStr: nowStr,
+        questionNumber: currentQuestionIndex + 1,
+        totalQuestions: questions.length,
+        isManual: true
+      });
+      window.dispatchEvent(new Event('clay_interview_draft_updated'));
+      audioEngine.playLoFiChord();
+      setTimeout(() => {
+        setSaveToast(prev => prev ? { ...prev, show: false } : null);
+      }, 3500);
+    } catch (e) {
+      console.warn('Manual save failed:', e);
+    }
+  };
 
   // Load any previously interrupted mock interview draft on mount
   useEffect(() => {
@@ -184,13 +234,23 @@ export default function AIMockInterviewer({
         setSavedDraft(draft);
         const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
         setLastAutoSavedTime(nowStr);
+        setSaveToast({
+          show: true,
+          timeStr: nowStr,
+          questionNumber: currentQuestionIndex + 1,
+          totalQuestions: questions.length,
+          isManual: false
+        });
         window.dispatchEvent(new Event('clay_interview_draft_updated'));
       } catch (err) {
         console.warn('Auto-save failed:', err);
       } finally {
         setIsAutoSaving(false);
+        setTimeout(() => {
+          setSaveToast(prev => prev ? { ...prev, show: false } : null);
+        }, 3200);
       }
-    }, 500);
+    }, 1000);
 
     return () => clearTimeout(timeout);
   }, [
@@ -1010,14 +1070,16 @@ Please provide a JSON response with:
 
               {/* Timers, Auto-Save Status & Pause Controls */}
               <div className="flex items-center gap-2.5">
-                {/* Real-time Auto-Save Live Badge */}
-                <div 
-                  className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-[10px] font-mono font-medium shadow-2xs"
-                  title="Your session is auto-saved in real-time. You can safely close or refresh and resume anytime."
+                {/* Real-time Auto-Save Live Badge & Manual Save Button */}
+                <button
+                  onClick={triggerManualSave}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-[10.5px] font-mono font-bold shadow-2xs transition-all cursor-pointer"
+                  title="Click to save session draft now or rely on background auto-save"
                 >
-                  <Cloud className={`w-3 h-3 text-emerald-600 ${isAutoSaving ? 'animate-bounce' : ''}`} />
-                  <span>{isAutoSaving ? 'Saving...' : lastAutoSavedTime ? `Saved ${lastAutoSavedTime}` : 'Auto-saved'}</span>
-                </div>
+                  <Cloud className={`w-3.5 h-3.5 text-emerald-600 ${isAutoSaving ? 'animate-bounce' : ''}`} />
+                  <span>{isAutoSaving ? 'Auto-Saving...' : lastAutoSavedTime ? `Saved ${lastAutoSavedTime}` : 'Auto-Saved'}</span>
+                  <span className="text-[9px] px-1.5 py-0.2 bg-emerald-200/60 rounded text-emerald-900 font-sans hidden sm:inline">Save</span>
+                </button>
 
                 <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-sand/50 rounded-xl font-mono text-xs text-brand-charcoal font-bold">
                   <Clock className="w-3.5 h-3.5 text-brand-amber" />
@@ -1511,6 +1573,52 @@ Please provide a JSON response with:
         )}
 
       </div>
+
+      {/* Pro Tips Sidebar for dynamic live interview guidance */}
+      <InterviewProTipsSidebar
+        stage={stage}
+        currentQuestion={currentQuestion}
+        currentPersona={currentPersona}
+        liveMetrics={liveMetrics}
+        isUserSpeaking={isRecordingVoice}
+        questionIndex={currentQuestionIndex}
+        totalQuestions={questions.length}
+      />
+
+      {/* Real-Time Auto-Save Toast Notification */}
+      <AnimatePresence>
+        {saveToast && saveToast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-6 right-6 z-50 flex items-center gap-3.5 px-4 py-3 bg-slate-900/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-emerald-500/40 text-left"
+          >
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="font-display font-bold text-xs text-white">
+                  {saveToast.isManual ? 'Interview Session Draft Saved' : 'Auto-Saved to Local Storage'}
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                  {saveToast.timeStr}
+                </span>
+              </div>
+              <p className="text-[11px] text-white/70">
+                Question {saveToast.questionNumber} of {saveToast.totalQuestions} progress preserved.
+              </p>
+            </div>
+            <button
+              onClick={() => setSaveToast(null)}
+              className="ml-1 text-white/40 hover:text-white text-xs cursor-pointer p-1"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Practice Reminders Modal */}
       <PracticeReminderModal 

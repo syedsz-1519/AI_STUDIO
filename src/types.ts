@@ -119,6 +119,8 @@ export interface MockInterviewRecord {
   summaryFeedback: string;
   topStrengths: string[];
   keyActionItems: string[];
+  tags?: string[];
+  topics?: string[];
 }
 
 export interface MockInterviewDraft {
