@@ -28,7 +28,6 @@ import { useLanguage } from '../hooks/useLanguage';
 import { roadmapSections, Section, Term } from '../data/roadmapTerms';
 import { SECTION_NARRATION_ITEMS, SectionNarrationItem } from '../data/sectionNarrationData';
 import ClayLogo from './ClayLogo';
-import GeminiAssistantHub from './GeminiAssistantHub';
 
 interface SectionContent {
   id: string;
@@ -52,7 +51,7 @@ type SearchResultItem =
 export default function AudioNarrationHub() {
   const { lang, setLang } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<'audio' | 'search' | 'ai'>('audio');
+  const [activeTab, setActiveTab] = useState<'audio' | 'search'>('audio');
   const [isPlaying, setIsPlaying] = useState(false);
   const [playingSectionId, setPlayingSectionId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -117,9 +116,10 @@ export default function AudioNarrationHub() {
 
   // Change TTS speech rate (speed)
   const handleChangeSpeechRate = (rate: number) => {
-    setSpeechRateState(rate);
-    audioEngine.setSpeechRate(rate);
-    playTone(520, 'triangle', 0.06, 0.04);
+    const clampedRate = Math.max(0.5, Math.min(2.0, rate));
+    setSpeechRateState(clampedRate);
+    audioEngine.setSpeechRate(clampedRate);
+    playTone(520, 'triangle', 0.04, 0.03);
   };
 
   // Listen for narration state changes from audioEngine
@@ -146,16 +146,6 @@ export default function AudioNarrationHub() {
 
     window.addEventListener('clay_narration_state_changed', handleNarrationEvent);
     return () => window.removeEventListener('clay_narration_state_changed', handleNarrationEvent);
-  }, []);
-
-  // Event listener to open AI studio from other components
-  useEffect(() => {
-    const handleOpenAiStudio = () => {
-      setIsOpen(true);
-      setActiveTab('ai');
-    };
-    window.addEventListener('clay_open_ai_studio', handleOpenAiStudio);
-    return () => window.removeEventListener('clay_open_ai_studio', handleOpenAiStudio);
   }, []);
 
   // Event listener to open narration hub from other components
@@ -407,11 +397,11 @@ export default function AudioNarrationHub() {
                 <ClayLogo size={32} />
                 <div>
                   <h3 className="font-display text-sm font-black text-brand-charcoal flex items-center gap-1.5 uppercase tracking-wide">
-                    {lang === 'en' ? "Clay's Audio & AI Hub" : "Clay ka Audio & AI Hub"}
+                    {lang === 'en' ? "Audio Narration Hub" : "Audio Narration Hub"}
                     {isPlaying && <span className="inline-block w-2 h-2 rounded-full bg-brand-amber animate-ping" />}
                   </h3>
                   <p className="text-[10px] text-brand-slate">
-                    {lang === 'en' ? "Text-to-Speech Narration & Assistant" : "Awaaz me sabaq suno aur seekho"}
+                    {lang === 'en' ? "Text-to-Speech Voice & Quick Navigator" : "Awaaz me sabaq suno aur seekho"}
                   </p>
                 </div>
               </div>
@@ -424,7 +414,7 @@ export default function AudioNarrationHub() {
               </button>
             </div>
 
-            {/* Modern 3-Way Tab Control */}
+            {/* Modern 2-Way Tab Control */}
             <div className="flex bg-brand-sand/50 p-1 rounded-2xl border border-brand-slate/10 shrink-0 gap-1">
               <button
                 data-tab="audio"
@@ -448,28 +438,9 @@ export default function AudioNarrationHub() {
                 }`}
               >
                 <Search className="w-3.5 h-3.5 text-brand-amber" />
-                <span className="truncate">{lang === 'en' ? "Search" : "Dhoondo"}</span>
-              </button>
-              <button
-                data-tab="ai"
-                onClick={() => setActiveTab('ai')}
-                className={`flex-1 py-1.5 text-xs font-black rounded-xl transition-all cursor-pointer select-none flex items-center justify-center gap-1.5 focus:outline-none ${
-                  activeTab === 'ai'
-                    ? 'bg-brand-amber text-white shadow-sm'
-                    : 'text-brand-slate hover:text-brand-charcoal'
-                }`}
-              >
-                <Bot className="w-3.5 h-3.5" />
-                <span className="truncate">{lang === 'en' ? "Gemini AI" : "AI Studio"}</span>
+                <span className="truncate">{lang === 'en' ? "Search & Index" : "Dhoondo"}</span>
               </button>
             </div>
-
-            {/* TAB CONTENT: 0. GEMINI AI STUDIO (CHAT, VOICE, VEO, SEARCH GROUNDING, THINKING) */}
-            {activeTab === 'ai' && (
-              <div className="flex-1 min-h-[420px] max-h-[500px] flex flex-col">
-                <GeminiAssistantHub onClose={() => setIsOpen(false)} />
-              </div>
-            )}
 
             {/* TAB CONTENT: 1. TEXT-TO-SPEECH (TTS) NARRATION HUB */}
             {activeTab === 'audio' && (
@@ -530,56 +501,87 @@ export default function AudioNarrationHub() {
                     </button>
                   </div>
 
-                  {/* Accessible Voice Pacing & Dialect Bar (when TTS enabled) */}
+                  {/* Accessible Voice Pacing Slider & Dialect Controls */}
                   {isTtsEnabled && (
                     <motion.div
                       initial={{ opacity: 0, height: 0 }}
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
-                      className="mt-3 pt-3 border-t border-brand-amber/20 space-y-2 text-[10px]"
+                      className="mt-3 pt-3 border-t border-brand-amber/20 space-y-2.5 text-[10px]"
                     >
-                      {/* Speed & Dialect Selector Row */}
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        {/* Speed Pacing Buttons */}
-                        <div className="flex items-center gap-1">
-                          <span className="font-mono text-brand-muted font-bold mr-0.5">Speed:</span>
+                      {/* Interactive Continuous Speed Control Slider */}
+                      <div className="space-y-1.5 bg-white/70 p-2.5 rounded-xl border border-brand-slate/10 shadow-2xs">
+                        <div className="flex items-center justify-between">
+                          <span className="font-mono text-brand-charcoal font-bold flex items-center gap-1.5">
+                            <Gauge className="w-3.5 h-3.5 text-brand-amber" />
+                            {lang === 'en' ? "Playback Speed Rate" : "Awaaz ki Raftaar"}:
+                          </span>
+                          <span className="font-mono font-black text-brand-amber bg-brand-sand/60 border border-brand-amber/20 px-2 py-0.5 rounded-md shadow-2xs">
+                            {speechRate.toFixed(2)}x {speechRate <= 0.8 ? '(Slow)' : speechRate >= 1.3 ? '(Fast)' : '(Normal)'}
+                          </span>
+                        </div>
+                        
+                        <input
+                          type="range"
+                          min="0.5"
+                          max="2.0"
+                          step="0.05"
+                          value={speechRate}
+                          onChange={(e) => handleChangeSpeechRate(parseFloat(e.target.value))}
+                          className="w-full h-2 bg-brand-slate/20 rounded-lg appearance-none cursor-pointer accent-brand-amber"
+                          aria-label="Speech playback speed slider"
+                        />
+                        
+                        <div className="flex justify-between text-[8px] font-mono text-brand-muted px-0.5">
+                          <span>0.5x Slow</span>
+                          <span>1.0x Normal</span>
+                          <span>1.5x Brisk</span>
+                          <span>2.0x Fast</span>
+                        </div>
+
+                        {/* Quick Speed Preset Chips */}
+                        <div className="flex items-center gap-1 pt-1">
+                          <span className="font-mono text-brand-muted text-[9px] mr-1">Presets:</span>
                           {[
-                            { label: '0.8x Slow', val: 0.82, hint: 'Ideal for non-native learners' },
-                            { label: '1.0x Normal', val: 0.96, hint: 'Standard pacing' },
-                            { label: '1.2x Fast', val: 1.2, hint: 'Brisk pace' },
+                            { label: '0.75x', val: 0.75 },
+                            { label: '0.95x', val: 0.95 },
+                            { label: '1.25x', val: 1.25 },
+                            { label: '1.50x', val: 1.50 }
                           ].map((spd) => (
                             <button
                               key={spd.val}
                               onClick={() => handleChangeSpeechRate(spd.val)}
-                              className={`px-2 py-0.5 rounded-lg font-mono font-bold transition-all cursor-pointer ${
-                                Math.abs(speechRate - spd.val) < 0.08
-                                  ? 'bg-brand-charcoal text-white shadow-2xs'
-                                  : 'bg-white/80 hover:bg-white text-brand-slate border border-brand-slate/15'
+                              className={`px-1.5 py-0.5 rounded font-mono text-[9px] font-bold transition-all cursor-pointer ${
+                                Math.abs(speechRate - spd.val) < 0.04
+                                  ? 'bg-brand-charcoal text-white'
+                                  : 'bg-white hover:bg-brand-sand text-brand-slate border border-brand-slate/15'
                               }`}
-                              title={spd.hint}
                             >
                               {spd.label}
                             </button>
                           ))}
                         </div>
+                      </div>
 
-                        {/* Dialect Voice Selector */}
-                        <div className="flex items-center gap-1">
+                      {/* Dialect Voice Selector */}
+                      <div className="flex items-center justify-between gap-2 pt-0.5">
+                        <span className="font-mono text-brand-slate font-bold flex items-center gap-1">
                           <Languages className="w-3 h-3 text-brand-amber" />
-                          <select
-                            value={selectedTtsVoiceLang}
-                            onChange={(e) => {
-                              setSelectedTtsVoiceLang(e.target.value);
-                              playTone(480, 'sine', 0.05, 0.04);
-                            }}
-                            className="bg-white text-brand-charcoal font-bold text-[10px] rounded-lg border border-brand-slate/20 px-2 py-0.5 outline-none cursor-pointer"
-                          >
-                            <option value="en">English (US/UK)</option>
-                            <option value="hyd">Urdu / Hyderabadi</option>
-                            <option value="hi">Hindi (हिंदी)</option>
-                            <option value="te">Telugu (తెలుగు)</option>
-                          </select>
-                        </div>
+                          {lang === 'en' ? "Audio Dialect" : "Sabaq ki Zaban"}:
+                        </span>
+                        <select
+                          value={selectedTtsVoiceLang}
+                          onChange={(e) => {
+                            setSelectedTtsVoiceLang(e.target.value);
+                            playTone(480, 'sine', 0.05, 0.04);
+                          }}
+                          className="bg-white text-brand-charcoal font-bold text-[10px] rounded-lg border border-brand-slate/20 px-2 py-1 outline-none cursor-pointer"
+                        >
+                          <option value="en">English (US/UK)</option>
+                          <option value="hyd">Urdu / Hyderabadi</option>
+                          <option value="hi">Hindi (हिंदी)</option>
+                          <option value="te">Telugu (తెలుగు)</option>
+                        </select>
                       </div>
                     </motion.div>
                   )}

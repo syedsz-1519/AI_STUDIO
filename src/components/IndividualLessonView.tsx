@@ -21,13 +21,16 @@ import {
   HelpCircle,
   PlayCircle,
   Download,
-  FileText
+  FileText,
+  Trophy,
+  PartyPopper
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLanguage } from '../hooks/useLanguage';
 import { LESSON_MODULES, type LessonModule } from './HomeCurriculumGrid';
 import { streakManager } from '../lib/streakManager';
 import TakeawaysNotesExportModal from './TakeawaysNotesExportModal';
+import LessonCompletionCelebration from './LessonCompletionCelebration';
 
 // Import Section Subcomponents
 import WhatIsAI from './WhatIsAI';
@@ -135,6 +138,9 @@ export default function IndividualLessonView({
   const [scrollProgress, setScrollProgress] = useState<number>(0);
   const [isSubTopicMenuOpen, setIsSubTopicMenuOpen] = useState<boolean>(false);
   const [isExportModalOpen, setIsExportModalOpen] = useState<boolean>(false);
+  const [isCompleted, setIsCompleted] = useState<boolean>(() => streakManager.isLessonCompleted(lessonId));
+  const [isCelebrationOpen, setIsCelebrationOpen] = useState<boolean>(false);
+  const [streakState, setStreakState] = useState(() => streakManager.getStreakState());
   const contentRef = useRef<HTMLDivElement>(null);
   const recordedStreakRef = useRef<boolean>(false);
 
@@ -143,7 +149,19 @@ export default function IndividualLessonView({
     setActiveSubTopicId(subTopics[0]?.id || '');
     setScrollProgress(0);
     recordedStreakRef.current = false;
+    setIsCompleted(streakManager.isLessonCompleted(lessonId));
+    setStreakState(streakManager.getStreakState());
   }, [lessonId]);
+
+  // Mark completion handler with celebration animations
+  const handleToggleComplete = (manualTrigger: boolean = true) => {
+    const updated = streakManager.recordLessonCompletion(lessonId);
+    setIsCompleted(true);
+    setStreakState(updated);
+    if (manualTrigger) {
+      setIsCelebrationOpen(true);
+    }
+  };
 
   // ScrollSpy & Progress Calculation
   useEffect(() => {
@@ -158,7 +176,9 @@ export default function IndividualLessonView({
         // Record streak completion when student scrolls through 50%+ of lesson
         if (progress >= 50 && !recordedStreakRef.current) {
           recordedStreakRef.current = true;
-          streakManager.recordLessonCompletion(lessonId);
+          const updated = streakManager.recordLessonCompletion(lessonId);
+          setIsCompleted(true);
+          setStreakState(updated);
         }
       }
 
@@ -419,20 +439,47 @@ export default function IndividualLessonView({
                     </p>
                   </div>
 
-                  {/* Lesson Progress Badge */}
-                  <div className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white border border-brand-amber/30 shrink-0 shadow-xs">
-                    <span className="text-[10px] font-mono font-bold text-brand-muted uppercase">
-                      {lang === 'en' ? "Curriculum Progress" : "Course Progress"}
-                    </span>
-                    <span className="font-mono font-black text-2xl text-brand-amber mt-0.5">
-                      {currentModule.lessonNum} / {LESSON_MODULES.length}
-                    </span>
-                    <div className="w-24 h-1.5 bg-brand-slate/15 rounded-full mt-2 overflow-hidden">
-                      <div 
-                        className="h-full bg-brand-amber rounded-full transition-all duration-500"
-                        style={{ width: `${(currentModule.lessonNum / LESSON_MODULES.length) * 100}%` }}
-                      />
+                  {/* Lesson Progress Badge & Mark Complete CTA */}
+                  <div className="flex flex-row sm:flex-col items-stretch sm:items-center gap-2.5 shrink-0">
+                    <div className="flex flex-col items-center justify-center p-3.5 rounded-2xl bg-white border border-brand-amber/30 shrink-0 shadow-xs min-w-[130px]">
+                      <span className="text-[10px] font-mono font-bold text-brand-muted uppercase">
+                        {lang === 'en' ? "Curriculum Progress" : "Course Progress"}
+                      </span>
+                      <span className="font-mono font-black text-xl text-brand-amber mt-0.5">
+                        {currentModule.lessonNum} / {LESSON_MODULES.length}
+                      </span>
+                      <div className="w-24 h-1.5 bg-brand-slate/15 rounded-full mt-1.5 overflow-hidden">
+                        <div 
+                          className="h-full bg-brand-amber rounded-full transition-all duration-500"
+                          style={{ width: `${(currentModule.lessonNum / LESSON_MODULES.length) * 100}%` }}
+                        />
+                      </div>
                     </div>
+
+                    {/* Interactive Mark Complete Motion Button */}
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.96 }}
+                      onClick={() => handleToggleComplete(true)}
+                      className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer ${
+                        isCompleted 
+                          ? 'bg-emerald-500 hover:bg-emerald-600 text-white border border-emerald-600 shadow-emerald-500/20' 
+                          : 'bg-brand-charcoal hover:bg-black text-white'
+                      }`}
+                    >
+                      <motion.div
+                        initial={false}
+                        animate={{ scale: isCompleted ? [1, 1.3, 1] : 1 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        <CheckCircle2 className={`w-3.5 h-3.5 ${isCompleted ? 'text-white' : 'text-emerald-400'}`} />
+                      </motion.div>
+                      <span>
+                        {isCompleted 
+                          ? (lang === 'en' ? 'Completed ✓' : 'Mukammal ✓') 
+                          : (lang === 'en' ? 'Mark Completed' : 'Mukammal Karein')}
+                      </span>
+                    </motion.button>
                   </div>
                 </div>
 
@@ -608,6 +655,111 @@ export default function IndividualLessonView({
               )}
             </div>
 
+            {/* Interactive Lesson Completion Milestone Box with Progress Ring */}
+            <motion.div 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-white via-brand-sand/30 to-amber-500/5 border-2 border-brand-amber/30 shadow-md relative overflow-hidden"
+            >
+              <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex items-center gap-4 min-w-0">
+                  {/* Animated Circular Progress Ring Preview */}
+                  <div className="relative w-16 h-16 shrink-0 flex items-center justify-center">
+                    <svg className="w-16 h-16 rotate-[-90deg]">
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="25"
+                        stroke="#E5E7EB"
+                        strokeWidth="5"
+                        fill="transparent"
+                      />
+                      <circle
+                        cx="32"
+                        cy="32"
+                        r="25"
+                        stroke="#10B981"
+                        strokeWidth="5"
+                        fill="transparent"
+                        strokeDasharray={2 * Math.PI * 25}
+                        strokeDashoffset={isCompleted ? 0 : 2 * Math.PI * 25 * (1 - scrollProgress / 100)}
+                        strokeLinecap="round"
+                        className="transition-all duration-700"
+                      />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      {isCompleted ? (
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          className="text-emerald-600"
+                        >
+                          <CheckCircle2 className="w-7 h-7" />
+                        </motion.div>
+                      ) : (
+                        <span className="font-mono text-xs font-black text-brand-charcoal">
+                          {scrollProgress}%
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1 text-left">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-amber-500/15 text-brand-amber font-mono text-[10px] font-bold uppercase">
+                        Lesson 0{currentModule.lessonNum} Mastery
+                      </span>
+                      {isCompleted && (
+                        <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-700 font-mono text-[10px] font-bold flex items-center gap-1">
+                          <Sparkles className="w-3 h-3 text-emerald-600" />
+                          Mastered
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-display text-lg sm:text-xl font-black text-brand-charcoal">
+                      {isCompleted
+                        ? (lang === 'en' ? "Lesson Completed! 🎉" : "Sabaq Mukammal Hua! 🎉")
+                        : (lang === 'en' ? "Finished Reading this Lesson?" : "Kya aapne ye sabaq parh liya?")}
+                    </h3>
+                    <p className="text-xs text-brand-slate max-w-md">
+                      {isCompleted
+                        ? (lang === 'en' ? "Your streak has been boosted and your progress is securely saved." : "Aapka streak barh gaya hai aur progress save ho gayi hai.")
+                        : (lang === 'en' ? "Mark this lesson as completed to claim +50 XP and advance your daily streak." : "50 XP haasil karne aur streak barhane ke liye complete par click karein.")}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-3 shrink-0">
+                  <motion.button
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.96 }}
+                    onClick={() => handleToggleComplete(true)}
+                    className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm shadow-md transition-all cursor-pointer ${
+                      isCompleted
+                        ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/25'
+                        : 'bg-brand-charcoal hover:bg-black text-white shadow-brand-charcoal/20'
+                    }`}
+                  >
+                    <PartyPopper className={`w-4 h-4 ${isCompleted ? 'text-white' : 'text-brand-amber'}`} />
+                    <span>
+                      {isCompleted
+                        ? (lang === 'en' ? "Replay Celebration 🎉" : "Jashn Phir Se Dekhein 🎉")
+                        : (lang === 'en' ? "Mark Lesson as Completed ✓" : "Sabaq Mukammal Mark Karein ✓")}
+                    </span>
+                  </motion.button>
+
+                  <button
+                    onClick={() => setIsExportModalOpen(true)}
+                    className="flex items-center gap-1.5 px-4 py-3.5 rounded-2xl bg-white hover:bg-brand-sand border border-brand-slate/20 text-brand-charcoal text-xs font-bold transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5 text-brand-amber" />
+                    <span>{lang === 'en' ? "Export Takeaways" : "Notes Export"}</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+
             {/* Social Sharing Component at the End of Every Lesson */}
             <SocialShareSection currentChapterTitle={lang === 'en' ? currentModule.titleEn : currentModule.titleHyd} />
 
@@ -694,6 +846,44 @@ export default function IndividualLessonView({
                   className="h-full bg-brand-amber rounded-full transition-all duration-300"
                   style={{ width: `${scrollProgress}%` }}
                 />
+              </div>
+
+              {/* Quick Completion Action Card in Sidebar */}
+              <div className="p-3 rounded-2xl bg-brand-sand/40 border border-brand-slate/15 space-y-2">
+                <div className="flex items-center justify-between text-xs font-bold">
+                  <span className="text-brand-charcoal flex items-center gap-1.5">
+                    <Trophy className="w-3.5 h-3.5 text-brand-amber" />
+                    <span>{lang === 'en' ? "Lesson Status" : "Sabaq ki Halat"}</span>
+                  </span>
+                  {isCompleted ? (
+                    <span className="text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-700 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                      {lang === 'en' ? "Completed" : "Mukammal"}
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-mono font-bold bg-brand-slate/10 text-brand-muted px-2 py-0.5 rounded-md">
+                      {lang === 'en' ? "In Progress" : "Jari"}
+                    </span>
+                  )}
+                </div>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => handleToggleComplete(true)}
+                  className={`w-full flex items-center justify-center gap-2 py-2 px-3 rounded-xl font-bold text-xs transition-all cursor-pointer ${
+                    isCompleted 
+                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
+                      : 'bg-brand-charcoal text-white hover:bg-black shadow-xs'
+                  }`}
+                >
+                  <PartyPopper className={`w-3.5 h-3.5 ${isCompleted ? 'text-emerald-600' : 'text-brand-amber'}`} />
+                  <span>
+                    {isCompleted 
+                      ? (lang === 'en' ? "View Celebration 🎉" : "Jashn Manayein") 
+                      : (lang === 'en' ? "Complete (+50 XP)" : "Mukammal Karein")}
+                  </span>
+                </motion.button>
               </div>
 
               {/* Step-by-Step Subtopics List */}
@@ -795,6 +985,21 @@ export default function IndividualLessonView({
         isOpen={isExportModalOpen}
         onClose={() => setIsExportModalOpen(false)}
         initialLessonId={lessonId}
+      />
+
+      {/* Lesson Completion Celebration Modal & Confetti Ring */}
+      <LessonCompletionCelebration
+        isOpen={isCelebrationOpen}
+        onClose={() => setIsCelebrationOpen(false)}
+        lesson={currentModule}
+        nextLesson={nextModule}
+        onNextLesson={() => {
+          if (nextModule) {
+            onSelectLesson(nextModule.id);
+          }
+        }}
+        onExportNotes={() => setIsExportModalOpen(true)}
+        streakCount={streakState.currentStreak}
       />
     </div>
   );

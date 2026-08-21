@@ -236,7 +236,7 @@ export default function Hero() {
           </div>
           <div className="flex items-center gap-1.5 bg-white/90 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-slate-200 shadow-2xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>{lang === 'en' ? "3-Language support (EN / HYD / TEL)" : lang === 'te' ? "3 భాషల మద్దతు (EN / HYD / TEL)" : "3 Zabaano mein support"}</span>
+            <span>{lang === 'en' ? "25+ Indian Languages" : lang === 'te' ? "25+ భారతీయ భాషల మద్దతు" : "25+ Zabaano mein support"}</span>
           </div>
         </motion.div>
 

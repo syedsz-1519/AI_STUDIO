@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   User, 
@@ -39,7 +39,11 @@ import {
   HardDrive,
   Check,
   RefreshCw,
-  Edit3
+  Edit3,
+  Users,
+  Compass,
+  Lightbulb,
+  AlertCircle
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MockInterviewRecord, MockInterviewDraft } from '../types';
@@ -49,6 +53,7 @@ import InterviewPerformanceChart from './InterviewPerformanceChart';
 import InterviewReportModal from './InterviewReportModal';
 import PracticeReminderModal from './PracticeReminderModal';
 import TakeawaysNotesExportModal from './TakeawaysNotesExportModal';
+import StudyGroupsSection from './StudyGroupsSection';
 import { streakManager, type DailyStreakState } from '../lib/streakManager';
 import { offlineLessonCache, type OfflineCacheStats } from '../lib/offlineLessonCache';
 import { getStudentKnowledgeNotes } from '../lib/notesExporter';
@@ -87,6 +92,9 @@ export default function StudentDashboard({
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [isExportNotesModalOpen, setIsExportNotesModalOpen] = useState(false);
 
+  // Active Dashboard Tab ('overview' | 'study-groups')
+  const [activeTab, setActiveTab] = useState<'overview' | 'study-groups'>('overview');
+
   // Daily Streak State
   const [streakState, setStreakState] = useState<DailyStreakState>(() => streakManager.getStreakState());
   const [streakCelebrate, setStreakCelebrate] = useState(false);
@@ -100,6 +108,104 @@ export default function StudentDashboard({
   const [savedNotesCount, setSavedNotesCount] = useState<number>(() => {
     return Object.keys(getStudentKnowledgeNotes()).length;
   });
+
+  // Calculate intelligent 'Recommended Next Step' based on progress & quiz performance
+  const recommendedNextStep = useMemo(() => {
+    // 1. Check for active Knowledge Gaps
+    const gapSections = [
+      { key: 'basics', lessonId: 'what-is-ai', title: 'ML vs Deterministic Rules', time: '2 min drill' },
+      { key: 'family-tree', lessonId: 'family-tree', title: 'Self-Attention vs RNNs', time: '2 min drill' },
+      { key: 'prompting-rag', lessonId: 'prompting-rag', title: 'RAG vs Model Fine-Tuning', time: '2 min drill' },
+      { key: 'deeper', lessonId: 'deeper', title: 'AI Alignment & Safety Guardrails', time: '2 min drill' }
+    ];
+
+    for (const gap of gapSections) {
+      const isChecked = localStorage.getItem(`mini_quiz_${gap.key}_checked`) === 'true';
+      const isCorrect = localStorage.getItem(`mini_quiz_${gap.key}_correct`) === 'true';
+      const isResolved = localStorage.getItem(`clay_gap_resolved_${gap.key}`) === 'true';
+
+      if (isChecked && !isCorrect && !isResolved) {
+        return {
+          type: 'gap' as const,
+          badge: 'DIAGNOSTIC KNOWLEDGE GAP',
+          badgeColor: 'bg-amber-500/20 text-amber-900 border-amber-500/40',
+          title: `Resolve Concept Gap: ${gap.title}`,
+          reason: 'Identified a misconception in your recent knowledge check. Clear this gap to claim +25 Scholar XP.',
+          estimatedTime: gap.time,
+          ctaText: 'Launch Diagnostic Drill',
+          onAction: () => onNavigateSection(gap.lessonId)
+        };
+      }
+    }
+
+    // 2. Check for active interview draft
+    if (activeDraft && activeDraft.questions && activeDraft.questions.length > 0) {
+      return {
+        type: 'interview-draft' as const,
+        badge: 'UNFINISHED SESSION',
+        badgeColor: 'bg-amber-500/20 text-amber-900 border-amber-500/40',
+        title: 'Resume Interrupted AI Mock Interview',
+        reason: `Question ${activeDraft.currentQuestionIndex + 1} of ${activeDraft.questions.length} is saved and ready to continue.`,
+        estimatedTime: '5 mins remaining',
+        ctaText: 'Resume Interview Now',
+        onAction: onStartInterview
+      };
+    }
+
+    // 3. Check sequential lesson curriculum progress
+    const coreLessons = [
+      { id: 'what-is-ai', title: 'What is AI? Foundations & Analogies', time: '4 mins' },
+      { id: 'family-tree', title: 'AI & ML Family Tree & Synapses', time: '4 mins' },
+      { id: 'generative-ai', title: 'Generative AI & Attention Mechanisms', time: '5 mins' },
+      { id: 'prompting-rag', title: 'Prompt Engineering & RAG Retrieval', time: '6 mins' },
+      { id: 'tools', title: 'Curated AI Software Directory', time: '3 mins' },
+      { id: 'deeper', title: '12 Core Concepts & Comprehensive Glossary', time: '5 mins' },
+      { id: 'flashcards', title: 'Spaced Repetition Flashcard Deck', time: '3 mins' },
+      { id: 'classroom-hub', title: 'Classroom Coursework Hub & Badges', time: '4 mins' },
+      { id: 'arena', title: 'AI Championship Arena Challenge', time: '3 mins' }
+    ];
+
+    for (const lesson of coreLessons) {
+      if (!streakManager.isLessonCompleted(lesson.id)) {
+        return {
+          type: 'lesson' as const,
+          badge: 'RECOMMENDED NEXT LESSON',
+          badgeColor: 'bg-brand-amber/20 text-brand-amber-dark border-brand-amber/40',
+          title: `Next Up: ${lesson.title}`,
+          reason: 'Continue building your foundational AI understanding step-by-step and maintain your learning streak.',
+          estimatedTime: lesson.time,
+          ctaText: 'Start Lesson',
+          onAction: () => onNavigateSection(lesson.id)
+        };
+      }
+    }
+
+    // 4. If all lessons completed, check if interview was attempted
+    if (interviewHistory.length === 0) {
+      return {
+        type: 'interview' as const,
+        badge: 'MILESTONE ASSESSMENT',
+        badgeColor: 'bg-purple-500/20 text-purple-900 border-purple-500/40',
+        title: 'Attempt AI Mock Interview with Live Camera Tracking',
+        reason: 'You have completed the core curriculum! Put your knowledge to the test under real technical interview simulation.',
+        estimatedTime: '8 mins',
+        ctaText: 'Start First Interview',
+        onAction: onStartInterview
+      };
+    }
+
+    // 5. Default: Join or Lead a Study Group Cohort
+    return {
+      type: 'study-group' as const,
+      badge: 'PEER COLLABORATION',
+      badgeColor: 'bg-emerald-500/20 text-emerald-900 border-emerald-500/40',
+      title: 'Join or Host a Curriculum Study Group',
+      reason: 'Connect with fellow scholars studying advanced transformer optimizations, RAG, and prompt techniques.',
+      estimatedTime: 'Live Discussion',
+      ctaText: 'Explore Study Groups',
+      onAction: () => setActiveTab('study-groups')
+    };
+  }, [activeDraft, interviewHistory.length, onNavigateSection, onStartInterview]);
 
   // Sync user and mock interview records
   useEffect(() => {
@@ -357,6 +463,116 @@ export default function StudentDashboard({
             </div>
           </div>
         </div>
+
+        {/* ========================================================================= */}
+        {/* INTELLIGENT 'RECOMMENDED NEXT STEP' ACTION CARD */}
+        {/* ========================================================================= */}
+        {recommendedNextStep && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -2, boxShadow: "0 12px 30px -5px rgba(217, 119, 6, 0.12)" }}
+            className="bg-gradient-to-r from-amber-500/15 via-white to-orange-500/10 border-2 border-brand-amber/40 rounded-3xl p-5 sm:p-6 flex flex-col md:flex-row md:items-center justify-between gap-5 shadow-xs relative overflow-hidden"
+          >
+            <div className="absolute -right-8 -bottom-8 w-40 h-40 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+            <div className="flex items-start gap-4 z-10">
+              <div className="p-3 bg-brand-amber text-white rounded-2xl shadow-sm shrink-0 mt-0.5">
+                {recommendedNextStep.type === 'gap' ? (
+                  <Brain className="w-6 h-6 animate-pulse" />
+                ) : recommendedNextStep.type === 'interview' || recommendedNextStep.type === 'interview-draft' ? (
+                  <Video className="w-6 h-6 animate-pulse" />
+                ) : recommendedNextStep.type === 'study-group' ? (
+                  <Users className="w-6 h-6" />
+                ) : (
+                  <Compass className="w-6 h-6" />
+                )}
+              </div>
+
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-mono font-black border uppercase tracking-wider ${recommendedNextStep.badgeColor}`}>
+                    {recommendedNextStep.badge}
+                  </span>
+                  <span className="text-[11px] font-mono font-bold text-brand-muted flex items-center gap-1">
+                    <Clock className="w-3 h-3 text-amber-600" />
+                    <span>{recommendedNextStep.estimatedTime}</span>
+                  </span>
+                </div>
+
+                <h3 className="font-display text-base sm:text-lg font-black text-brand-charcoal">
+                  {recommendedNextStep.title}
+                </h3>
+                <p className="text-xs text-brand-slate leading-relaxed max-w-2xl">
+                  {recommendedNextStep.reason}
+                </p>
+              </div>
+            </div>
+
+            <div className="z-10 shrink-0 self-end md:self-center">
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={recommendedNextStep.onAction}
+                className="px-5 py-3 rounded-2xl bg-brand-charcoal hover:bg-black text-white font-mono text-xs font-black tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+              >
+                <span>{recommendedNextStep.ctaText}</span>
+                <ArrowRight className="w-4 h-4 text-brand-amber" />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* DASHBOARD TAB NAVIGATION BAR */}
+        {/* ========================================================================= */}
+        <div className="flex items-center gap-2 p-1.5 bg-white/80 backdrop-blur-xs border border-brand-slate/15 rounded-2xl shadow-2xs w-fit">
+          <button
+            onClick={() => setActiveTab('overview')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+              activeTab === 'overview'
+                ? 'bg-brand-charcoal text-white shadow-xs'
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50'
+            }`}
+          >
+            <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
+            <span>{lang === 'en' ? "OVERVIEW & ANALYTICS" : "OVERVIEW & STATS"}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('study-groups')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+              activeTab === 'study-groups'
+                ? 'bg-brand-charcoal text-white shadow-xs'
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50'
+            }`}
+          >
+            <Users className="w-3.5 h-3.5 text-amber-400" />
+            <span>{lang === 'en' ? "STUDY GROUPS COHORTS" : "STUDY GROUPS"}</span>
+            <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-800 text-[9px] font-mono font-black rounded-full">
+              LIVE
+            </span>
+          </button>
+        </div>
+
+        {/* ========================================================================= */}
+        {/* TAB 2: STUDY GROUPS SECTION */}
+        {/* ========================================================================= */}
+        {activeTab === 'study-groups' && (
+          <StudyGroupsSection
+            currentUser={currentUser}
+            onOpenAuth={onOpenAuth}
+            onSelectTopic={(topicId) => {
+              onNavigateSection('what-is-ai');
+            }}
+          />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 1: OVERVIEW & ANALYTICS CONTENT */}
+        {/* ========================================================================= */}
+        {activeTab === 'overview' && (
+          <div className="space-y-6">
 
         {/* ========================================================================= */}
         {/* ACTIVE DRAFT RESUME ALERT BANNER (If Mock Interview in progress) */}
@@ -1031,6 +1247,9 @@ export default function StudentDashboard({
 
           </div>
         </div>
+
+          </div>
+        )}
 
       </div>
 

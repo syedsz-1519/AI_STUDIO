@@ -12,41 +12,66 @@ import {
   School, 
   Layers, 
   Compass,
-  Info
+  Info,
+  CheckCircle2
 } from 'lucide-react';
 
-interface IndianLanguageItem {
+export interface IndianLanguageItem {
   code: string;
   name: string;
   nativeName: string;
   script: string;
   region: string;
   category: 'live' | 'southern' | 'northern' | 'classical_tribal';
-  status: 'LIVE' | 'BETA' | 'SCHEDULED';
+  status: 'LIVE' | 'BETA';
   tag: string;
   welcomePhrase: string;
   description: string;
 }
 
-const INDIAN_LANGUAGES: IndianLanguageItem[] = [
-  // 1. LIVE & ACTIVE
+export const ALL_INDIAN_LANGUAGES: IndianLanguageItem[] = [
+  // 1. POPULAR & COLLOQUIAL ROMANIZED HYBRIDS
   {
-    code: 'en',
-    name: 'English',
-    nativeName: 'English (Original)',
-    script: 'Latin',
-    region: 'Global / Standard',
+    code: 'hinglish',
+    name: 'Hinglish',
+    nativeName: 'हिंग्लिश / Hinglish',
+    script: 'Latin / Roman Script',
+    region: 'Pan-India Urban Youth & Tech Ecosystem',
     category: 'live',
     status: 'LIVE',
-    tag: 'EN',
-    welcomePhrase: 'Welcome to Clayverse AI! AI explained simply.',
-    description: 'Complete 9-chapter interactive curriculum with audio & simulations.'
+    tag: 'H-ENG',
+    welcomePhrase: 'Namaste dosto! AI seekhna ab super easy aur fun hai.',
+    description: 'Conversational Hindi in Roman script — perfect for modern digital learners.'
+  },
+  {
+    code: 'thanglish',
+    name: 'Thanglish',
+    nativeName: 'தங்லீஷ் / Thanglish',
+    script: 'Latin / Roman Script',
+    region: 'Tamil Nadu & Tech Community',
+    category: 'southern',
+    status: 'LIVE',
+    tag: 'T-ENG',
+    welcomePhrase: 'Vanakkam friends! AI-ah romba simple-ah purinjikalam.',
+    description: 'Colloquial Tamil in Roman script — beginner-friendly visual explanations.'
+  },
+  {
+    code: 'roman_ur',
+    name: 'Roman Urdu',
+    nativeName: 'Roman Urdu / رومن اردو',
+    script: 'Latin / Roman Script',
+    region: 'Pan-India & South Asian Outreach',
+    category: 'live',
+    status: 'LIVE',
+    tag: 'R-URD',
+    welcomePhrase: 'Khushamdeed dosto! AI samajhna ab bilkul aasan hai.',
+    description: 'Clear conversational Urdu written in easy Roman English alphabets.'
   },
   {
     code: 'hyd',
     name: 'Hyderabadi Urdu',
     nativeName: 'دکنی اردو / హైదరాబాదీ',
-    script: 'Perso-Arabic / Telugu',
+    script: 'Perso-Arabic / Latin',
     region: 'Telangana, Deccan & Madrasa Outreach',
     category: 'live',
     status: 'LIVE',
@@ -55,74 +80,24 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
     description: 'Grassroots Deccani idiom & Madrasa outreach edition — zero math jargon.'
   },
   {
-    code: 'te',
-    name: 'Telugu',
-    nativeName: 'తెలుగు',
-    script: 'తెలుగు లిపి',
-    region: 'Andhra Pradesh & Telangana',
-    category: 'southern',
+    code: 'en',
+    name: 'English',
+    nativeName: 'English (Standard)',
+    script: 'Latin',
+    region: 'Global / Standard',
+    category: 'live',
     status: 'LIVE',
-    tag: 'TEL',
-    welcomePhrase: 'స్వాగతం! AI ని మీ మాతృభాషలో సులభంగా నేర్చుకోండి.',
-    description: 'Full South-Central Dravidian localization across all core lessons.'
+    tag: 'ENG',
+    welcomePhrase: 'Welcome to Clayverse AI! AI explained simply.',
+    description: 'Complete 9-chapter interactive curriculum with audio & simulations.'
   },
 
-  // 2. SOUTHERN (DRAVIDIAN)
-  {
-    code: 'ta',
-    name: 'Tamil',
-    nativeName: 'தமிழ்',
-    script: 'தமிழ் வரிவடிவம்',
-    region: 'Tamil Nadu & Puducherry',
-    category: 'southern',
-    status: 'BETA',
-    tag: 'TAM',
-    welcomePhrase: 'வணக்கம்! செயற்கை நுண்ணறிவை எளிய முறையில் கற்றுக்கொள்ளுங்கள்.',
-    description: 'Dravidian classical lineage — regional AI glossary in preview.'
-  },
-  {
-    code: 'kn',
-    name: 'Kannada',
-    nativeName: 'ಕನ್ನಡ',
-    script: 'ಕನ್ನಡ ಲಿಪಿ',
-    region: 'Karnataka',
-    category: 'southern',
-    status: 'BETA',
-    tag: 'KAN',
-    welcomePhrase: 'ನಮಸ್ಕಾರ! ಕೃತಕ ಬುದ್ಧಿಮತ್ತೆಯನ್ನು ಸುಲಭವಾಗಿ ಕಲಿಯಿರಿ.',
-    description: 'Karnataka tech hub vernacular outreach edition in active testing.'
-  },
-  {
-    code: 'ml',
-    name: 'Malayalam',
-    nativeName: 'മലയാളം',
-    script: 'മലയാള ലിപി',
-    region: 'Kerala & Lakshadweep',
-    category: 'southern',
-    status: 'BETA',
-    tag: 'MAL',
-    welcomePhrase: 'നമസ്കാരം! എഐ ലളിതമായി പഠിക്കാം.',
-    description: 'High-literacy digital vernacular curriculum in progress.'
-  },
-  {
-    code: 'tcy',
-    name: 'Tulu',
-    nativeName: 'ತುಳು (Tulu)',
-    script: 'ಕನ್ನಡ / ತುಳು లిಪಿ',
-    region: 'Coastal Karnataka & Northern Kerala',
-    category: 'southern',
-    status: 'SCHEDULED',
-    tag: 'TUL',
-    welcomePhrase: 'ಸೊಲ್ಮೆಲು! AI ಕಲ್ಪನೆನ್ ಸುಲಭವಾದ್ ತೆರಿಯೊನ್ಲೆ.',
-    description: 'Coastal Dravidian heritage dialect assistance.'
-  },
-
-  // 3. NORTHERN & CENTRAL (INDO-ARYAN)
+  // 2. MAJOR CONSTITUTIONAL & REGIONAL LANGUAGES
   {
     code: 'hi',
     name: 'Hindi',
     nativeName: 'हिन्दी',
-    script: 'देवनागरी',
+    script: 'देवनागरी (Devanagari)',
     region: 'Pan-Northern & Central India',
     category: 'northern',
     status: 'LIVE',
@@ -131,85 +106,133 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
     description: 'Standard Devanagari edition with active vernacular glossary.'
   },
   {
-    code: 'ur',
-    name: 'Urdu (Fusha / Classical)',
-    nativeName: 'اردو (فصیح)',
-    script: 'نستعلیق',
-    region: 'Pan-India & Madrasa Academic Curricula',
-    category: 'northern',
-    status: 'LIVE',
-    tag: 'URD',
-    welcomePhrase: 'خوش آمدید! مصنوعی ذہانت کو آسان اور عام فہم انداز میں سیکھیں۔',
-    description: 'Madrasa and academic Urdu edition for religious scholars and students.'
-  },
-  {
     code: 'bn',
     name: 'Bengali',
     nativeName: 'বাংলা',
-    script: 'বাংলা লিপি',
-    region: 'West Bengal & Tripura',
+    script: 'বাংলা লিপি (Bengali)',
+    region: 'West Bengal, Tripura & Assam',
     category: 'northern',
-    status: 'BETA',
+    status: 'LIVE',
     tag: 'BEN',
     welcomePhrase: 'স্বাগতম! কৃত্রিম বুদ্ধিমত্তা সহজভাবে শিখুন।',
     description: 'Eastern Indo-Aryan core curriculum in translation.'
   },
   {
+    code: 'te',
+    name: 'Telugu',
+    nativeName: 'తెలుగు',
+    script: 'తెలుగు లిపి (Telugu)',
+    region: 'Andhra Pradesh & Telangana',
+    category: 'southern',
+    status: 'LIVE',
+    tag: 'TEL',
+    welcomePhrase: 'స్వాగతం! AI ని మీ మాతృభాషలో సులభంగా నేర్చుకోండి.',
+    description: 'Full South-Central Dravidian localization across all core lessons.'
+  },
+  {
     code: 'mr',
     name: 'Marathi',
     nativeName: 'मराठी',
-    script: 'देवनागरी (मोडी)',
+    script: 'देवनागरी (Devanagari)',
     region: 'Maharashtra & Goa',
     category: 'northern',
-    status: 'BETA',
+    status: 'LIVE',
     tag: 'MAR',
     welcomePhrase: 'नमस्कार! कृत्रिम बुद्धिमत्ता सोप्या भाषेत शिका.',
     description: 'Maharashtra grassroots schools and colleges vernacular edition.'
   },
   {
+    code: 'ta',
+    name: 'Tamil',
+    nativeName: 'தமிழ்',
+    script: 'தமிழ் வரிவடிவம் (Tamil)',
+    region: 'Tamil Nadu & Puducherry',
+    category: 'southern',
+    status: 'LIVE',
+    tag: 'TAM',
+    welcomePhrase: 'வணக்கம்! செயற்கை நுண்ணறிவை எளிய முறையில் கற்றுக்கொள்ளுங்கள்.',
+    description: 'Dravidian classical lineage — regional AI glossary and terms.'
+  },
+  {
+    code: 'ur',
+    name: 'Urdu (Fusha / Classical)',
+    nativeName: 'اردو (فصیح)',
+    script: 'نستعلیق (Nastaliq)',
+    region: 'Pan-India & Madrasa Academic Curricula',
+    category: 'northern',
+    status: 'LIVE',
+    tag: 'URD',
+    welcomePhrase: 'خوش آمدید! مصنوعی ذہانت کو آسان اور عام فہم انداز میں سیکھیں۔',
+    description: 'Madrasa and academic Urdu edition for scholars and students.'
+  },
+  {
     code: 'gu',
     name: 'Gujarati',
     nativeName: 'ગુજરાતી',
-    script: 'ગુજરાતી લિપિ',
-    region: 'Gujarat & Dadra and Nagar Haveli',
+    script: 'ગુજરાતી લિપિ (Gujarati)',
+    region: 'Gujarat & Western India',
     category: 'northern',
-    status: 'BETA',
+    status: 'LIVE',
     tag: 'GUJ',
     welcomePhrase: 'નમસ્તે! આર્ટિફિશિયલ ઇન્ટેલિજન્સ સરળ રીતે શીખો.',
     description: 'Western entrepreneurial and regional learning modules.'
   },
   {
-    code: 'pa',
-    name: 'Punjabi',
-    nativeName: 'ਪੰਜਾਬੀ / پنجابی',
-    script: 'Gurmukhi / Shahmukhi',
-    region: 'Punjab & Chandigarh',
-    category: 'northern',
-    status: 'BETA',
-    tag: 'PAN',
-    welcomePhrase: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! AI ਨੂੰ ਬਿਲਕੁਲ ਆਸਾਨੀ ਨਾਲ ਸਿੱਖੋ।',
-    description: 'North-Western vernacular outreach edition.'
+    code: 'kn',
+    name: 'Kannada',
+    nativeName: 'ಕನ್ನಡ',
+    script: 'ಕನ್ನಡ ಲಿಪಿ (Kannada)',
+    region: 'Karnataka',
+    category: 'southern',
+    status: 'LIVE',
+    tag: 'KAN',
+    welcomePhrase: 'ನಮಸ್ಕಾರ! ಕೃತಕ ಬುದ್ಧಿಮತ್ತೆಯನ್ನು ಸುಲಭವಾಗಿ ಕಲಿಯಿರಿ.',
+    description: 'Karnataka tech hub vernacular outreach edition in active learning.'
   },
   {
     code: 'or',
     name: 'Odia',
     nativeName: 'ଓଡ଼ିଆ',
-    script: 'ଓଡ଼ିଆ ଲିପି',
+    script: 'ଓଡ଼ିଆ ଲିପି (Odia)',
     region: 'Odisha',
     category: 'northern',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'ODI',
-    welcomePhrase: 'ନମସ୍କାର! କୃତ୍ରିମ ବୁଦ୍ଧିମତ୍ତା ସହଜରେ ଶିଖନ୍ତୁ |',
+    welcomePhrase: 'ନମସ୍କାର! କୃତ୍ରିମ ବୁଦ୍ଧିମତ୍ତା ସହଜରେ ଶିଖନ୍ତୁ।',
     description: 'Eastern coastal classical language support.'
+  },
+  {
+    code: 'ml',
+    name: 'Malayalam',
+    nativeName: 'മലയാളം',
+    script: 'മലയാള ലിപി (Malayalam)',
+    region: 'Kerala & Lakshadweep',
+    category: 'southern',
+    status: 'LIVE',
+    tag: 'MAL',
+    welcomePhrase: 'നമസ്കാരം! എഐ ലളിതമായി പഠിക്കാം.',
+    description: 'High-literacy digital vernacular curriculum.'
+  },
+  {
+    code: 'pa',
+    name: 'Punjabi',
+    nativeName: 'ਪੰਜਾਬੀ',
+    script: 'ਗੁਰਮੁਖੀ (Gurmukhi)',
+    region: 'Punjab & Northern India',
+    category: 'northern',
+    status: 'LIVE',
+    tag: 'PAN',
+    welcomePhrase: 'ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ! AI ਨੂੰ ਬਿਲਕੁਲ ਆਸਾਨੀ ਨਾਲ ਸਿੱਖੋ।',
+    description: 'North-Western vernacular outreach edition.'
   },
   {
     code: 'as',
     name: 'Assamese',
     nativeName: 'অসমীয়া',
-    script: 'অসমীয়া লিপি',
+    script: 'অসমীয়া লিপি (Assamese)',
     region: 'Assam & Brahmaputra Valley',
     category: 'northern',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'ASM',
     welcomePhrase: 'নমস্কাৰ! সহজ ভাষাত কৃত্ৰিম বুদ্ধিমত্তা শিকক।',
     description: 'North-East regional valley student outreach.'
@@ -217,14 +240,28 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
   {
     code: 'mai',
     name: 'Maithili',
-    nativeName: 'मैथिली (মৈথিলী)',
-    script: 'Tirhuta / Devanagari',
+    nativeName: 'मैथिली',
+    script: 'तिरहुता / देवनागरी',
     region: 'Bihar & Mithila Region',
     category: 'northern',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'MAI',
     welcomePhrase: 'प्रणाम! आसानी सँ AI सीखू।',
     description: 'Mithila cultural region grassroots support.'
+  },
+
+  // 3. CLASSICAL, TRIBAL & HIMALAYAN
+  {
+    code: 'sa',
+    name: 'Sanskrit',
+    nativeName: 'संस्कृतम्',
+    script: 'देवनागरी (Devanagari)',
+    region: 'Pan-Indian Classical & Computational Linguistics',
+    category: 'classical_tribal',
+    status: 'LIVE',
+    tag: 'SAN',
+    welcomePhrase: 'नमस्ते! कृत्रिमबुद्धेः तत्वानि सरलतया अवगच्छन्तु।',
+    description: 'Ancient computational linguistics & algorithmic roots.'
   },
   {
     code: 'ks',
@@ -233,10 +270,22 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
     script: 'Perso-Arabic / Devanagari',
     region: 'Jammu & Kashmir',
     category: 'northern',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'KAS',
     welcomePhrase: 'آداب! AI ہیکیو آسانی سان ہیچھتھ۔',
     description: 'Valley youth digital skills enablement.'
+  },
+  {
+    code: 'kok',
+    name: 'Konkani',
+    nativeName: 'कोंकणी (ಕೊಂಕಣಿ)',
+    script: 'Devanagari / Romi',
+    region: 'Goa & Konkan Coastal Belt',
+    category: 'southern',
+    status: 'LIVE',
+    tag: 'KOK',
+    welcomePhrase: 'नमस्कार! सोप्या भाशेंत AI शिका.',
+    description: 'Konkan belt student localization.'
   },
   {
     code: 'sd',
@@ -245,22 +294,10 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
     script: 'Khudabadi / Perso-Arabic',
     region: 'Sindhi Community & Western India',
     category: 'northern',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'SND',
     welcomePhrase: 'نمسڪار! آساني سان AI سکو.',
     description: 'Heritage language educational translation.'
-  },
-  {
-    code: 'kok',
-    name: 'Konkani',
-    nativeName: 'कोंकणी (ಕೊಂಕಣಿ)',
-    script: 'Devanagari / Romi / Kannada',
-    region: 'Goa & Konkan Coastal Belt',
-    category: 'northern',
-    status: 'SCHEDULED',
-    tag: 'KOK',
-    welcomePhrase: 'नमस्कार! सोप्या भाशेंत AI शिका.',
-    description: 'Konkan belt student localization.'
   },
   {
     code: 'doi',
@@ -269,33 +306,19 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
     script: 'Devanagari / Takri',
     region: 'Jammu & Himachal Pradesh',
     category: 'northern',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'DOG',
     welcomePhrase: 'नमस्ते! डोगरी च AI सीक्खो।',
     description: 'Duggar region student outreach.'
   },
-
-  // 4. CLASSICAL, TRIBAL & NORTH-EAST
-  {
-    code: 'sa',
-    name: 'Sanskrit',
-    nativeName: 'संस्कृतम्',
-    script: 'देवनागरी',
-    region: 'Pan-Indian Classical & Computational Linguistics',
-    category: 'classical_tribal',
-    status: 'BETA',
-    tag: 'SAN',
-    welcomePhrase: 'नमस्ते! कृत्रिमबुद्धेः तत्वानि सरलतया अवगच्छन्तु।',
-    description: 'Ancient computational linguistics & algorithmic roots.'
-  },
   {
     code: 'sat',
     name: 'Santali',
-    nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ (Ol Chiki)',
+    nativeName: 'ᱥᱟᱱᱛᱟᱲᱤ (Santali)',
     script: 'Ol Chiki (ᱚᱞ ᱪᱤᱠᱤ)',
-    region: 'Jharkhand, Odisha & West Bengal Tribal Belt',
+    region: 'Jharkhand, Odisha & Tribal Belt',
     category: 'classical_tribal',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'SAT',
     welcomePhrase: 'ᱡᱚᱦᱟᱨ! ᱟᱞᱜᱟᱛᱮ AI ᱪᱮᱫᱚᱜ ᱢᱮ।',
     description: 'Empowering tribal youth with first-class AI education.'
@@ -303,11 +326,11 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
   {
     code: 'mni',
     name: 'Manipuri / Meitei',
-    nativeName: 'ꯃꯤꯇꯩꯂꯣꯟ (Meitei Mayek)',
-    script: 'Meitei Mayek / Bengali',
+    nativeName: 'ꯃꯤꯇꯩꯂꯣꯟ (Manipuri)',
+    script: 'Meitei Mayek (ꯃꯤꯇꯩ ꯃꯌꯦꯛ)',
     region: 'Manipur & North-East',
     category: 'classical_tribal',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'MNI',
     welcomePhrase: 'ꯈꯨꯔꯨꯃꯖꯔꯤ! AI ꯂꯥꯏꯅ ꯇꯝꯃꯨ।',
     description: 'North-Eastern indigenous script digital inclusion.'
@@ -319,7 +342,7 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
     script: 'Devanagari',
     region: 'Bodoland & Assam',
     category: 'classical_tribal',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'BOD',
     welcomePhrase: 'खुलुमबाय! गोरलैयैनो AI सोलों।',
     description: 'Bodoland grassroots community inclusion.'
@@ -331,10 +354,22 @@ const INDIAN_LANGUAGES: IndianLanguageItem[] = [
     script: 'देवनागरी',
     region: 'Sikkim, Darjeeling & Himalayan Belt',
     category: 'classical_tribal',
-    status: 'SCHEDULED',
+    status: 'LIVE',
     tag: 'NEP',
     welcomePhrase: 'नमस्ते! सजिलैसँग AI सिक्नुहोस्।',
     description: 'Himalayan and North-Eastern student outreach.'
+  },
+  {
+    code: 'tcy',
+    name: 'Tulu',
+    nativeName: 'ತುಳು (Tulu)',
+    script: 'ಕನ್ನಡ / ತುಳು లిపి',
+    region: 'Coastal Karnataka & Northern Kerala',
+    category: 'southern',
+    status: 'LIVE',
+    tag: 'TUL',
+    welcomePhrase: 'ಸೊಲ್ಮೆಲು! AI ಕಲ್ಪನೆನ್ ಸುಲಭವಾದ್ ತೆರಿಯೊನ್ಲೆ.',
+    description: 'Coastal Dravidian heritage dialect assistance.'
   }
 ];
 
@@ -347,37 +382,33 @@ export default function FloatingLanguageBubble() {
 
   // Filter languages based on search and selected category
   const filteredLanguages = useMemo(() => {
-    return INDIAN_LANGUAGES.filter((item) => {
+    return ALL_INDIAN_LANGUAGES.filter((item) => {
+      const q = searchQuery.toLowerCase().trim();
       const matchesSearch = 
-        item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.nativeName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        item.tag.toLowerCase().includes(searchQuery.toLowerCase());
+        !q ||
+        item.name.toLowerCase().includes(q) ||
+        item.nativeName.toLowerCase().includes(q) ||
+        item.region.toLowerCase().includes(q) ||
+        item.script.toLowerCase().includes(q) ||
+        item.code.toLowerCase().includes(q) ||
+        item.tag.toLowerCase().includes(q);
 
       const matchesCategory = 
         activeCategory === 'all' || 
-        (activeCategory === 'live' && (item.category === 'live' || item.code === 'te' || item.code === 'hi' || item.code === 'ur')) ||
+        (activeCategory === 'live' && (item.category === 'live' || ['hi', 'te', 'bn', 'ta', 'mr', 'ur', 'hinglish', 'thanglish', 'roman_ur', 'hyd', 'en'].includes(item.code))) ||
         item.category === activeCategory;
 
       return matchesSearch && matchesCategory;
     });
   }, [searchQuery, activeCategory]);
 
+  const activeLanguageItem = useMemo(() => {
+    return ALL_INDIAN_LANGUAGES.find(item => item.code === lang) || ALL_INDIAN_LANGUAGES[0];
+  }, [lang]);
+
   const handleLanguageSelect = (item: IndianLanguageItem) => {
-    // If it's en, hyd, te, hi, ur, switch directly
-    if (item.code === 'en' || item.code === 'hyd' || item.code === 'te') {
-      setLang(item.code as Language);
-    } else if (item.code === 'hi' || item.code === 'ur') {
-      // Map to hyd/en or set directly
-      setLang(item.code === 'ur' ? 'hyd' : 'en');
-    } else {
-      // Keep selected or fallback to english/telugu based on region
-      if (item.category === 'southern') {
-        setLang('te');
-      } else {
-        setLang('en');
-      }
-    }
+    // Set the language directly across the entire global context and localStorage
+    setLang(item.code as Language);
 
     // Show celebratory regional welcome toast
     setNotificationToast(`${item.nativeName} (${item.name}): ${item.welcomePhrase}`);
@@ -388,10 +419,22 @@ export default function FloatingLanguageBubble() {
     setShowMenu(false);
   };
 
+  // Quick cycle through top popular languages on double click
   const cycleNextLanguage = () => {
-    if (lang === 'en') setLang('hyd');
-    else if (lang === 'hyd') setLang('te');
-    else setLang('en');
+    const popularCodes = ['en', 'hinglish', 'hi', 'te', 'hyd', 'thanglish', 'roman_ur', 'bn', 'ta', 'mr', 'ur', 'gu', 'kn', 'ml', 'pa', 'as', 'mai'];
+    const currentIndex = popularCodes.indexOf(lang);
+    const nextIndex = (currentIndex + 1) % popularCodes.length;
+    const nextCode = popularCodes[nextIndex];
+    const targetItem = ALL_INDIAN_LANGUAGES.find(l => l.code === nextCode);
+    if (targetItem) {
+      handleLanguageSelect(targetItem);
+    } else {
+      setLang(nextCode as Language);
+    }
+  };
+
+  const getButtonTag = () => {
+    return activeLanguageItem ? activeLanguageItem.tag : 'ENG';
   };
 
   return (
@@ -403,18 +446,20 @@ export default function FloatingLanguageBubble() {
             initial={{ opacity: 0, y: 20, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-brand-charcoal text-white px-5 py-3 rounded-2xl shadow-2xl z-50 flex items-center gap-3 border border-brand-amber/40 max-w-md w-[90vw] text-left text-xs pointer-events-auto"
+            className="fixed bottom-24 left-1/2 -translate-x-1/2 bg-brand-charcoal text-white px-5 py-3.5 rounded-2xl shadow-2xl z-50 flex items-center gap-3 border border-brand-amber/40 max-w-lg w-[92vw] text-left text-xs pointer-events-auto"
           >
-            <div className="w-8 h-8 rounded-xl bg-brand-amber text-white flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-xl bg-brand-amber text-white flex items-center justify-center shrink-0 shadow-xs">
               <Sparkles className="w-4 h-4" />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="block text-[10px] font-mono uppercase text-brand-amber font-bold">Language Activated</span>
-              <span className="block font-medium leading-snug">{notificationToast}</span>
+              <span className="block text-[10px] font-mono uppercase text-brand-amber font-bold">
+                Language Changed & Saved Globally
+              </span>
+              <span className="block font-medium leading-snug text-slate-100">{notificationToast}</span>
             </div>
             <button 
               onClick={() => setNotificationToast(null)}
-              className="p-1 text-brand-sand/70 hover:text-white rounded-full cursor-pointer"
+              className="p-1.5 text-brand-sand/70 hover:text-white rounded-full cursor-pointer hover:bg-white/10"
             >
               <X className="w-4 h-4" />
             </button>
@@ -433,20 +478,22 @@ export default function FloatingLanguageBubble() {
                 animate={{ opacity: 1, scale: 1, y: 0, x: 0 }}
                 exit={{ opacity: 0, scale: 0.92, y: 15, x: 10 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="absolute right-0 sm:right-14 bottom-0 bg-[#FDFBF7] border-2 border-brand-amber/40 rounded-3xl p-4 shadow-2xl w-[320px] sm:w-[420px] max-h-[80vh] flex flex-col pointer-events-auto backdrop-blur-xl text-left"
+                className="absolute right-0 sm:right-14 bottom-0 bg-[#FDFBF7] border-2 border-brand-amber/40 rounded-3xl p-4 shadow-2xl w-[330px] sm:w-[440px] max-h-[82vh] flex flex-col pointer-events-auto backdrop-blur-xl text-left"
               >
                 {/* Header */}
                 <div className="flex items-center justify-between pb-3 border-b border-brand-charcoal/10 shrink-0">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-brand-amber text-white flex items-center justify-center shadow-xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-brand-amber text-white flex items-center justify-center shadow-xs">
                       <Languages className="w-4 h-4" />
                     </div>
                     <div>
                       <h3 className="font-display text-sm font-black text-brand-charcoal leading-tight">
                         Indian Languages Directory
                       </h3>
-                      <span className="text-[9.5px] font-mono text-brand-amber font-bold">
-                        {lang === 'te' ? '22+ భారతీయ భాషలు • ఉచిత AI విద్య' : lang === 'hyd' ? '22+ Zabaan • Free AI Sabaq' : '22+ Scheduled Indian Languages • 100% Free AI'}
+                      <span className="text-[9.5px] font-mono text-brand-amber font-bold flex items-center gap-1">
+                        <span>{ALL_INDIAN_LANGUAGES.length} Indian Languages & Dialects</span>
+                        <span>•</span>
+                        <span className="text-emerald-700">Persists Globally</span>
                       </span>
                     </div>
                   </div>
@@ -465,9 +512,9 @@ export default function FloatingLanguageBubble() {
                   <School className="w-4 h-4 text-brand-amber-dark shrink-0 mt-0.5" />
                   <div className="text-[11px] text-brand-charcoal leading-relaxed">
                     <span className="font-bold block text-[11px] text-brand-amber-dark">
-                      Our Grassroots & Madrasa Outreach
+                      Grassroots & Madrasa Outreach Mission
                     </span>
-                    Dedicated to non-native learners, Madrasa scholars, Telugu speakers, and vernacular students across all Indian states.
+                    Dedicated to non-native learners, Madrasa scholars, and vernacular students across all Indian states with zero jargon.
                   </div>
                 </div>
 
@@ -478,8 +525,8 @@ export default function FloatingLanguageBubble() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search languages (Telugu, தமிழ், Urdu, हिन्दी)..."
-                    className="w-full pl-8 pr-3 py-1.5 bg-white border border-brand-slate/20 rounded-xl text-xs text-brand-charcoal placeholder-brand-muted focus:outline-none focus:border-brand-amber"
+                    placeholder="Search (Hinglish, Thanglish, हिन्दी, தமிழ், Urdu)..."
+                    className="w-full pl-8 pr-7 py-2 bg-white border border-brand-slate/20 rounded-xl text-xs text-brand-charcoal placeholder-brand-muted focus:outline-none focus:border-brand-amber"
                   />
                   {searchQuery && (
                     <button 
@@ -494,10 +541,10 @@ export default function FloatingLanguageBubble() {
                 {/* Category Filter Tabs */}
                 <div className="flex items-center gap-1 overflow-x-auto pb-2 scrollbar-none shrink-0">
                   {[
-                    { id: 'all', label: 'All (24)' },
-                    { id: 'live', label: '✨ Live Now' },
+                    { id: 'all', label: `All (${ALL_INDIAN_LANGUAGES.length})` },
+                    { id: 'live', label: '✨ Live & Popular' },
                     { id: 'southern', label: '🌴 Southern (Dravidian)' },
-                    { id: 'northern', label: '🏔️ Northern / Indo-Aryan' },
+                    { id: 'northern', label: '🏔️ Northern & Central' },
                     { id: 'classical_tribal', label: '🌿 Classical & Tribal' },
                   ].map((cat) => (
                     <button
@@ -522,45 +569,41 @@ export default function FloatingLanguageBubble() {
                     </div>
                   ) : (
                     filteredLanguages.map((item) => {
-                      const isCurrent = lang === item.code || (item.code === 'en' && lang === 'en') || (item.code === 'te' && lang === 'te') || (item.code === 'hyd' && lang === 'hyd');
+                      const isCurrent = lang === item.code;
                       return (
                         <button
                           key={item.code}
                           onClick={() => handleLanguageSelect(item)}
                           className={`w-full p-2.5 rounded-2xl text-left transition-all cursor-pointer border flex flex-col gap-1 ${
                             isCurrent
-                              ? 'bg-brand-amber/15 border-brand-amber/50 shadow-xs'
+                              ? 'bg-brand-amber/15 border-brand-amber/60 shadow-xs ring-1 ring-brand-amber/40'
                               : 'bg-white hover:bg-brand-sand/50 border-brand-slate/10 hover:border-brand-amber/30'
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-black ${
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-black shrink-0 ${
                                 isCurrent 
                                   ? 'bg-brand-amber text-white' 
                                   : 'bg-brand-sand text-brand-slate'
                               }`}>
                                 {item.tag}
                               </span>
-                              <span className="text-xs font-bold text-brand-charcoal">
+                              <span className="text-xs font-bold text-brand-charcoal truncate">
                                 {item.nativeName}
                               </span>
-                              <span className="text-[10px] text-brand-muted">
+                              <span className="text-[10px] text-brand-muted shrink-0">
                                 ({item.name})
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-1.5">
-                              <span className={`text-[8px] font-mono font-extrabold px-1.5 py-0.5 rounded-full ${
-                                item.status === 'LIVE'
-                                  ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30'
-                                  : item.status === 'BETA'
-                                  ? 'bg-amber-500/15 text-amber-700 border border-amber-500/30'
-                                  : 'bg-slate-200 text-slate-700'
-                              }`}>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <span className="text-[8px] font-mono font-extrabold px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                                 {item.status}
                               </span>
-                              {isCurrent && <Check className="w-3.5 h-3.5 text-brand-amber stroke-[3]" />}
+                              {isCurrent ? (
+                                <CheckCircle2 className="w-4 h-4 text-brand-amber shrink-0" />
+                              ) : null}
                             </div>
                           </div>
 
@@ -578,7 +621,7 @@ export default function FloatingLanguageBubble() {
                 <div className="pt-2.5 mt-2 border-t border-brand-charcoal/10 flex items-center justify-between text-[10px] text-brand-muted shrink-0">
                   <div className="flex items-center gap-1 text-brand-amber font-bold">
                     <Heart className="w-3 h-3 fill-brand-amber" />
-                    <span>Free Forever for all learners</span>
+                    <span>Selected language persists everywhere</span>
                   </div>
                   <span className="font-mono text-[9px]">Madrasa & Grassroots AI Initiative</span>
                 </div>
@@ -605,13 +648,13 @@ export default function FloatingLanguageBubble() {
               }
             }}
             className="w-12 h-12 bg-white hover:bg-brand-sand/30 border-2 border-[#E07A5F] text-[#E07A5F] rounded-full flex items-center justify-center shadow-lg transition-colors cursor-pointer relative group"
-            title={lang === 'en' ? "Indian Languages: English, Hyderabadi, Telugu & 22+ Languages" : lang === 'te' ? "భారతీయ భాషలు: తెలుగు, హైదరాబాదీ, ఇంగ్లీష్ మరియు 22+ భాషలు" : "Hindustani Zabaanein: Hyderabadi, Telugu, English & 22+ Zabaanein"}
+            title={`Active: ${activeLanguageItem.name} (${activeLanguageItem.nativeName}) — Click to open 25+ Indian Languages directory. Double-click to cycle.`}
           >
             <Languages className="w-5 h-5 group-hover:rotate-12 transition-transform duration-300" />
             
-            {/* Quick Language Indicator Tag */}
-            <span className="absolute -top-1.5 -right-1.5 bg-[#E07A5F] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full border border-white shadow-sm font-mono uppercase">
-              {lang === 'en' ? 'EN' : lang === 'te' ? 'TEL' : 'HYD'}
+            {/* Quick Active Language Indicator Tag */}
+            <span className="absolute -top-1.5 -right-1.5 bg-[#E07A5F] text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-full border border-white shadow-sm font-mono uppercase tracking-tighter">
+              {getButtonTag()}
             </span>
           </motion.button>
         </div>

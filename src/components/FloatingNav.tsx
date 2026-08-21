@@ -438,19 +438,6 @@ export default function FloatingNav() {
             <span className="font-black text-amber-700 text-[11px]">{streakCount}d</span>
           </button>
 
-          {/* Ask Clay / Global Search Button */}
-          <button
-            onClick={() => setIsSearchOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 bg-white/90 hover:bg-brand-amber/15 text-brand-charcoal border border-brand-amber/20 hover:border-brand-amber/40 rounded-full text-xs font-black transition-all cursor-pointer select-none shadow-2xs hover:shadow-sm active:scale-95 group"
-            title={lang === 'en' ? 'Ask Clay a Question (Cmd+K)' : 'Clay se Sawaal Poochho (Cmd+K)'}
-          >
-            <ClayLogo size={16} />
-            <span className="hidden sm:inline text-[11px] font-extrabold text-brand-charcoal group-hover:text-brand-amber transition-colors">
-              {lang === 'en' ? 'Ask Clay' : 'Clay'}
-            </span>
-            <span className="hidden lg:inline text-[9px] font-mono opacity-40">⌘K</span>
-          </button>
-
           {/* Ambient Sound Button */}
           <button
             onClick={toggleAmbient}

@@ -24,7 +24,7 @@ import HomeCurriculumGrid from './components/HomeCurriculumGrid';
 import IndividualLessonView from './components/IndividualLessonView';
 import LearningHubPage from './components/LearningHubPage';
 import SocialShareSection from './components/SocialShareSection';
-import { Compass, Sparkles, BookOpen, Video, TrendingUp, ArrowLeft, LayoutGrid, List, GraduationCap } from 'lucide-react';
+import { Compass, Sparkles, BookOpen, Video, TrendingUp, ArrowLeft, LayoutGrid, List, GraduationCap, MessageSquare } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import ClayLogo from './components/ClayLogo';
 import { useLanguage } from './hooks/useLanguage';
