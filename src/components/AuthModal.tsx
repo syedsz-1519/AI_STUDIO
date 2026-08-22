@@ -131,10 +131,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   // Sync custom event triggers
   useEffect(() => {
     const handleVolumeEvent = () => {
-      setVolumeState(audioEngine.getVolume());
+      setTimeout(() => {
+        setVolumeState(audioEngine.getVolume());
+      }, 0);
     };
     const handlePracticeModeEvent = () => {
-      setPracticeModeState(localStorage.getItem('clay_quiz_practice_mode') === 'true');
+      setTimeout(() => {
+        setPracticeModeState(localStorage.getItem('clay_quiz_practice_mode') === 'true');
+      }, 0);
     };
     window.addEventListener('clay_volume_changed', handleVolumeEvent);
     window.addEventListener('clay_practice_mode_changed', handlePracticeModeEvent);

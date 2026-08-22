@@ -131,6 +131,7 @@ export interface MockInterviewRecord {
     keyTakeaways?: string[];
     updatedAt?: number;
   };
+  sessionGoals?: string;
 }
 
 export interface MockInterviewDraft {
@@ -139,6 +140,7 @@ export interface MockInterviewDraft {
   selectedPersonaId: string;
   difficulty: InterviewDifficulty;
   isUrduMode: boolean;
+  sessionGoals?: string;
   currentQuestionIndex: number;
   questions: InterviewQuestion[];
   userAnswer: string;

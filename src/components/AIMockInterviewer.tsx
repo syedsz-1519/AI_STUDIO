@@ -48,7 +48,9 @@ import {
   Tag,
   Globe,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Target,
+  CheckSquare
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { CommunityPeerReviewManager } from '../lib/communityPeerReview';
@@ -100,6 +102,39 @@ export default function AIMockInterviewer({
   const [difficulty, setDifficulty] = useState<InterviewDifficulty>('Intermediate');
   const [isUrduMode, setIsUrduMode] = useState<boolean>(lang === 'hyd');
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
+
+  // Session Goals & Objectives State (Configured before start, reminded live during session)
+  const [sessionGoals, setSessionGoals] = useState<string>(() => {
+    return localStorage.getItem('clay_mock_interview_goals') || 'Practice behavioral questions & STAR method, improve tone, and speak with concise 90s pacing';
+  });
+  const [isEditingGoalInLiveRoom, setIsEditingGoalInLiveRoom] = useState<boolean>(false);
+  const [goalToast, setGoalToast] = useState<string | null>(null);
+
+  // Goal Presets for quick selection
+  const SESSION_GOAL_PRESETS = [
+    { id: 'behavioral', label: 'Practice behavioral questions', icon: '🎯', text: 'Practice behavioral questions using the STAR framework' },
+    { id: 'tone', label: 'Improve tone & confidence', icon: '🗣️', text: 'Improve tone, eliminate monotone pitch, and project vocal confidence' },
+    { id: 'tradeoffs', label: 'Explain architecture trade-offs', icon: '⚡', text: 'Explain deep architectural trade-offs and engineering rationale' },
+    { id: 'fillers', label: 'Eliminate filler words', icon: '🛑', text: 'Eliminate filler words (um, like, ah) and use deliberate pauses' },
+    { id: 'timing', label: 'Concise timing (< 90s)', icon: '⏱️', text: 'Keep answers concise, well-structured, and under 90 seconds' },
+    { id: 'eye_contact', label: '90%+ Eye contact & posture', icon: '👁️', text: 'Maintain strong 90%+ eye contact and steady camera presence' },
+  ];
+
+  const handleToggleGoalPreset = (presetText: string) => {
+    let updated = '';
+    if (!sessionGoals.trim()) {
+      updated = presetText;
+    } else if (sessionGoals.toLowerCase().includes(presetText.toLowerCase().slice(0, 20))) {
+      // Remove it if already partially matching
+      const regex = new RegExp(`(,\\s*)?${presetText.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&')}`, 'gi');
+      updated = sessionGoals.replace(regex, '').trim().replace(/^,\s*/, '');
+    } else {
+      updated = `${sessionGoals.trim()}, ${presetText}`;
+    }
+    setSessionGoals(updated);
+    localStorage.setItem('clay_mock_interview_goals', updated);
+    audioEngine.playLoFiChord();
+  };
 
   // Interview active session state
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -206,6 +241,7 @@ export default function AIMockInterviewer({
         selectedPersonaId,
         difficulty,
         isUrduMode,
+        sessionGoals,
         currentQuestionIndex,
         questions,
         userAnswer,
@@ -525,6 +561,9 @@ export default function AIMockInterviewer({
     setSelectedPersonaId(draft.selectedPersonaId);
     setDifficulty(draft.difficulty);
     setIsUrduMode(draft.isUrduMode);
+    if (draft.sessionGoals) {
+      setSessionGoals(draft.sessionGoals);
+    }
     setQuestions(draft.questions);
     setCurrentQuestionIndex(draft.currentQuestionIndex);
     setUserAnswer(draft.userAnswer || '');
@@ -597,11 +636,13 @@ Candidate Target Seniority: ${difficulty}
 Candidate Answer: "${fullAnswerText}"
 Candidate Code/Scratchpad: "${userCode || 'None'}"
 Key Expected Concepts: ${currentQuestion.keyConcepts.join(', ')}
+Candidate's Self-Defined Session Goals: "${sessionGoals || 'General technical and behavioral practice'}"
 
 Rubric Guidelines for ${difficulty}:
 - If Beginner: Reward conceptual intuition, definitions, and understanding of core analogies. Provide encouraging guidance.
 - If Intermediate: Expect standard trade-offs, architecture flow, and clear algorithmic rationale.
 - If Advanced: Evaluate rigorous mathematical precision, scaling bottlenecks, distributed latency, and low-level trade-offs.
+- Goal Alignment: Keep in mind the candidate's self-defined goals (e.g. improve tone, behavioral STAR structure, avoid fillers, trade-offs) and highlight in strengths/improvements how they did against these goals.
 
 Please provide a JSON response with:
 1. "score": number from 0 to 100
