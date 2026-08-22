@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
   Video, 
@@ -42,9 +42,14 @@ import {
   Save,
   Trash2,
   PlayCircle,
-  History
+  History,
+  Edit3
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
+import { 
+  analyzeSpeechSentiment, 
+  SpeechSentimentReport 
+} from '../lib/speechSentimentAnalyzer';
 import { 
   InterviewQuestion, 
   InterviewerPersona, 
@@ -65,6 +70,7 @@ import InterviewPerformanceChart from './InterviewPerformanceChart';
 import InterviewProTipsSidebar from './InterviewProTipsSidebar';
 import CopyCodeButton from './CopyCodeButton';
 import PracticeReminderModal from './PracticeReminderModal';
+import PostInterviewReflectionModal from './PostInterviewReflectionModal';
 import { sendGeminiChat } from '../lib/geminiClient';
 import { audioEngine } from '../lib/audioEngine';
 
@@ -106,7 +112,13 @@ export default function AIMockInterviewer({
   // Timer states
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [questionSeconds, setQuestionSeconds] = useState(0);
+  const [countdownTargetSeconds, setCountdownTargetSeconds] = useState<number>(90); // 90s default target
   const [isPaused, setIsPaused] = useState(false);
+
+  // Live Speech Sentiment Analysis
+  const liveSentimentReport = useMemo(() => {
+    return analyzeSpeechSentiment(userAnswer, Math.max(1, questionSeconds));
+  }, [userAnswer, questionSeconds]);
 
   // Live camera tracking metrics from HUD
   const [liveMetrics, setLiveMetrics] = useState<CameraTrackingMetrics>({
@@ -123,6 +135,7 @@ export default function AIMockInterviewer({
 
   // Scorecard state
   const [completedRecord, setCompletedRecord] = useState<MockInterviewRecord | null>(null);
+  const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
 
   // Auto-Save Draft State for Interrupted Session Recovery
   const [savedDraft, setSavedDraft] = useState<MockInterviewDraft | null>(null);
@@ -640,6 +653,17 @@ Please provide a JSON response with:
     const commScore = Math.round(Math.min(98, Math.max(70, liveMetrics.confidenceScore + 5)));
     const eyeContact = liveMetrics.eyeContactScore;
 
+    // Aggregate full spoken and typed text across all attempts for speech sentiment analysis
+    const fullTranscript = allAttempts.map(a => a.userAnswer).join(' ');
+    const totalAttemptDuration = allAttempts.reduce((sum, a) => sum + (a.durationSeconds || 60), 0);
+    const overallSentimentReport = analyzeSpeechSentiment(fullTranscript, Math.max(1, totalAttemptDuration));
+
+    const autoTopics = Array.from(new Set([
+      currentRole.title.includes('AI') || currentRole.title.includes('ML') ? 'Deep Learning' : 'System Design',
+      currentRole.title.includes('LLM') || currentRole.title.includes('Generative') ? 'Generative AI & LLMs' : 'Machine Learning',
+      difficulty === 'Advanced' ? 'Optimization & Scaling' : 'Core Architecture'
+    ]));
+
     const record: MockInterviewRecord = {
       id: `interview_${Date.now()}`,
       timestamp: Date.now(),
@@ -655,21 +679,29 @@ Please provide a JSON response with:
       eyeContactScore: eyeContact,
       confidenceScore: liveMetrics.confidenceScore,
       attempts: allAttempts,
-      summaryFeedback: `Candidate demonstrated strong intuitive understanding of ${currentRole.title} fundamentals, maintaining ${eyeContact}% eye contact and confident technical pacing.`,
+      summaryFeedback: `Candidate demonstrated strong intuitive understanding of ${currentRole.title} fundamentals, maintaining ${eyeContact}% eye contact and ${overallSentimentReport.dominantTone} tone of voice.`,
       topStrengths: [
         'High composure and consistent camera gaze tracking',
         'Strong grasp of architectural tradeoffs (RAG, attention, loss optimization)',
-        'Clear, articulate spoken communication with minimal filler pauses'
+        `Articulate ${overallSentimentReport.dominantTone.toLowerCase()} speech delivery (${overallSentimentReport.wordsPerMinute} WPM)`
       ],
       keyActionItems: [
         'Practice writing out mathematical loss functions and matrix dimensions',
         'Deepen familiarity with low-level GPU memory quantization and KV-cache constraints',
-        'Incorporate more real-world quantitative metrics (e.g. latency percentiles, ROC-AUC) into verbal answers'
+        overallSentimentReport.coachingTips[0] || 'Incorporate more quantitative metrics into verbal answers'
       ],
+      topics: autoTopics,
+      tags: autoTopics,
+      speechSentimentReport: overallSentimentReport,
     };
 
     setCompletedRecord(record);
     setStage('scorecard');
+
+    // Auto-prompt personal reflection modal after a brief pause so user can reflect on performance
+    setTimeout(() => {
+      setIsReflectionModalOpen(true);
+    }, 700);
 
     // Save record to local storage for Dashboard integration and clear in-progress draft
     try {
@@ -1068,24 +1100,85 @@ Please provide a JSON response with:
                 </div>
               </div>
 
-              {/* Timers, Auto-Save Status & Pause Controls */}
-              <div className="flex items-center gap-2.5">
+              {/* Timers, Countdown, Auto-Save Status & Pause Controls */}
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Visual Countdown Timer for Practice Questions */}
+                {countdownTargetSeconds > 0 ? (
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all shadow-2xs ${
+                    countdownTargetSeconds - questionSeconds <= 15
+                      ? 'bg-red-500/15 border-red-500/50 text-red-700 animate-pulse'
+                      : countdownTargetSeconds - questionSeconds <= 30
+                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-800'
+                      : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800'
+                  }`}>
+                    {/* SVG Circular Progress Ring */}
+                    <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                        <path
+                          className="text-slate-200 stroke-current"
+                          strokeWidth="4"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                        <path
+                          className={`stroke-current ${
+                            countdownTargetSeconds - questionSeconds <= 15 ? 'text-red-500' :
+                            countdownTargetSeconds - questionSeconds <= 30 ? 'text-amber-500' : 'text-emerald-500'
+                          }`}
+                          strokeDasharray={`${Math.min(100, Math.max(0, ((countdownTargetSeconds - questionSeconds) / countdownTargetSeconds) * 100))}, 100`}
+                          strokeWidth="4"
+                          strokeLinecap="round"
+                          fill="none"
+                          d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        />
+                      </svg>
+                    </div>
+
+                    <span>
+                      {formatTime(Math.max(0, countdownTargetSeconds - questionSeconds))}
+                    </span>
+                    <span className="text-[10px] font-sans font-medium text-brand-slate/70">left</span>
+
+                    {/* +30s Emergency Extension */}
+                    <button
+                      onClick={() => setCountdownTargetSeconds(prev => prev + 30)}
+                      className="px-1.5 py-0.5 rounded bg-white/80 hover:bg-white text-[9px] font-mono font-bold text-brand-charcoal border border-brand-slate/20 transition-all cursor-pointer shadow-2xs ml-0.5"
+                      title="Add 30 seconds to countdown timer"
+                    >
+                      +30s
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-sand/50 rounded-xl font-mono text-xs text-brand-charcoal font-bold border border-brand-slate/15">
+                    <Clock className="w-3.5 h-3.5 text-brand-amber" />
+                    <span>{formatTime(questionSeconds)}</span>
+                    <span className="text-[10px] font-sans text-brand-muted">(Open-Ended)</span>
+                  </div>
+                )}
+
+                {/* Target Countdown Dropdown */}
+                <select
+                  value={countdownTargetSeconds}
+                  onChange={(e) => setCountdownTargetSeconds(Number(e.target.value))}
+                  className="px-2 py-1.5 rounded-xl bg-white border border-brand-slate/20 text-[10.5px] font-mono text-brand-slate cursor-pointer focus:outline-none"
+                  title="Configure response countdown limit"
+                >
+                  <option value={60}>⏱️ 60s Target</option>
+                  <option value={90}>⏱️ 90s Target</option>
+                  <option value={120}>⏱️ 2 Mins</option>
+                  <option value={180}>⏱️ 3 Mins</option>
+                  <option value={0}>♾️ No Limit</option>
+                </select>
+
                 {/* Real-time Auto-Save Live Badge & Manual Save Button */}
                 <button
                   onClick={triggerManualSave}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-[10.5px] font-mono font-bold shadow-2xs transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-[10.5px] font-mono font-bold shadow-2xs transition-all cursor-pointer"
                   title="Click to save session draft now or rely on background auto-save"
                 >
                   <Cloud className={`w-3.5 h-3.5 text-emerald-600 ${isAutoSaving ? 'animate-bounce' : ''}`} />
-                  <span>{isAutoSaving ? 'Auto-Saving...' : lastAutoSavedTime ? `Saved ${lastAutoSavedTime}` : 'Auto-Saved'}</span>
-                  <span className="text-[9px] px-1.5 py-0.2 bg-emerald-200/60 rounded text-emerald-900 font-sans hidden sm:inline">Save</span>
+                  <span className="hidden sm:inline">{isAutoSaving ? 'Saving...' : lastAutoSavedTime ? `Saved ${lastAutoSavedTime}` : 'Saved'}</span>
                 </button>
-
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-brand-sand/50 rounded-xl font-mono text-xs text-brand-charcoal font-bold">
-                  <Clock className="w-3.5 h-3.5 text-brand-amber" />
-                  <span>{formatTime(questionSeconds)}</span>
-                  <span className="text-brand-muted text-[10px]">/ Total {formatTime(elapsedSeconds)}</span>
-                </div>
 
                 <button
                   onClick={() => setIsPaused(!isPaused)}
@@ -1280,6 +1373,40 @@ Please provide a JSON response with:
                 />
               </div>
 
+              {/* REAL-TIME LIVE SPEECH SENTIMENT & TONE ANALYSIS BAR */}
+              {userAnswer.trim().length > 10 && (
+                <motion.div
+                  initial={{ opacity: 0, y: -5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="p-3 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/70 border border-blue-200/60 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs"
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-[10px] font-mono font-bold uppercase text-indigo-900 flex items-center gap-1">
+                      <Mic className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                      <span>Live Speech Sentiment:</span>
+                    </span>
+                    
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                      liveSentimentReport.sentimentLabel === 'Positive' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
+                      liveSentimentReport.sentimentLabel === 'Constructive' ? 'bg-blue-100 text-blue-800 border-blue-300' :
+                      'bg-slate-100 text-slate-800 border-slate-300'
+                    }`}>
+                      {liveSentimentReport.sentimentEmoji} {liveSentimentReport.sentimentLabel} Sentiment
+                    </span>
+
+                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300 text-[10px] font-mono font-bold">
+                      Tone: {liveSentimentReport.dominantTone}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 font-mono text-[10px] text-slate-600">
+                    <span>⚡ <strong className="text-slate-800">{liveSentimentReport.wordsPerMinute}</strong> WPM ({liveSentimentReport.paceCategory})</span>
+                    <span>🎯 <strong className="text-slate-800">{liveSentimentReport.confidenceScore}%</strong> Confidence</span>
+                    <span>🛑 <strong className="text-slate-800">{liveSentimentReport.fillerWordCount}</strong> Fillers</span>
+                  </div>
+                </motion.div>
+              )}
+
               {/* Code scratchpad optional */}
               {showCodePad && (
                 <div className="space-y-1">
@@ -1458,6 +1585,112 @@ Please provide a JSON response with:
               subtitle={lang === 'en' ? "Multi-axis breakdown of this mock interview session." : "Is session ka scorecard chart."}
             />
 
+            {/* WEB SPEECH SENTIMENT, TONE & CONFIDENCE REPORT */}
+            {completedRecord.speechSentimentReport && (
+              <div className="bg-gradient-to-br from-indigo-900/90 via-slate-900 to-brand-charcoal text-white rounded-3xl p-6 sm:p-7 shadow-xl border border-indigo-500/30 space-y-5">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/40 flex items-center justify-center">
+                      <Mic className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold text-indigo-300 uppercase">
+                          WEB SPEECH API ACOUSTIC & SENTIMENT REPORT
+                        </span>
+                        <span className="px-2 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold">
+                          Live Audio Verified
+                        </span>
+                      </div>
+                      <h3 className="font-display text-base font-black text-white">
+                        Speech Sentiment, Tone & Articulation Summary
+                      </h3>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 font-mono text-xs shrink-0">
+                    <span className="px-3 py-1.5 rounded-xl bg-white/10 text-white font-bold border border-white/15">
+                      Dominant Tone: <span className="text-brand-amber">{completedRecord.speechSentimentReport.dominantTone}</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Tone Breakdown Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1">
+                    <span className="text-[10px] font-mono text-indigo-200 block uppercase">Sentiment Polarity</span>
+                    <div className="text-lg font-black text-white font-display flex items-center gap-1.5">
+                      <span>{completedRecord.speechSentimentReport.sentimentEmoji}</span>
+                      <span>{completedRecord.speechSentimentReport.sentimentLabel}</span>
+                    </div>
+                    <span className="text-[9px] font-mono text-white/60 block">Polarity: {completedRecord.speechSentimentReport.sentimentScore.toFixed(2)}</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1">
+                    <span className="text-[10px] font-mono text-indigo-200 block uppercase">Speaking Pace</span>
+                    <div className="text-lg font-black text-white font-display">
+                      {completedRecord.speechSentimentReport.wordsPerMinute} <span className="text-xs font-mono text-brand-amber font-normal">WPM</span>
+                    </div>
+                    <span className="text-[9px] font-mono text-white/60 block">{completedRecord.speechSentimentReport.paceCategory} (Target: 120-150)</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1">
+                    <span className="text-[10px] font-mono text-indigo-200 block uppercase">Speech Confidence</span>
+                    <div className="text-lg font-black text-emerald-400 font-display">
+                      {completedRecord.speechSentimentReport.confidenceScore}%
+                    </div>
+                    <span className="text-[9px] font-mono text-white/60 block">Based on pace & hedging</span>
+                  </div>
+
+                  <div className="p-3.5 rounded-2xl bg-white/[0.06] border border-white/10 space-y-1">
+                    <span className="text-[10px] font-mono text-indigo-200 block uppercase">Filler Words</span>
+                    <div className="text-lg font-black text-amber-400 font-display">
+                      {completedRecord.speechSentimentReport.fillerWordCount}
+                    </div>
+                    <span className="text-[9px] font-mono text-white/60 block">Rate: {completedRecord.speechSentimentReport.fillerWordPercentage}% of words</span>
+                  </div>
+                </div>
+
+                {/* Tone Spectrum Progress Bars */}
+                <div className="space-y-2 p-4 rounded-2xl bg-black/30 border border-white/10">
+                  <span className="text-[10px] font-mono text-indigo-300 font-bold uppercase tracking-wider block">
+                    Observed Tone & Sentiment Distribution:
+                  </span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    {Object.entries(completedRecord.speechSentimentReport.toneBreakdown).map(([toneKey, val]: [string, any]) => (
+                      <div key={toneKey} className="space-y-1">
+                        <div className="flex justify-between text-[11px] font-mono">
+                          <span className="capitalize text-white/90">{toneKey} Tone</span>
+                          <span className="font-bold text-brand-amber">{val}%</span>
+                        </div>
+                        <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gradient-to-r from-indigo-400 via-purple-400 to-brand-amber rounded-full"
+                            style={{ width: `${val}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Speech Coaching Tips */}
+                {completedRecord.speechSentimentReport.coachingTips.length > 0 && (
+                  <div className="p-3.5 rounded-2xl bg-indigo-500/15 border border-indigo-400/30 space-y-1.5 text-xs">
+                    <span className="text-[10px] font-mono font-bold text-indigo-300 uppercase flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-brand-amber" />
+                      <span>Actionable Speech & Tone Coaching Tips:</span>
+                    </span>
+                    <ul className="space-y-1 text-white/90 text-[11px] list-disc list-inside">
+                      {completedRecord.speechSentimentReport.coachingTips.map((tip: string, idx: number) => (
+                        <li key={idx}>{tip}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Strengths & Action Items Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm space-y-3">
@@ -1549,6 +1782,30 @@ Please provide a JSON response with:
               </div>
             </div>
 
+            {/* Reflection & Personal Notes Card Banner */}
+            <div className="p-4 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 rounded-2xl border border-brand-amber/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-brand-amber text-white flex items-center justify-center shadow-xs shrink-0">
+                  <FileText className="w-5 h-5" />
+                </div>
+                <div>
+                  <h4 className="font-display font-bold text-xs sm:text-sm text-brand-charcoal">
+                    Personal Notes & Performance Reflection
+                  </h4>
+                  <p className="text-[11px] text-brand-slate">
+                    {completedRecord.personalReflections ? 'Reflections recorded! Click to review or update.' : 'Record your key takeaways, self-rating, and focus areas for later review.'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsReflectionModalOpen(true)}
+                className="px-4 py-2 rounded-xl bg-brand-charcoal text-white hover:bg-black text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs shrink-0"
+              >
+                <Edit3 className="w-3.5 h-3.5 text-brand-amber" />
+                <span>{completedRecord.personalReflections ? 'Edit Reflection Notes' : 'Add Personal Reflection'}</span>
+              </button>
+            </div>
+
             {/* Bottom Actions: Retake, Go to Dashboard, Back to Guide */}
             <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
               <button
@@ -1583,6 +1840,20 @@ Please provide a JSON response with:
         isUserSpeaking={isRecordingVoice}
         questionIndex={currentQuestionIndex}
         totalQuestions={questions.length}
+      />
+
+      {/* Post-Interview Reflection & Personal Notes Modal */}
+      <PostInterviewReflectionModal
+        isOpen={isReflectionModalOpen}
+        onClose={() => setIsReflectionModalOpen(false)}
+        record={completedRecord}
+        onSaveReflection={(recordId, reflectionData) => {
+          setCompletedRecord(prev => prev ? {
+            ...prev,
+            personalReflections: reflectionData,
+            personalNotes: reflectionData.generalNotes
+          } : null);
+        }}
       />
 
       {/* Real-Time Auto-Save Toast Notification */}

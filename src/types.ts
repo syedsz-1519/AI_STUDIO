@@ -121,6 +121,16 @@ export interface MockInterviewRecord {
   keyActionItems: string[];
   tags?: string[];
   topics?: string[];
+  speechSentimentReport?: any;
+  personalNotes?: string;
+  personalReflections?: {
+    whatWentWell?: string;
+    areasToImprove?: string;
+    generalNotes?: string;
+    selfRating?: number;
+    keyTakeaways?: string[];
+    updatedAt?: number;
+  };
 }
 
 export interface MockInterviewDraft {

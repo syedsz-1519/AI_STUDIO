@@ -47,7 +47,12 @@ import {
   Search,
   Filter,
   FileSpreadsheet,
-  Tag
+  Tag,
+  Map,
+  Medal,
+  Globe,
+  Mail,
+  BarChart2
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
 import { MockInterviewRecord, MockInterviewDraft } from '../types';
@@ -56,10 +61,18 @@ import { audioEngine } from '../lib/audioEngine';
 import InterviewPerformanceChart from './InterviewPerformanceChart';
 import InterviewReportModal from './InterviewReportModal';
 import InterviewAudioReplayModal from './InterviewAudioReplayModal';
+import PostInterviewReflectionModal from './PostInterviewReflectionModal';
+import HistoricalInterviewTable from './HistoricalInterviewTable';
 import DailyLearningGoalTracker from './DailyLearningGoalTracker';
 import PracticeReminderModal from './PracticeReminderModal';
 import TakeawaysNotesExportModal from './TakeawaysNotesExportModal';
 import StudyGroupsSection from './StudyGroupsSection';
+import CurriculumRoadmap from './CurriculumRoadmap';
+import BadgeEngine from './BadgeEngine';
+import CommunityPeerReviewFeed from './CommunityPeerReviewFeed';
+import InterviewComparisonModal from './InterviewComparisonModal';
+import WeeklyEmailDigestModal, { getEmailDigestPreferences, type WeeklyEmailDigestPreferences } from './WeeklyEmailDigestModal';
+import InterviewConsistencyCalendar from './InterviewConsistencyCalendar';
 import { streakManager, type DailyStreakState } from '../lib/streakManager';
 import { offlineLessonCache, type OfflineCacheStats } from '../lib/offlineLessonCache';
 import { getStudentKnowledgeNotes } from '../lib/notesExporter';
@@ -106,9 +119,21 @@ export default function StudentDashboard({
   const [isAudioReplayOpen, setIsAudioReplayOpen] = useState(false);
   const [isReminderModalOpen, setIsReminderModalOpen] = useState(false);
   const [isExportNotesModalOpen, setIsExportNotesModalOpen] = useState(false);
+  const [selectedReflectionRecord, setSelectedReflectionRecord] = useState<MockInterviewRecord | null>(null);
+  const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
+  const [historyViewMode, setHistoryViewMode] = useState<'table' | 'cards' | 'calendar'>('table');
 
-  // Active Dashboard Tab ('overview' | 'study-groups')
-  const [activeTab, setActiveTab] = useState<'overview' | 'study-groups'>('overview');
+  // Side-by-Side Interview Comparison State
+  const [isComparisonModalOpen, setIsComparisonModalOpen] = useState(false);
+  const [comparisonSessionAId, setComparisonSessionAId] = useState<string | undefined>(undefined);
+  const [comparisonSessionBId, setComparisonSessionBId] = useState<string | undefined>(undefined);
+
+  // Weekly Email Digest Settings State
+  const [isEmailDigestModalOpen, setIsEmailDigestModalOpen] = useState(false);
+  const [emailDigestPrefs, setEmailDigestPrefs] = useState<WeeklyEmailDigestPreferences>(() => getEmailDigestPreferences());
+
+  // Active Dashboard Tab
+  const [activeTab, setActiveTab] = useState<'overview' | 'roadmap' | 'badges' | 'community' | 'study-groups'>('overview');
 
   // Daily Streak State
   const [streakState, setStreakState] = useState<DailyStreakState>(() => streakManager.getStreakState());
@@ -632,37 +657,113 @@ export default function StudentDashboard({
         {/* ========================================================================= */}
         {/* DASHBOARD TAB NAVIGATION BAR */}
         {/* ========================================================================= */}
-        <div className="flex items-center gap-2 p-1.5 bg-white/80 backdrop-blur-xs border border-brand-slate/15 rounded-2xl shadow-2xs w-fit">
+        <div className="flex flex-wrap items-center gap-1.5 p-1.5 bg-white/90 backdrop-blur-xs border border-brand-slate/15 rounded-2xl shadow-2xs">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-brand-charcoal text-white shadow-xs'
                 : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50'
             }`}
           >
             <BarChart3 className="w-3.5 h-3.5 text-amber-400" />
-            <span>{lang === 'en' ? "OVERVIEW & ANALYTICS" : "OVERVIEW & STATS"}</span>
+            <span>{lang === 'en' ? "OVERVIEW" : "OVERVIEW"}</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('roadmap')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+              activeTab === 'roadmap'
+                ? 'bg-brand-charcoal text-white shadow-xs'
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50'
+            }`}
+          >
+            <Map className="w-3.5 h-3.5 text-amber-400" />
+            <span>{lang === 'en' ? "CURRICULUM ROADMAP" : "ROADMAP"}</span>
+            <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-800 text-[9px] font-mono font-black rounded-full">
+              GUIDED
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('badges')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+              activeTab === 'badges'
+                ? 'bg-brand-charcoal text-white shadow-xs'
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50'
+            }`}
+          >
+            <Medal className="w-3.5 h-3.5 text-amber-400" />
+            <span>{lang === 'en' ? "BADGES & XP" : "BADGES"}</span>
+            <span className="px-1.5 py-0.2 bg-emerald-500/20 text-emerald-800 text-[9px] font-mono font-black rounded-full">
+              LEVEL 4
+            </span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('community')}
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+              activeTab === 'community'
+                ? 'bg-brand-charcoal text-white shadow-xs'
+                : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50'
+            }`}
+          >
+            <Globe className="w-3.5 h-3.5 text-amber-400" />
+            <span>{lang === 'en' ? "PEER REVIEW FEED" : "COMMUNITY"}</span>
+            <span className="px-1.5 py-0.2 bg-blue-500/20 text-blue-800 text-[9px] font-mono font-black rounded-full">
+              ANONYMOUS
+            </span>
           </button>
 
           <button
             onClick={() => setActiveTab('study-groups')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+            className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
               activeTab === 'study-groups'
                 ? 'bg-brand-charcoal text-white shadow-xs'
                 : 'text-brand-slate hover:text-brand-charcoal hover:bg-brand-sand/50'
             }`}
           >
             <Users className="w-3.5 h-3.5 text-amber-400" />
-            <span>{lang === 'en' ? "STUDY GROUPS COHORTS" : "STUDY GROUPS"}</span>
-            <span className="px-1.5 py-0.2 bg-amber-500/20 text-amber-800 text-[9px] font-mono font-black rounded-full">
-              LIVE
-            </span>
+            <span>{lang === 'en' ? "STUDY GROUPS" : "STUDY GROUPS"}</span>
           </button>
         </div>
 
         {/* ========================================================================= */}
-        {/* TAB 2: STUDY GROUPS SECTION */}
+        {/* TAB: CURRICULUM ROADMAP */}
+        {/* ========================================================================= */}
+        {activeTab === 'roadmap' && (
+          <CurriculumRoadmap
+            completedLessonIds={streakState.completedLessons || []}
+            onNavigateLesson={onNavigateSection}
+            onLaunchInterview={onStartInterview}
+          />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: BADGE ENGINE & MILESTONES */}
+        {/* ========================================================================= */}
+        {activeTab === 'badges' && (
+          <BadgeEngine
+            completedLessonIds={streakState.completedLessons || []}
+            interviewHistory={interviewHistory}
+            streakState={streakState}
+            onLaunchInterview={onStartInterview}
+            onNavigateLesson={onNavigateSection}
+          />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: COMMUNITY PEER REVIEWS FEED */}
+        {/* ========================================================================= */}
+        {activeTab === 'community' && (
+          <CommunityPeerReviewFeed
+            interviewHistory={interviewHistory}
+            onOpenAuth={onOpenAuth}
+          />
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB: STUDY GROUPS SECTION */}
         {/* ========================================================================= */}
         {activeTab === 'study-groups' && (
           <StudyGroupsSection
@@ -938,9 +1039,9 @@ export default function StudentDashboard({
         </div>
 
         {/* ========================================================================= */}
-        {/* 2. OFFLINE LESSON CACHE & KNOWLEDGE NOTES EXPORT HUB */}
+        {/* 2. OFFLINE LESSON CACHE, NOTES EXPORT & WEEKLY EMAIL SUMMARY HUB */}
         {/* ========================================================================= */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           
           {/* Offline Cache Card */}
           <div className="bg-white rounded-3xl p-5 border border-brand-slate/15 shadow-sm space-y-3 flex flex-col justify-between">
@@ -952,36 +1053,36 @@ export default function StudentDashboard({
                   </div>
                   <div>
                     <h3 className="font-display text-sm font-bold text-brand-charcoal">
-                      Offline Curriculum Cache
+                      Offline Curriculum
                     </h3>
                     <span className="text-[10px] font-mono text-brand-muted block">
-                      {isOnline ? 'Sync: Connected' : 'Offline Reading Active'}
+                      {isOnline ? 'Sync: Connected' : 'Offline Mode Active'}
                     </span>
                   </div>
                 </div>
 
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 text-[10px] font-mono font-bold">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-800 text-[10px] font-mono font-bold">
                   100% Cached
                 </span>
               </div>
 
               <p className="text-xs text-brand-slate leading-relaxed">
-                All 9 core curriculum lessons, 85+ glossary terms, and quick takeaways are stored locally in your browser so you can study without internet.
+                All 9 core lessons and glossary terms are stored locally in your browser for study anywhere.
               </p>
             </div>
 
             <div className="pt-3 border-t border-brand-slate/10 flex items-center justify-between">
-              <span className="text-[11px] font-mono text-brand-muted">
-                Storage: {cacheStats.estimatedSizeKB} KB • 9 Lessons
+              <span className="text-[10.5px] font-mono text-brand-muted">
+                {cacheStats.estimatedSizeKB} KB
               </span>
 
               <button
                 onClick={handleSyncCacheManually}
                 disabled={isSyncingCache}
-                className="px-3 py-1.5 rounded-xl bg-brand-sand/60 hover:bg-brand-sand border border-brand-slate/20 text-brand-charcoal text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                className="px-2.5 py-1.5 rounded-xl bg-brand-sand/60 hover:bg-brand-sand border border-brand-slate/20 text-brand-charcoal text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
               >
-                <RefreshCw className={`w-3.5 h-3.5 text-brand-amber ${isSyncingCache ? 'animate-spin' : ''}`} />
-                <span>{isSyncingCache ? 'Updating Cache...' : 'Refresh Offline Data'}</span>
+                <RefreshCw className={`w-3 h-3 text-brand-amber ${isSyncingCache ? 'animate-spin' : ''}`} />
+                <span>{isSyncingCache ? 'Syncing...' : 'Refresh Cache'}</span>
               </button>
             </div>
           </div>
@@ -996,39 +1097,91 @@ export default function StudentDashboard({
                   </div>
                   <div>
                     <h3 className="font-display text-sm font-bold text-brand-charcoal">
-                      Knowledge Notes & Takeaways Exporter
+                      Notes & Takeaways
                     </h3>
                     <span className="text-[10px] font-mono text-brand-muted block">
-                      {savedNotesCount} Custom Lesson Notes Saved
+                      {savedNotesCount} Custom Notes
                     </span>
                   </div>
                 </div>
 
-                <span className="px-2.5 py-0.5 rounded-full bg-brand-amber/15 border border-brand-amber/30 text-brand-amber-dark text-[10px] font-mono font-bold">
-                  PDF / TXT / MD
+                <span className="px-2 py-0.5 rounded-full bg-brand-amber/15 border border-brand-amber/30 text-brand-amber-dark text-[10px] font-mono font-bold">
+                  PDF / TXT
                 </span>
               </div>
 
               <p className="text-xs text-brand-slate leading-relaxed">
-                Export all lesson key points, mental models, TL;DR summaries, and your personal study notes into downloadable PDF or plain text files.
+                Export all lesson key points, mental models, and personal reflections into printable PDF or text notes.
               </p>
             </div>
 
             <div className="pt-3 border-t border-brand-slate/10 flex items-center justify-between gap-2">
               <button
                 onClick={() => setIsExportNotesModalOpen(true)}
-                className="px-3 py-1.5 rounded-xl bg-brand-sand/60 hover:bg-brand-sand border border-brand-slate/20 text-brand-charcoal text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-3 py-1.5 rounded-xl bg-brand-sand/60 hover:bg-brand-sand border border-brand-slate/20 text-brand-charcoal text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <Edit3 className="w-3.5 h-3.5 text-blue-600" />
-                <span>Edit Notes</span>
+                <Edit3 className="w-3 h-3 text-blue-600" />
+                <span>Edit</span>
               </button>
 
               <button
                 onClick={() => setIsExportNotesModalOpen(true)}
-                className="px-4 py-1.5 rounded-xl bg-brand-charcoal hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
+                className="px-3.5 py-1.5 rounded-xl bg-brand-charcoal hover:bg-black text-white text-[11px] font-bold transition-all flex items-center gap-1.5 shadow-2xs cursor-pointer"
               >
-                <Download className="w-3.5 h-3.5 text-brand-amber" />
-                <span>Export Study Notebook</span>
+                <Download className="w-3 h-3 text-brand-amber" />
+                <span>Export PDF</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Weekly Email Summary & Digest Card */}
+          <div className="bg-white rounded-3xl p-5 border border-brand-slate/15 shadow-sm space-y-3 flex flex-col justify-between">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`p-2 rounded-xl ${emailDigestPrefs.enabled ? 'bg-indigo-500/15 text-indigo-700' : 'bg-slate-100 text-slate-600'}`}>
+                    <Mail className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm font-bold text-brand-charcoal">
+                      Weekly Email Summary
+                    </h3>
+                    <span className="text-[10px] font-mono text-brand-muted block">
+                      {emailDigestPrefs.enabled 
+                        ? `${emailDigestPrefs.deliveryDay.charAt(0).toUpperCase() + emailDigestPrefs.deliveryDay.slice(1)} • ${emailDigestPrefs.deliveryTime === '09:00' ? '9:00 AM' : '6:00 PM'}`
+                        : 'Opt-in for weekly email'}
+                    </span>
+                  </div>
+                </div>
+
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
+                  emailDigestPrefs.enabled 
+                    ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-800' 
+                    : 'bg-slate-100 border-slate-200 text-slate-600'
+                }`}>
+                  {emailDigestPrefs.enabled ? 'ACTIVE' : 'OPT-IN'}
+                </span>
+              </div>
+
+              <p className="text-xs text-brand-slate leading-relaxed">
+                Automated weekly email recap of your mock interview performance, score progress, and learning streak badges.
+              </p>
+            </div>
+
+            <div className="pt-3 border-t border-brand-slate/10 flex items-center justify-between gap-2">
+              <span className="text-[10.5px] font-mono text-brand-muted truncate max-w-[110px]" title={emailDigestPrefs.email || currentUser?.email || 'syedshahnawazz1519@gmail.com'}>
+                {emailDigestPrefs.email || currentUser?.email || 'syedshahnawazz1519@gmail.com'}
+              </span>
+
+              <button
+                onClick={() => {
+                  setIsEmailDigestModalOpen(true);
+                  audioEngine.playLoFiChord();
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-indigo-800 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs shrink-0"
+              >
+                <Mail className="w-3 h-3 text-indigo-600" />
+                <span>{emailDigestPrefs.enabled ? 'Preferences' : 'Opt In'}</span>
               </button>
             </div>
           </div>
@@ -1069,7 +1222,73 @@ export default function StudentDashboard({
                   </p>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* View Mode Switcher: Table vs Cards vs Calendar */}
+                  {interviewHistory.length > 0 && (
+                    <div className="flex items-center p-0.5 rounded-xl bg-brand-sand/40 border border-brand-slate/15">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHistoryViewMode('table');
+                          audioEngine.playLoFiChord();
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          historyViewMode === 'table'
+                            ? 'bg-white text-brand-charcoal shadow-2xs font-black'
+                            : 'text-brand-slate hover:text-brand-charcoal'
+                        }`}
+                      >
+                        <span>Table</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHistoryViewMode('cards');
+                          audioEngine.playLoFiChord();
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          historyViewMode === 'cards'
+                            ? 'bg-white text-brand-charcoal shadow-2xs font-black'
+                            : 'text-brand-slate hover:text-brand-charcoal'
+                        }`}
+                      >
+                        <span>Cards</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHistoryViewMode('calendar');
+                          audioEngine.playLoFiChord();
+                        }}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                          historyViewMode === 'calendar'
+                            ? 'bg-white text-brand-charcoal shadow-2xs font-black'
+                            : 'text-brand-slate hover:text-brand-charcoal'
+                        }`}
+                      >
+                        <Calendar className="w-3.5 h-3.5 text-brand-amber" />
+                        <span>Calendar</span>
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Side-by-Side Session Comparison Trigger */}
+                  {interviewHistory.length >= 2 && (
+                    <motion.button
+                      whileHover={{ scale: 1.03 }}
+                      whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        setIsComparisonModalOpen(true);
+                        audioEngine.playLoFiChord();
+                      }}
+                      className="px-3 py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 hover:bg-amber-100 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                      title="Compare two past interview sessions side-by-side"
+                    >
+                      <BarChart2 className="w-3.5 h-3.5 text-brand-amber" />
+                      <span>Compare (2)</span>
+                    </motion.button>
+                  )}
+
                   {interviewHistory.length > 0 && (
                     <motion.button
                       whileHover={{ scale: 1.03 }}
@@ -1244,6 +1463,55 @@ export default function StudentDashboard({
                     Clear Search & Reset All Filters
                   </button>
                 </div>
+              ) : historyViewMode === 'calendar' ? (
+                <InterviewConsistencyCalendar
+                  interviewHistory={interviewHistory}
+                  streakState={streakState}
+                  onOpenReportModal={(rec) => {
+                    setSelectedReportRecord(rec);
+                    setIsReportModalOpen(true);
+                    audioEngine.playLoFiChord();
+                  }}
+                  onOpenAudioReplay={(rec) => {
+                    setSelectedReplayRecord(rec);
+                    setIsAudioReplayOpen(true);
+                    audioEngine.playLoFiChord();
+                  }}
+                  onStartInterview={onStartInterview}
+                  onCompareSessions={(sA, sB) => {
+                    setComparisonSessionAId(sA.id);
+                    setComparisonSessionBId(sB.id);
+                    setIsComparisonModalOpen(true);
+                    audioEngine.playLoFiChord();
+                  }}
+                />
+              ) : historyViewMode === 'table' ? (
+                <HistoricalInterviewTable
+                  records={filteredInterviewRecords.map(f => f.record)}
+                  onOpenReportModal={(rec) => {
+                    setSelectedReportRecord(rec);
+                    setIsReportModalOpen(true);
+                    audioEngine.playLoFiChord();
+                  }}
+                  onOpenAudioReplay={(rec) => {
+                    setSelectedReplayRecord(rec);
+                    setIsAudioReplayOpen(true);
+                    audioEngine.playLoFiChord();
+                  }}
+                  onOpenReflectionModal={(rec) => {
+                    setSelectedReflectionRecord(rec);
+                    setIsReflectionModalOpen(true);
+                    audioEngine.playLoFiChord();
+                  }}
+                  onExportCsv={handleExportSingleCsv}
+                  onOpenComparison={(rec) => {
+                    setComparisonSessionAId(rec.id);
+                    const other = interviewHistory.find(r => r.id !== rec.id);
+                    if (other) setComparisonSessionBId(other.id);
+                    setIsComparisonModalOpen(true);
+                    audioEngine.playLoFiChord();
+                  }}
+                />
               ) : (
                 <div className="space-y-3">
                   {filteredInterviewRecords.map(({ record: rec, derivedTags }) => {
@@ -1483,6 +1751,23 @@ export default function StudentDashboard({
                                     <Activity className="w-3.5 h-3.5" />
                                     <span>Inspect on Charts</span>
                                   </button>
+
+                                  {interviewHistory.length >= 2 && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setComparisonSessionAId(rec.id);
+                                        const other = interviewHistory.find(r => r.id !== rec.id);
+                                        if (other) setComparisonSessionBId(other.id);
+                                        setIsComparisonModalOpen(true);
+                                        audioEngine.playLoFiChord();
+                                      }}
+                                      className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-[11px] font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+                                    >
+                                      <BarChart2 className="w-3.5 h-3.5 text-brand-amber" />
+                                      <span>Compare</span>
+                                    </button>
+                                  )}
                                 </div>
 
                                 <span className="text-[10px] font-mono text-brand-muted">
@@ -1654,6 +1939,95 @@ export default function StudentDashboard({
         isOpen={isExportNotesModalOpen}
         onClose={() => setIsExportNotesModalOpen(false)}
       />
+
+      {/* Post-Interview Personal Reflections & Notes Modal */}
+      <PostInterviewReflectionModal
+        isOpen={isReflectionModalOpen}
+        onClose={() => {
+          setIsReflectionModalOpen(false);
+          setSelectedReflectionRecord(null);
+        }}
+        record={selectedReflectionRecord}
+        onSaveReflection={(recordId, reflectionData) => {
+          setInterviewHistory(prev => prev.map(rec => {
+            if (rec.id === recordId) {
+              return {
+                ...rec,
+                personalReflections: reflectionData,
+                personalNotes: reflectionData.generalNotes
+              };
+            }
+            return rec;
+          }));
+        }}
+      />
+
+      {/* Side-by-Side Interview Comparison Modal */}
+      <InterviewComparisonModal
+        isOpen={isComparisonModalOpen}
+        onClose={() => setIsComparisonModalOpen(false)}
+        records={interviewHistory}
+        initialSessionAId={comparisonSessionAId}
+        initialSessionBId={comparisonSessionBId}
+      />
+
+      {/* Weekly Email Summary & Progress Digest Modal */}
+      <WeeklyEmailDigestModal
+        isOpen={isEmailDigestModalOpen}
+        onClose={() => setIsEmailDigestModalOpen(false)}
+        defaultEmail={currentUser?.email || 'syedshahnawazz1519@gmail.com'}
+        interviewHistory={interviewHistory}
+        streakState={streakState}
+        onSavePreferences={(newPrefs) => {
+          setEmailDigestPrefs(newPrefs);
+        }}
+      />
+
+      {/* Quick Start Mock Interview Floating Action Button (FAB) */}
+      <motion.div
+        initial={{ scale: 0, opacity: 0, y: 20 }}
+        animate={{ scale: 1, opacity: 1, y: 0 }}
+        transition={{ delay: 0.2, type: 'spring', stiffness: 260, damping: 20 }}
+        className="fixed bottom-6 right-6 z-40"
+      >
+        <motion.button
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            audioEngine.playLoFiChord();
+            onStartInterview();
+          }}
+          className="relative group flex items-center gap-3 px-4.5 py-3.5 rounded-full bg-slate-950 text-white shadow-2xl border-2 border-brand-amber/60 hover:border-brand-amber cursor-pointer overflow-hidden backdrop-blur-md"
+          title="Start an immediate mock interview simulation on recommended topic"
+        >
+          {/* Animated Ambient Pulse Glow */}
+          <div className="absolute inset-0 bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+
+          {/* Icon with pulsing indicator */}
+          <div className="relative flex items-center justify-center w-8 h-8 rounded-full bg-brand-amber text-brand-charcoal shadow-md shrink-0">
+            <Zap className="w-4 h-4 fill-brand-charcoal animate-pulse" />
+            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-950 animate-ping" />
+          </div>
+
+          {/* Text & Recommendation Badge */}
+          <div className="text-left">
+            <div className="flex items-center gap-1.5">
+              <span className="font-display font-black text-xs sm:text-sm tracking-wide text-white">
+                Quick Start Mock
+              </span>
+              <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-brand-amber/20 text-brand-amber border border-brand-amber/40">
+                LIVE
+              </span>
+            </div>
+            <p className="text-[10px] text-white/70 font-mono flex items-center gap-1">
+              <span>🎯 Next:</span>
+              <span className="text-brand-amber font-bold truncate max-w-[140px] sm:max-w-[200px]">
+                {interviewHistory[0]?.roleTrack || 'Generative AI & LLMs'}
+              </span>
+            </p>
+          </div>
+        </motion.button>
+      </motion.div>
 
       {/* CSV Export & Action Feedback Toast Notification */}
       <AnimatePresence>
