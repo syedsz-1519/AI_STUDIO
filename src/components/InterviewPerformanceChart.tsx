@@ -76,6 +76,8 @@ export default function InterviewPerformanceChart({
   const activeRecord = (selectedRecordId && records.find(r => r.id === selectedRecordId)) || records[0];
 
   // 1. Radar Chart Data: 5 core interview competency dimensions
+  const sentScore = activeRecord.speechSentimentReport?.sentimentScore ?? 85;
+  const wpm = activeRecord.speechSentimentReport?.speakingPaceWpm ?? 138;
   const radarData = [
     {
       metric: lang === 'en' ? 'Technical Accuracy' : 'Technical Depth',
@@ -83,6 +85,11 @@ export default function InterviewPerformanceChart({
       score: activeRecord.technicalScore || 85,
       benchmark: 85,
       fullMark: 100,
+      subBreakdowns: [
+        { name: 'Core Concept Recall', score: Math.min(100, (activeRecord.technicalScore || 85) + 3) },
+        { name: 'Architecture & Trade-offs', score: Math.max(40, (activeRecord.technicalScore || 85) - 3) },
+        { name: 'Edge Cases & Complexity', score: Math.max(40, (activeRecord.technicalScore || 85) - 1) },
+      ]
     },
     {
       metric: lang === 'en' ? 'Communication Clarity' : 'Communication',
@@ -90,6 +97,11 @@ export default function InterviewPerformanceChart({
       score: activeRecord.communicationScore || 88,
       benchmark: 85,
       fullMark: 100,
+      subBreakdowns: [
+        { name: 'Articulation & Brevity', score: Math.min(100, (activeRecord.communicationScore || 88) + 2) },
+        { name: 'STAR Structure Alignment', score: Math.max(40, (activeRecord.communicationScore || 88) - 2) },
+        { name: 'Technical Vocabulary', score: Math.min(100, (activeRecord.communicationScore || 88) + 1) },
+      ]
     },
     {
       metric: lang === 'en' ? 'Camera Eye Contact' : 'Eye Gaze',
@@ -97,6 +109,11 @@ export default function InterviewPerformanceChart({
       score: activeRecord.eyeContactScore || 90,
       benchmark: 80,
       fullMark: 100,
+      subBreakdowns: [
+        { name: 'Direct Lens Alignment', score: activeRecord.eyeContactScore || 90 },
+        { name: 'Head Centering & Posture', score: Math.min(100, (activeRecord.eyeContactScore || 90) + 2) },
+        { name: 'Gaze Lock Consistency', score: Math.max(40, (activeRecord.eyeContactScore || 90) - 2) },
+      ]
     },
     {
       metric: lang === 'en' ? 'Confidence & Poise' : 'Confidence',
@@ -104,6 +121,11 @@ export default function InterviewPerformanceChart({
       score: activeRecord.confidenceScore || 84,
       benchmark: 80,
       fullMark: 100,
+      subBreakdowns: [
+        { name: 'Composure Under Pressure', score: activeRecord.confidenceScore || 84 },
+        { name: 'Vocal Modulation', score: Math.min(100, (activeRecord.confidenceScore || 84) + 2) },
+        { name: 'Tone Positivity & Sentiment', score: sentScore },
+      ]
     },
     {
       metric: lang === 'en' ? 'Structure & STAR' : 'Structure',
@@ -111,6 +133,11 @@ export default function InterviewPerformanceChart({
       score: Math.round(((activeRecord.technicalScore || 85) * 0.4) + ((activeRecord.communicationScore || 88) * 0.6)),
       benchmark: 85,
       fullMark: 100,
+      subBreakdowns: [
+        { name: 'Situation & Task Definition', score: Math.min(100, (activeRecord.communicationScore || 88) + 1) },
+        { name: 'Action & Execution Detail', score: activeRecord.technicalScore || 85 },
+        { name: 'Measurable Results & Synthesis', score: Math.max(40, (activeRecord.technicalScore || 85) - 4) },
+      ]
     },
   ];
 
@@ -225,18 +252,54 @@ export default function InterviewPerformanceChart({
     if (active && payload && payload.length) {
       const data = payload[0].payload;
       return (
-        <div className="bg-brand-charcoal/95 backdrop-blur-md text-white text-xs p-3 rounded-xl border border-white/15 shadow-xl space-y-1">
-          <div className="font-display font-bold text-brand-amber">{data.metric}</div>
+        <div className="bg-brand-charcoal/95 backdrop-blur-md text-white text-xs p-3.5 rounded-2xl border border-white/15 shadow-xl space-y-2 max-w-xs z-50">
+          <div className="flex items-center justify-between border-b border-white/15 pb-1">
+            <span className="font-display font-bold text-brand-amber">{data.metric}</span>
+            <span className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+              data.score >= data.benchmark ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+            }`}>
+              {data.score >= data.benchmark ? 'Target Bar Met' : 'Under Review'}
+            </span>
+          </div>
+
           <div className="flex items-center justify-between gap-4 text-[11px] font-mono">
             <span className="text-white/80">Candidate Score:</span>
-            <span className="font-bold text-emerald-400">{data.score}%</span>
+            <span className="font-bold text-emerald-400 text-sm">{data.score}%</span>
           </div>
-          <div className="flex items-center justify-between gap-4 text-[11px] font-mono">
-            <span className="text-white/60">Hiring Benchmark:</span>
+
+          <div className="flex items-center justify-between gap-4 text-[10.5px] font-mono text-white/60">
+            <span>Hiring Benchmark Bar:</span>
             <span className="text-white/80">{data.benchmark}%</span>
           </div>
-          <div className="pt-1 border-t border-white/10 text-[10px] text-white/70">
-            {data.score >= data.benchmark ? '✓ Meets or exceeds target bar' : '⚡ Recommended area for review'}
+
+          {/* Granular Sub-Score Breakdowns */}
+          {data.subBreakdowns && data.subBreakdowns.length > 0 && (
+            <div className="pt-2 border-t border-white/10 space-y-1.5">
+              <span className="text-[10px] font-mono text-white/60 font-bold uppercase tracking-wider block">
+                Sub-Score Breakdown:
+              </span>
+              {data.subBreakdowns.map((sub: any, idx: number) => (
+                <div key={idx} className="space-y-0.5">
+                  <div className="flex justify-between items-center text-[10px] font-mono">
+                    <span className="text-white/80">{sub.name}</span>
+                    <span className="font-bold text-amber-300">{sub.score}%</span>
+                  </div>
+                  <div className="w-full h-1 bg-white/10 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        sub.score >= 85 ? 'bg-emerald-400' :
+                        sub.score >= 70 ? 'bg-amber-400' : 'bg-rose-400'
+                      }`}
+                      style={{ width: `${Math.min(100, sub.score)}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="pt-1.5 border-t border-white/10 text-[10px] text-white/70 font-mono">
+            {data.score >= data.benchmark ? '✓ Meets or exceeds competency rubric' : '⚡ Focus area for next mock session'}
           </div>
         </div>
       );

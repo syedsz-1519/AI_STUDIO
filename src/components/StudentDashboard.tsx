@@ -73,6 +73,8 @@ import CommunityPeerReviewFeed from './CommunityPeerReviewFeed';
 import InterviewComparisonModal from './InterviewComparisonModal';
 import WeeklyEmailDigestModal, { getEmailDigestPreferences, type WeeklyEmailDigestPreferences } from './WeeklyEmailDigestModal';
 import InterviewConsistencyCalendar from './InterviewConsistencyCalendar';
+import SessionInlineReflectionEditor from './SessionInlineReflectionEditor';
+import { BadgeEngine as BadgeEngineLib } from '../lib/badgeEngine';
 import { streakManager, type DailyStreakState } from '../lib/streakManager';
 import { offlineLessonCache, type OfflineCacheStats } from '../lib/offlineLessonCache';
 import { getStudentKnowledgeNotes } from '../lib/notesExporter';
@@ -164,13 +166,22 @@ export default function StudentDashboard({
     return Object.keys(getStudentKnowledgeNotes()).length;
   });
 
-  // Categorize each record with derived auto-tags
+  // Categorize each record with derived auto-tags and custom user tags
   const taggedInterviewHistory = useMemo(() => {
     return interviewHistory.map((rec) => {
       const derived = deriveSessionTags(rec);
+      // Merge auto-derived topic tags with custom assigned tags
+      const combinedTopics = Array.from(new Set([
+        ...derived.topicTags,
+        ...(rec.tags || []),
+        ...(rec.topics || [])
+      ]));
       return {
         record: rec,
-        derivedTags: derived
+        derivedTags: {
+          ...derived,
+          topicTags: combinedTopics
+        }
       };
     });
   }, [interviewHistory]);
@@ -239,6 +250,11 @@ export default function StudentDashboard({
     setCsvToast(`Exported all ${interviewHistory.length} mock interview sessions to CSV!`);
     setTimeout(() => setCsvToast(null), 3500);
   };
+
+  // Evaluate Student Performance Badges & Milestones
+  const studentProfile = useMemo(() => {
+    return BadgeEngineLib.evaluateStudentProfile(masteredConcepts, interviewHistory, streakState);
+  }, [masteredConcepts, interviewHistory, streakState]);
 
   // Calculate intelligent 'Recommended Next Step' based on progress & quiz performance
   const recommendedNextStep = useMemo(() => {
@@ -443,8 +459,9 @@ export default function StudentDashboard({
 
     loadInterviews();
 
-    // Listen to custom event when a new interview completes
+    // Listen to custom event when a new interview completes or tags are modified
     window.addEventListener('clay_interview_saved', loadInterviews);
+    window.addEventListener('clay_interview_records_updated', loadInterviews);
 
     // Load mastered concepts
     try {
@@ -457,6 +474,7 @@ export default function StudentDashboard({
     return () => {
       unsub();
       window.removeEventListener('clay_interview_saved', loadInterviews);
+      window.removeEventListener('clay_interview_records_updated', loadInterviews);
       window.removeEventListener('clay_interview_draft_updated', checkDraft);
     };
   }, []);
@@ -910,21 +928,65 @@ export default function StudentDashboard({
         </div>
 
         {/* ========================================================================= */}
-        {/* 1. DAILY STREAK & CONSISTENCY HABIT TRACKER */}
+        {/* 1. DAILY STREAK & CONSISTENCY HABIT TRACKER (FRAMER MOTION BOUNCE & GLOW) */}
         {/* ========================================================================= */}
-        <div className="bg-gradient-to-br from-amber-500/10 via-white to-orange-500/10 border-2 border-brand-amber/35 rounded-3xl p-6 shadow-sm space-y-5">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92, y: 20 }}
+          animate={{ 
+            opacity: 1, 
+            scale: 1, 
+            y: 0,
+            boxShadow: streakCelebrate 
+              ? [
+                  "0 4px 12px rgba(0,0,0,0.05)",
+                  "0 0 35px rgba(217, 119, 6, 0.4)",
+                  "0 4px 12px rgba(0,0,0,0.05)"
+                ]
+              : "0 1px 3px rgba(0, 0, 0, 0.05)"
+          }}
+          transition={{ 
+            type: "spring", 
+            stiffness: 260, 
+            damping: 20,
+            boxShadow: { duration: 2, repeat: streakCelebrate ? Infinity : 0 }
+          }}
+          className={`bg-gradient-to-br from-amber-500/10 via-white to-orange-500/10 border-2 rounded-3xl p-6 shadow-sm space-y-5 transition-all ${
+            streakCelebrate ? 'border-brand-amber ring-4 ring-amber-500/20' : 'border-brand-amber/35'
+          }`}
+        >
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             
             {/* Streak Number & Status */}
             <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md relative group">
-                <Flame className="w-7 h-7 animate-bounce stroke-[2.5]" />
+              <motion.div 
+                animate={streakCelebrate ? { 
+                  scale: [1, 1.25, 0.95, 1.15, 1], 
+                  rotate: [0, -10, 10, -5, 0] 
+                } : { scale: 1 }}
+                transition={{ duration: 0.8, ease: "easeInOut" }}
+                className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 to-orange-600 text-white flex items-center justify-center shadow-md relative group shrink-0"
+              >
+                <motion.div
+                  animate={{ 
+                    scale: [1, 1.14, 1],
+                    y: [0, -2, 0]
+                  }}
+                  transition={{ repeat: Infinity, duration: 1.6, ease: "easeInOut" }}
+                >
+                  <Flame className="w-7 h-7 stroke-[2.5]" />
+                </motion.div>
+
                 {streakState.todayCompleted && (
-                  <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold border-2 border-white">
+                  <motion.span 
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 15 }}
+                    className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-emerald-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold border-2 border-white shadow-xs"
+                  >
                     ✓
-                  </span>
+                  </motion.span>
                 )}
-              </div>
+              </motion.div>
 
               <div>
                 <div className="flex items-center gap-2">
@@ -937,7 +999,13 @@ export default function StudentDashboard({
                 </div>
                 <h2 className="font-display text-xl sm:text-2xl font-black text-brand-charcoal mt-0.5 flex items-center gap-2">
                   <span>{streakState.currentStreak} Consecutive Days Streak</span>
-                  <span className="text-lg">{streakState.todayCompleted ? '🔥' : '⏳'}</span>
+                  <motion.span 
+                    animate={streakCelebrate ? { scale: [1, 1.4, 1], rotate: [0, 15, -15, 0] } : {}}
+                    transition={{ duration: 0.6 }}
+                    className="text-lg inline-block"
+                  >
+                    {streakState.todayCompleted ? '🔥' : '⏳'}
+                  </motion.span>
                 </h2>
                 <p className="text-xs text-brand-slate">
                   {streakState.todayCompleted
@@ -950,12 +1018,18 @@ export default function StudentDashboard({
             {/* Action / Celebration */}
             <div className="flex items-center gap-3">
               {streakCelebrate ? (
-                <div className="px-4 py-2.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-md animate-pulse">
-                  <Sparkles className="w-4 h-4" />
-                  <span>Streak Recorded for Today! 🎉</span>
-                </div>
+                <motion.div 
+                  initial={{ scale: 0.8, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="px-4 py-2.5 rounded-2xl bg-emerald-500 text-white text-xs font-bold flex items-center gap-2 shadow-md"
+                >
+                  <Sparkles className="w-4 h-4 animate-spin" />
+                  <span>Streak Milestone Secured! 🎉</span>
+                </motion.div>
               ) : (
-                <button
+                <motion.button
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
                   onClick={handleMarkTodayComplete}
                   className={`px-4 py-2.5 rounded-2xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 cursor-pointer ${
                     streakState.todayCompleted
@@ -974,7 +1048,7 @@ export default function StudentDashboard({
                       <span>Check In & Mark Today Complete</span>
                     </>
                   )}
-                </button>
+                </motion.button>
               )}
             </div>
           </div>
@@ -989,13 +1063,16 @@ export default function StudentDashboard({
                   <span className="text-[10px] font-mono font-bold text-brand-muted">
                     {day.dayName}
                   </span>
-                  <div className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
-                    day.completed
-                      ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-xs font-bold text-xs'
-                      : day.isToday
-                      ? 'border-2 border-dashed border-brand-amber bg-brand-amber/10 text-brand-amber text-xs'
-                      : 'bg-brand-sand/50 text-brand-slate/40 text-xs'
-                  }`}>
+                  <motion.div 
+                    whileHover={{ scale: 1.1 }}
+                    className={`w-8 h-8 rounded-xl flex items-center justify-center transition-all ${
+                      day.completed
+                        ? 'bg-gradient-to-tr from-amber-500 to-orange-500 text-white shadow-xs font-bold text-xs'
+                        : day.isToday
+                        ? 'border-2 border-dashed border-brand-amber bg-brand-amber/10 text-brand-amber text-xs'
+                        : 'bg-brand-sand/50 text-brand-slate/40 text-xs'
+                    }`}
+                  >
                     {day.completed ? (
                       <Check className="w-4 h-4 stroke-[3]" />
                     ) : day.isToday ? (
@@ -1003,7 +1080,7 @@ export default function StudentDashboard({
                     ) : (
                       <span className="text-[10px] font-mono">{day.dayNumber}</span>
                     )}
-                  </div>
+                  </motion.div>
                   <span className={`text-[9px] font-mono font-semibold ${day.isToday ? 'text-brand-amber font-bold' : 'text-brand-slate/50'}`}>
                     {day.isToday ? 'Today' : ''}
                   </span>
@@ -1012,10 +1089,13 @@ export default function StudentDashboard({
             </div>
 
             {/* Milestone Badge & Progress */}
-            <div className="md:col-span-5 p-3 rounded-2xl bg-white/80 border border-brand-slate/10 space-y-1.5">
+            <motion.div 
+              whileHover={{ scale: 1.02 }}
+              className="md:col-span-5 p-3 rounded-2xl bg-white/80 border border-brand-slate/10 space-y-1.5"
+            >
               <div className="flex items-center justify-between text-xs">
                 <span className="font-bold text-brand-charcoal flex items-center gap-1.5">
-                  <span>{streakState.currentMilestone.badgeEmoji}</span>
+                  <span className="text-base">{streakState.currentMilestone.badgeEmoji}</span>
                   <span>{streakState.currentMilestone.title}</span>
                 </span>
                 <span className="font-mono text-[11px] font-bold text-brand-amber">
@@ -1024,19 +1104,21 @@ export default function StudentDashboard({
               </div>
 
               <div className="w-full h-2 bg-brand-sand rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-gradient-to-r from-brand-amber to-orange-500 rounded-full transition-all duration-500"
-                  style={{ width: `${streakState.currentMilestone.progressPercent}%` }}
+                <motion.div 
+                  initial={{ width: 0 }}
+                  animate={{ width: `${streakState.currentMilestone.progressPercent}%` }}
+                  transition={{ duration: 0.8, ease: "easeOut" }}
+                  className="h-full bg-gradient-to-r from-brand-amber to-orange-500 rounded-full"
                 />
               </div>
 
               <p className="text-[10px] text-brand-muted">
                 {streakState.currentMilestone.description}
               </p>
-            </div>
+            </motion.div>
 
           </div>
-        </div>
+        </motion.div>
 
         {/* ========================================================================= */}
         {/* 2. OFFLINE LESSON CACHE, NOTES EXPORT & WEEKLY EMAIL SUMMARY HUB */}
@@ -1511,6 +1593,13 @@ export default function StudentDashboard({
                     setIsComparisonModalOpen(true);
                     audioEngine.playLoFiChord();
                   }}
+                  onTagSelected={(tag) => setSelectedTopicFilter(tag)}
+                  onRecordsUpdated={() => {
+                    const saved = localStorage.getItem('clay_mock_interviews');
+                    if (saved) {
+                      setInterviewHistory(JSON.parse(saved));
+                    }
+                  }}
                 />
               ) : (
                 <div className="space-y-3">
@@ -1699,6 +1788,16 @@ export default function StudentDashboard({
                                 </div>
                               )}
 
+                              {/* Personal Reflections & Key Takeaways Inline Editor */}
+                              <div className="pt-2">
+                                <SessionInlineReflectionEditor
+                                  record={rec}
+                                  onSave={() => {
+                                    handleSyncCacheManually();
+                                  }}
+                                />
+                              </div>
+
                               {/* Quick session focus and replay actions */}
                               <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-brand-slate/10">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -1785,8 +1884,92 @@ export default function StudentDashboard({
             </div>
           </div>
 
-          {/* RIGHT 1 COLUMN: Curriculum Mastery Checklist & Quick Launch Bar */}
+          {/* RIGHT 1 COLUMN: Performance Milestones, Curriculum Mastery & Quick Launch Bar */}
           <div className="space-y-4">
+            
+            {/* Performance Milestones & Badges Showcase */}
+            <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm space-y-3.5">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-amber-500/15 text-amber-800">
+                    <Award className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-sm font-bold text-brand-charcoal">
+                      Performance Milestones
+                    </h3>
+                    <span className="text-[10px] font-mono text-brand-muted block">
+                      {studentProfile.unlockedBadgesCount} / {studentProfile.totalBadgesCount} Badges Unlocked
+                    </span>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => {
+                    setActiveTab('badges');
+                    audioEngine.playLoFiChord();
+                  }}
+                  className="px-2.5 py-1 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-[10.5px] font-bold font-mono transition-all cursor-pointer shadow-2xs"
+                >
+                  View All
+                </button>
+              </div>
+
+              {/* Milestone Badges Strip */}
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                {studentProfile.badges.slice(0, 4).map((badge) => (
+                  <motion.div
+                    key={badge.id}
+                    whileHover={{ scale: 1.02, y: -1 }}
+                    onClick={() => {
+                      setActiveTab('badges');
+                      audioEngine.playLoFiChord();
+                    }}
+                    className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                      badge.unlocked
+                        ? `${badge.bgClass} ${badge.borderClass} shadow-2xs`
+                        : 'bg-brand-sand/15 border-brand-slate/10 opacity-75'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="text-xl">{badge.badgeEmoji}</span>
+                      <span className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-md ${
+                        badge.unlocked 
+                          ? 'bg-emerald-100 text-emerald-800' 
+                          : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {badge.unlocked ? 'UNLOCKED' : `${badge.progressPercent}%`}
+                      </span>
+                    </div>
+                    <div>
+                      <div className="font-display font-bold text-[11px] text-brand-charcoal truncate">
+                        {badge.title}
+                      </div>
+                      <div className="text-[9.5px] text-brand-muted truncate">
+                        +{badge.xpReward} XP • {badge.tier}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              {/* XP Level Progress Indicator */}
+              <div className="pt-2 border-t border-brand-slate/10 space-y-1">
+                <div className="flex items-center justify-between text-[11px] font-mono">
+                  <span className="font-bold text-brand-charcoal flex items-center gap-1">
+                    <span>{studentProfile.levelBadgeEmoji}</span>
+                    <span>Level {studentProfile.currentLevel}: {studentProfile.levelTitle}</span>
+                  </span>
+                  <span className="text-brand-amber font-bold">{studentProfile.totalXp} XP</span>
+                </div>
+                <div className="w-full h-1.5 bg-brand-sand rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full"
+                    style={{ width: `${studentProfile.levelProgressPercent}%` }}
+                  />
+                </div>
+              </div>
+            </div>
             
             {/* Concept Mastery Checklist */}
             <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm space-y-3">

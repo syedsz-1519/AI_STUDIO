@@ -43,9 +43,15 @@ import {
   Trash2,
   PlayCircle,
   History,
-  Edit3
+  Edit3,
+  Users,
+  Tag,
+  Globe,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { useLanguage } from '../hooks/useLanguage';
+import { CommunityPeerReviewManager } from '../lib/communityPeerReview';
 import { 
   analyzeSpeechSentiment, 
   SpeechSentimentReport 
@@ -136,6 +142,47 @@ export default function AIMockInterviewer({
   // Scorecard state
   const [completedRecord, setCompletedRecord] = useState<MockInterviewRecord | null>(null);
   const [isReflectionModalOpen, setIsReflectionModalOpen] = useState(false);
+
+  // Deep Focus Mode State (Hides distracting UI and expands video feed)
+  const [isDeepFocus, setIsDeepFocus] = useState<boolean>(false);
+
+  // Keyboard shortcut listener for Escape to exit Deep Focus
+  useEffect(() => {
+    if (stage !== 'interview') {
+      if (isDeepFocus) setIsDeepFocus(false);
+      return;
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // If user presses Escape key while in Deep Focus mode, exit
+      if (e.key === 'Escape' && isDeepFocus) {
+        setIsDeepFocus(false);
+        audioEngine.playLoFiChord();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [stage, isDeepFocus]);
+
+  // Community Peer Review & Anonymized Feedback State
+  const [isCommunityOptIn, setIsCommunityOptIn] = useState<boolean>(false);
+  const [customCommunityFeedbackPrompt, setCustomCommunityFeedbackPrompt] = useState<string>('Looking for constructive peer feedback on my technical answer clarity, system trade-offs, and algorithm depth.');
+  const [hasSharedToCommunity, setHasSharedToCommunity] = useState<boolean>(false);
+  const [communityShareToast, setCommunityShareToast] = useState<string | null>(null);
+
+  // Community share handler
+  const handleShareToCommunity = (record: MockInterviewRecord) => {
+    try {
+      CommunityPeerReviewManager.submitInterviewAnonymously(record, customCommunityFeedbackPrompt);
+      setHasSharedToCommunity(true);
+      audioEngine.playLoFiChord();
+      setCommunityShareToast('Shared anonymously to the Community Peer Review Feed!');
+      setTimeout(() => setCommunityShareToast(null), 4000);
+    } catch (e) {
+      console.warn('Failed to share to community:', e);
+    }
+  };
 
   // Auto-Save Draft State for Interrupted Session Recovery
   const [savedDraft, setSavedDraft] = useState<MockInterviewDraft | null>(null);
@@ -713,6 +760,12 @@ Please provide a JSON response with:
       setSavedDraft(null);
       window.dispatchEvent(new Event('clay_interview_saved'));
       window.dispatchEvent(new Event('clay_interview_draft_updated'));
+
+      // If user toggled Community Feedback opt-in during setup, share anonymously
+      if (isCommunityOptIn) {
+        CommunityPeerReviewManager.submitInterviewAnonymously(record, customCommunityFeedbackPrompt);
+        setHasSharedToCommunity(true);
+      }
     } catch (e) {
       console.warn('Failed to save interview record:', e);
     }
@@ -1063,6 +1116,95 @@ Please provide a JSON response with:
               </div>
             </div>
 
+            {/* 4. Step: Community Peer Review & Anonymized Feedback */}
+            <div className="bg-white rounded-3xl p-6 border border-brand-slate/15 shadow-sm text-left space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/15 text-indigo-700 flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-display text-base font-bold text-brand-charcoal flex items-center gap-2">
+                      <span>4. Community Peer Feedback</span>
+                      <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-mono font-bold">
+                        ANONYMOUS
+                      </span>
+                    </h3>
+                    <p className="text-xs text-brand-muted mt-0.5">
+                      {lang === 'en'
+                        ? "Anonymously share interview transcript snippets with fellow students for peer critique and community feedback."
+                        : "Apne interview ke jawab ka transcript dosre students ke sath anonymous peer review ke liye share karein."}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Community Feedback Toggle */}
+                <button
+                  onClick={() => {
+                    setIsCommunityOptIn(!isCommunityOptIn);
+                    audioEngine.playLoFiChord();
+                  }}
+                  className={`px-4 py-2 rounded-2xl border text-xs font-bold font-mono transition-all flex items-center gap-2.5 cursor-pointer shrink-0 shadow-2xs ${
+                    isCommunityOptIn
+                      ? 'bg-indigo-600 border-indigo-700 text-white shadow-md'
+                      : 'bg-brand-sand/30 border-brand-slate/20 text-brand-slate hover:bg-brand-sand/60'
+                  }`}
+                >
+                  <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all ${
+                    isCommunityOptIn ? 'bg-white border-white' : 'border-brand-slate/40'
+                  }`} />
+                  <span>{isCommunityOptIn ? 'Community Feedback: ON' : 'Enable Community Feedback'}</span>
+                </button>
+              </div>
+
+              {isCommunityOptIn && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  className="space-y-3 pt-3 border-t border-brand-slate/10 overflow-hidden"
+                >
+                  <div className="bg-indigo-50/60 border border-indigo-200/70 rounded-2xl p-4 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 text-xs text-indigo-950 font-bold">
+                        <Tag className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>Assigned Topic Tags for Peer Feed:</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        {[
+                          currentRole.title.includes('AI') ? 'Deep Learning' : 'System Design',
+                          currentRole.title.includes('LLM') ? 'Generative AI & LLMs' : 'Machine Learning',
+                          difficulty === 'Advanced' ? 'Optimization & Scaling' : 'Core Architecture',
+                          difficulty
+                        ].map((t, idx) => (
+                          <span key={idx} className="px-2 py-0.5 rounded-lg bg-white text-indigo-900 border border-indigo-200 text-[10px] font-mono font-bold">
+                            #{t}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold text-indigo-950 block font-sans">
+                        Peer Review Focus Request (What should students critique?):
+                      </label>
+                      <input
+                        type="text"
+                        value={customCommunityFeedbackPrompt}
+                        onChange={(e) => setCustomCommunityFeedbackPrompt(e.target.value)}
+                        placeholder="e.g. Seeking critique on my explanation of gradient descent and KV-cache trade-offs..."
+                        className="w-full px-3.5 py-2 rounded-xl bg-white border border-indigo-200 text-brand-charcoal text-xs focus:outline-hidden focus:ring-2 focus:ring-indigo-500 shadow-2xs"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 text-[10.5px] text-indigo-900/80 font-mono">
+                      <Globe className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                      <span>Transcripts will appear in the Community Feed under <strong>Anonymous Scholar</strong>. Camera and audio remain 100% private.</span>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </div>
+
             {/* Launch Action Button */}
             <div className="pt-2 flex justify-center">
               <button
@@ -1082,40 +1224,66 @@ Please provide a JSON response with:
         {/* ========================================================================= */}
         {stage === 'interview' && currentQuestion && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="space-y-4 text-left"
+            key={isDeepFocus ? 'deep-focus-active' : 'standard-session'}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.2 }}
+            className={
+              isDeepFocus
+                ? "fixed inset-0 z-50 bg-slate-950/98 backdrop-blur-2xl text-white flex flex-col justify-between p-3 sm:p-5 overflow-y-auto lg:overflow-hidden select-none"
+                : "space-y-4 text-left"
+            }
           >
-            {/* Top Live Bar: Role, Question Progress, and Timers */}
-            <div className="bg-white rounded-2xl p-3.5 px-5 border border-brand-slate/15 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            {/* Top Live Bar: Role, Question Progress, Timers & Deep Focus Toggle */}
+            <div
+              className={`rounded-2xl p-3.5 px-5 border shadow-sm flex flex-wrap items-center justify-between gap-3 ${
+                isDeepFocus
+                  ? 'bg-white/[0.05] border-white/10 text-white backdrop-blur-md'
+                  : 'bg-white border-brand-slate/15 text-brand-charcoal'
+              }`}
+            >
               <div className="flex items-center gap-3">
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
                 <div>
-                  <span className="text-[9px] font-mono uppercase font-bold text-brand-amber block">
-                    {currentRole.title} ({difficulty})
-                  </span>
-                  <h3 className="font-display text-xs font-black text-brand-charcoal">
+                  <div className="flex items-center gap-2">
+                    <span className={`text-[9px] font-mono uppercase font-bold block ${
+                      isDeepFocus ? 'text-purple-300' : 'text-brand-amber'
+                    }`}>
+                      {currentRole.title} ({difficulty})
+                    </span>
+                    {isDeepFocus && (
+                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-400/30 text-[9px] font-mono font-bold flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5 text-purple-300 animate-pulse" />
+                        <span>DEEP FOCUS ACTIVE</span>
+                      </span>
+                    )}
+                  </div>
+                  <h3 className={`font-display text-xs font-black ${
+                    isDeepFocus ? 'text-white' : 'text-brand-charcoal'
+                  }`}>
                     Question {currentQuestionIndex + 1} of {questions.length} • {currentQuestion.topic}
                   </h3>
                 </div>
               </div>
 
-              {/* Timers, Countdown, Auto-Save Status & Pause Controls */}
+              {/* Timers, Countdown, Deep Focus Toggle, Auto-Save Status & Controls */}
               <div className="flex flex-wrap items-center gap-2">
                 {/* Visual Countdown Timer for Practice Questions */}
                 {countdownTargetSeconds > 0 ? (
                   <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all shadow-2xs ${
                     countdownTargetSeconds - questionSeconds <= 15
-                      ? 'bg-red-500/15 border-red-500/50 text-red-700 animate-pulse'
+                      ? 'bg-red-500/20 border-red-500/60 text-red-400 animate-pulse'
                       : countdownTargetSeconds - questionSeconds <= 30
-                      ? 'bg-amber-500/15 border-amber-500/40 text-amber-800'
+                      ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                      : isDeepFocus
+                      ? 'bg-white/10 border-white/15 text-emerald-300'
                       : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-800'
                   }`}>
                     {/* SVG Circular Progress Ring */}
                     <div className="relative w-4 h-4 flex items-center justify-center shrink-0">
                       <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                         <path
-                          className="text-slate-200 stroke-current"
+                          className={isDeepFocus ? "text-slate-700 stroke-current" : "text-slate-200 stroke-current"}
                           strokeWidth="4"
                           fill="none"
                           d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
@@ -1137,55 +1305,98 @@ Please provide a JSON response with:
                     <span>
                       {formatTime(Math.max(0, countdownTargetSeconds - questionSeconds))}
                     </span>
-                    <span className="text-[10px] font-sans font-medium text-brand-slate/70">left</span>
+                    <span className="text-[10px] font-sans font-medium opacity-70">left</span>
 
                     {/* +30s Emergency Extension */}
                     <button
                       onClick={() => setCountdownTargetSeconds(prev => prev + 30)}
-                      className="px-1.5 py-0.5 rounded bg-white/80 hover:bg-white text-[9px] font-mono font-bold text-brand-charcoal border border-brand-slate/20 transition-all cursor-pointer shadow-2xs ml-0.5"
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold border transition-all cursor-pointer shadow-2xs ml-0.5 ${
+                        isDeepFocus
+                          ? 'bg-white/15 hover:bg-white/25 text-white border-white/20'
+                          : 'bg-white/80 hover:bg-white text-brand-charcoal border-brand-slate/20'
+                      }`}
                       title="Add 30 seconds to countdown timer"
                     >
                       +30s
                     </button>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-brand-sand/50 rounded-xl font-mono text-xs text-brand-charcoal font-bold border border-brand-slate/15">
+                  <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-mono text-xs font-bold border ${
+                    isDeepFocus
+                      ? 'bg-white/10 border-white/15 text-white'
+                      : 'bg-brand-sand/50 border-brand-slate/15 text-brand-charcoal'
+                  }`}>
                     <Clock className="w-3.5 h-3.5 text-brand-amber" />
                     <span>{formatTime(questionSeconds)}</span>
-                    <span className="text-[10px] font-sans text-brand-muted">(Open-Ended)</span>
+                    <span className="text-[10px] font-sans opacity-60">(Open-Ended)</span>
                   </div>
                 )}
 
-                {/* Target Countdown Dropdown */}
-                <select
-                  value={countdownTargetSeconds}
-                  onChange={(e) => setCountdownTargetSeconds(Number(e.target.value))}
-                  className="px-2 py-1.5 rounded-xl bg-white border border-brand-slate/20 text-[10.5px] font-mono text-brand-slate cursor-pointer focus:outline-none"
-                  title="Configure response countdown limit"
-                >
-                  <option value={60}>⏱️ 60s Target</option>
-                  <option value={90}>⏱️ 90s Target</option>
-                  <option value={120}>⏱️ 2 Mins</option>
-                  <option value={180}>⏱️ 3 Mins</option>
-                  <option value={0}>♾️ No Limit</option>
-                </select>
+                {/* Hide secondary dropdowns in Deep Focus mode */}
+                {!isDeepFocus && (
+                  <>
+                    {/* Target Countdown Dropdown */}
+                    <select
+                      value={countdownTargetSeconds}
+                      onChange={(e) => setCountdownTargetSeconds(Number(e.target.value))}
+                      className="px-2 py-1.5 rounded-xl bg-white border border-brand-slate/20 text-[10.5px] font-mono text-brand-slate cursor-pointer focus:outline-none"
+                      title="Configure response countdown limit"
+                    >
+                      <option value={60}>⏱️ 60s Target</option>
+                      <option value={90}>⏱️ 90s Target</option>
+                      <option value={120}>⏱️ 2 Mins</option>
+                      <option value={180}>⏱️ 3 Mins</option>
+                      <option value={0}>♾️ No Limit</option>
+                    </select>
 
-                {/* Real-time Auto-Save Live Badge & Manual Save Button */}
+                    {/* Real-time Auto-Save Live Badge & Manual Save Button */}
+                    <button
+                      onClick={triggerManualSave}
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-[10.5px] font-mono font-bold shadow-2xs transition-all cursor-pointer"
+                      title="Click to save session draft now or rely on background auto-save"
+                    >
+                      <Cloud className={`w-3.5 h-3.5 text-emerald-600 ${isAutoSaving ? 'animate-bounce' : ''}`} />
+                      <span className="hidden sm:inline">{isAutoSaving ? 'Saving...' : lastAutoSavedTime ? `Saved ${lastAutoSavedTime}` : 'Saved'}</span>
+                    </button>
+                  </>
+                )}
+
+                {/* DEEP FOCUS TOGGLE BUTTON */}
                 <button
-                  onClick={triggerManualSave}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/80 text-emerald-800 text-[10.5px] font-mono font-bold shadow-2xs transition-all cursor-pointer"
-                  title="Click to save session draft now or rely on background auto-save"
+                  onClick={() => {
+                    setIsDeepFocus(!isDeepFocus);
+                    audioEngine.playLoFiChord();
+                  }}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer shadow-2xs ${
+                    isDeepFocus
+                      ? 'bg-purple-600 hover:bg-purple-500 text-white border border-purple-400 shadow-md ring-2 ring-purple-400/40'
+                      : 'bg-purple-50 hover:bg-purple-100 border border-purple-300 text-purple-900 hover:text-purple-950'
+                  }`}
+                  title={isDeepFocus ? "Exit Deep Focus (Esc)" : "Expand video feed to fill screen and hide distracting UI (Press F)"}
                 >
-                  <Cloud className={`w-3.5 h-3.5 text-emerald-600 ${isAutoSaving ? 'animate-bounce' : ''}`} />
-                  <span className="hidden sm:inline">{isAutoSaving ? 'Saving...' : lastAutoSavedTime ? `Saved ${lastAutoSavedTime}` : 'Saved'}</span>
+                  {isDeepFocus ? (
+                    <>
+                      <Minimize2 className="w-3.5 h-3.5 text-purple-200" />
+                      <span>Exit Deep Focus (Esc)</span>
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="w-3.5 h-3.5 text-purple-700" />
+                      <span>Deep Focus</span>
+                    </>
+                  )}
                 </button>
 
                 <button
                   onClick={() => setIsPaused(!isPaused)}
-                  className="p-1.5 rounded-lg border border-brand-slate/15 hover:bg-brand-sand text-brand-slate cursor-pointer"
+                  className={`p-1.5 rounded-lg border cursor-pointer transition-colors ${
+                    isDeepFocus
+                      ? 'border-white/20 bg-white/10 hover:bg-white/20 text-white'
+                      : 'border-brand-slate/15 hover:bg-brand-sand text-brand-slate'
+                  }`}
                   title={isPaused ? "Resume Interview" : "Pause Interview"}
                 >
-                  {isPaused ? <Play className="w-4 h-4 text-emerald-600" /> : <Pause className="w-4 h-4" />}
+                  {isPaused ? <Play className="w-4 h-4 text-emerald-400" /> : <Pause className="w-4 h-4" />}
                 </button>
 
                 <button
@@ -1194,18 +1405,31 @@ Please provide a JSON response with:
                       finalizeInterview(attempts);
                     }
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white text-[11px] font-bold transition-all cursor-pointer"
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                    isDeepFocus
+                      ? 'bg-red-500/20 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/30'
+                      : 'bg-red-500/10 hover:bg-red-500 text-red-600 hover:text-white'
+                  }`}
                 >
                   End Session
                 </button>
               </div>
             </div>
 
-            {/* Main Video Stage: 2-Column Split View */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              
+            {/* Main Video Stage: 2-Column Split View (EXPANDS IN DEEP FOCUS) */}
+            <div
+              className={`grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch ${
+                isDeepFocus ? 'flex-1 min-h-0 my-2' : ''
+              }`}
+            >
               {/* LEFT COLUMN: Candidate Live Video Feed + Real-Time Vision HUD */}
-              <div className="flex flex-col h-[380px] sm:h-[420px]">
+              <div
+                className={`flex flex-col ${
+                  isDeepFocus
+                    ? 'h-[360px] lg:h-full min-h-[300px]'
+                    : 'h-[380px] sm:h-[420px]'
+                }`}
+              >
                 <CameraTrackerHUD
                   isInterviewActive={true}
                   onMetricsUpdate={(m) => setLiveMetrics(m)}
@@ -1214,8 +1438,13 @@ Please provide a JSON response with:
               </div>
 
               {/* RIGHT COLUMN: AI Interviewer Video Avatar Studio & Live Audio Speech */}
-              <div className="bg-brand-charcoal rounded-3xl p-5 border border-white/10 shadow-2xl flex flex-col justify-between relative overflow-hidden text-white min-h-[380px] sm:h-[420px]">
-                
+              <div
+                className={`rounded-3xl p-5 border shadow-2xl flex flex-col justify-between relative overflow-hidden text-white ${
+                  isDeepFocus
+                    ? 'bg-gradient-to-b from-slate-900/95 via-slate-900/90 to-slate-950/95 border-purple-500/30 h-[360px] lg:h-full min-h-[300px]'
+                    : 'bg-brand-charcoal border-white/10 min-h-[380px] sm:h-[420px]'
+                }`}
+              >
                 {/* Background ambient glow */}
                 <div className="absolute top-0 right-0 w-64 h-64 bg-brand-amber/10 rounded-full blur-3xl pointer-events-none" />
 
@@ -1275,7 +1504,9 @@ Please provide a JSON response with:
                     <span className="text-[9.5px] font-mono uppercase font-bold text-brand-amber tracking-wider block mb-1">
                       Technical Question:
                     </span>
-                    <p className="font-display text-sm sm:text-base font-bold text-white leading-relaxed">
+                    <p className={`font-display font-bold text-white leading-relaxed ${
+                      isDeepFocus ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
+                    }`}>
                       {isUrduMode && currentQuestion.questionUrdu ? currentQuestion.questionUrdu : currentQuestion.question}
                     </p>
 
@@ -1330,26 +1561,36 @@ Please provide a JSON response with:
               </div>
             </div>
 
-            {/* CANDIDATE ANSWER SUBMISSION BAR */}
-            <div className="bg-white rounded-3xl p-5 border border-brand-slate/15 shadow-md space-y-3">
+            {/* CANDIDATE ANSWER SUBMISSION BAR (Streamlined in Deep Focus) */}
+            <div
+              className={`rounded-3xl p-4 sm:p-5 border shadow-md space-y-3 ${
+                isDeepFocus
+                  ? 'bg-slate-900/90 border-white/15 text-white backdrop-blur-md'
+                  : 'bg-white border-brand-slate/15 text-brand-charcoal'
+              }`}
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <h4 className="font-display font-bold text-xs text-brand-charcoal flex items-center gap-1.5">
+                  <h4 className={`font-display font-bold text-xs flex items-center gap-1.5 ${
+                    isDeepFocus ? 'text-white' : 'text-brand-charcoal'
+                  }`}>
                     <MessageSquare className="w-4 h-4 text-brand-amber" />
                     {lang === 'en' ? "Your Spoken or Written Answer" : "Aapka Jawab"}
                   </h4>
-                  <span className="text-[10px] font-mono text-brand-muted">
+                  <span className={`text-[10px] font-mono ${
+                    isDeepFocus ? 'text-white/50' : 'text-brand-muted'
+                  }`}>
                     ({userAnswer.trim().split(/\s+/).filter(Boolean).length} words)
                   </span>
                 </div>
 
-                {/* Code Scratchpad Toggle */}
+                {/* Code Scratchpad Toggle (only if needed or in standard mode) */}
                 <button
                   onClick={() => setShowCodePad(!showCodePad)}
                   className={`px-3 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                     showCodePad 
-                      ? 'bg-brand-charcoal text-white' 
-                      : 'bg-brand-sand/50 text-brand-slate hover:bg-brand-sand'
+                      ? isDeepFocus ? 'bg-purple-600 text-white' : 'bg-brand-charcoal text-white' 
+                      : isDeepFocus ? 'bg-white/10 text-white/80 hover:bg-white/20' : 'bg-brand-sand/50 text-brand-slate hover:bg-brand-sand'
                   }`}
                 >
                   <Code className="w-3.5 h-3.5" />
@@ -1360,7 +1601,7 @@ Please provide a JSON response with:
               {/* Main Answer Text Area */}
               <div className="relative">
                 <textarea
-                  rows={3}
+                  rows={isDeepFocus ? 2 : 3}
                   value={userAnswer}
                   onChange={(e) => {
                     setUserAnswer(e.target.value);
@@ -1369,7 +1610,11 @@ Please provide a JSON response with:
                   placeholder={lang === 'en' 
                     ? "Speak into your microphone or type your explanation here. The AI interviewer will analyze keywords, structure, and camera tracking..." 
                     : "Apna jawab bol kar ya type karke yahan likhein..."}
-                  className="w-full p-3.5 bg-brand-sand/20 border border-brand-slate/15 rounded-2xl text-xs font-medium text-brand-charcoal placeholder-brand-muted/70 focus:outline-none focus:border-brand-amber transition-colors leading-relaxed"
+                  className={`w-full p-3.5 rounded-2xl text-xs font-medium focus:outline-none transition-colors leading-relaxed ${
+                    isDeepFocus
+                      ? 'bg-slate-950/80 border border-white/20 text-white placeholder:text-white/40 focus:border-purple-400'
+                      : 'bg-brand-sand/20 border border-brand-slate/15 text-brand-charcoal placeholder-brand-muted/70 focus:border-brand-amber'
+                  }`}
                 />
               </div>
 
@@ -1378,31 +1623,43 @@ Please provide a JSON response with:
                 <motion.div
                   initial={{ opacity: 0, y: -5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-3 bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/70 border border-blue-200/60 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs"
+                  className={`p-2.5 sm:p-3 rounded-2xl flex flex-wrap items-center justify-between gap-2.5 text-xs shadow-2xs border ${
+                    isDeepFocus
+                      ? 'bg-white/[0.06] border-white/15 text-white'
+                      : 'bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-purple-50/70 border-blue-200/60'
+                  }`}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-[10px] font-mono font-bold uppercase text-indigo-900 flex items-center gap-1">
-                      <Mic className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                    <span className={`text-[10px] font-mono font-bold uppercase flex items-center gap-1 ${
+                      isDeepFocus ? 'text-purple-300' : 'text-indigo-900'
+                    }`}>
+                      <Mic className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
                       <span>Live Speech Sentiment:</span>
                     </span>
                     
                     <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold border ${
-                      liveSentimentReport.sentimentLabel === 'Positive' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' :
-                      liveSentimentReport.sentimentLabel === 'Constructive' ? 'bg-blue-100 text-blue-800 border-blue-300' :
-                      'bg-slate-100 text-slate-800 border-slate-300'
+                      liveSentimentReport.sentimentLabel === 'Positive' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-400/40' :
+                      liveSentimentReport.sentimentLabel === 'Constructive' ? 'bg-blue-500/20 text-blue-300 border-blue-400/40' :
+                      'bg-slate-500/20 text-slate-300 border-slate-400/40'
                     }`}>
                       {liveSentimentReport.sentimentEmoji} {liveSentimentReport.sentimentLabel} Sentiment
                     </span>
 
-                    <span className="px-2.5 py-0.5 rounded-full bg-indigo-100 text-indigo-800 border border-indigo-300 text-[10px] font-mono font-bold">
+                    <span className={`px-2.5 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
+                      isDeepFocus
+                        ? 'bg-purple-500/20 text-purple-300 border-purple-400/30'
+                        : 'bg-indigo-100 text-indigo-800 border-indigo-300'
+                    }`}>
                       Tone: {liveSentimentReport.dominantTone}
                     </span>
                   </div>
 
-                  <div className="flex items-center gap-3 font-mono text-[10px] text-slate-600">
-                    <span>⚡ <strong className="text-slate-800">{liveSentimentReport.wordsPerMinute}</strong> WPM ({liveSentimentReport.paceCategory})</span>
-                    <span>🎯 <strong className="text-slate-800">{liveSentimentReport.confidenceScore}%</strong> Confidence</span>
-                    <span>🛑 <strong className="text-slate-800">{liveSentimentReport.fillerWordCount}</strong> Fillers</span>
+                  <div className={`flex items-center gap-3 font-mono text-[10px] ${
+                    isDeepFocus ? 'text-white/70' : 'text-slate-600'
+                  }`}>
+                    <span>⚡ <strong className={isDeepFocus ? "text-white" : "text-slate-800"}>{liveSentimentReport.wordsPerMinute}</strong> WPM ({liveSentimentReport.paceCategory})</span>
+                    <span>🎯 <strong className={isDeepFocus ? "text-white" : "text-slate-800"}>{liveSentimentReport.confidenceScore}%</strong> Confidence</span>
+                    <span>🛑 <strong className={isDeepFocus ? "text-white" : "text-slate-800"}>{liveSentimentReport.fillerWordCount}</strong> Fillers</span>
                   </div>
                 </motion.div>
               )}
@@ -1415,7 +1672,7 @@ Please provide a JSON response with:
                     <CopyCodeButton text={userCode} label="Copy Code" variant="compact" />
                   </div>
                   <textarea
-                    rows={4}
+                    rows={3}
                     value={userCode}
                     onChange={(e) => setUserCode(e.target.value)}
                     placeholder="// Optional: paste Python/PyTorch snippet, Transformer pseudo-code, or RAG architecture flow..."
@@ -1425,23 +1682,25 @@ Please provide a JSON response with:
               )}
 
               {/* Control Action Buttons */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
                 {/* Voice Record Button */}
                 <div className="flex items-center gap-2">
                   <button
                     onClick={isRecordingVoice ? stopSpeechRecognition : startSpeechRecognition}
                     className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-sm ${
                       isRecordingVoice
-                        ? 'bg-red-500 text-white animate-pulse shadow-red-500/30'
+                        ? 'bg-red-500 text-white animate-pulse shadow-red-500/40 ring-2 ring-red-400'
+                        : isDeepFocus
+                        ? 'bg-purple-600 hover:bg-purple-500 text-white shadow-purple-900/30'
                         : 'bg-brand-sand/70 text-brand-charcoal hover:bg-brand-sand'
                     }`}
                   >
-                    {isRecordingVoice ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4 text-brand-amber" />}
+                    {isRecordingVoice ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
                     <span>{isRecordingVoice ? 'Stop Recording' : 'Speak Answer (Mic)'}</span>
                   </button>
 
                   {isRecordingVoice && (
-                    <span className="text-[10px] font-mono text-red-600 font-bold animate-pulse hidden sm:inline">
+                    <span className="text-[10px] font-mono text-red-400 font-bold animate-pulse hidden sm:inline">
                       ● Recording live audio...
                     </span>
                   )}
@@ -1782,6 +2041,93 @@ Please provide a JSON response with:
               </div>
             </div>
 
+            {/* Community Peer Review Feedback Card */}
+            <div className="p-5 bg-gradient-to-r from-indigo-900/90 via-slate-900 to-indigo-950 text-white rounded-3xl border border-indigo-500/30 shadow-xl space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-300 border border-indigo-400/40 flex items-center justify-center shrink-0">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-indigo-300 uppercase">
+                        COMMUNITY PEER REVIEW & FEEDBACK
+                      </span>
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/30 text-indigo-200 text-[9px] font-mono font-bold">
+                        Anonymous Peer Network
+                      </span>
+                    </div>
+                    <h4 className="font-display font-bold text-base text-white">
+                      Share Transcript Snippets for Peer Review
+                    </h4>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  {hasSharedToCommunity ? (
+                    <span className="px-3 py-1.5 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-bold flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5" />
+                      <span>Shared to Community Feed</span>
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handleShareToCommunity(completedRecord)}
+                      className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-md"
+                    >
+                      <Share2 className="w-3.5 h-3.5" />
+                      <span>Share Anonymously</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                <div className="p-3 bg-white/[0.06] rounded-2xl border border-white/10 space-y-1.5">
+                  <div className="flex items-center gap-1.5 text-indigo-200 font-mono text-[10px] font-bold">
+                    <Tag className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Included Topic Tags:</span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {(completedRecord.tags || completedRecord.topics || ['System Design', 'AI/ML']).map((t, idx) => (
+                      <span key={idx} className="px-2 py-0.5 rounded-md bg-white/10 text-white text-[10px] font-mono">
+                        #{t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-3 bg-white/[0.06] rounded-2xl border border-white/10 space-y-1">
+                  <span className="text-[10px] font-mono text-indigo-200 block uppercase">Privacy & Anonymity</span>
+                  <p className="text-[11px] text-white/80 leading-relaxed">
+                    Posted as <strong>Anonymous Scholar</strong>. Camera HUD gaze stats and voice audio recordings are never shared.
+                  </p>
+                </div>
+              </div>
+
+              {!hasSharedToCommunity && (
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-mono text-indigo-200 block">
+                    Peer Critique Focus Note:
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={customCommunityFeedbackPrompt}
+                      onChange={(e) => setCustomCommunityFeedbackPrompt(e.target.value)}
+                      placeholder="e.g. Please critique my explanation of transformer self-attention and latency bottlenecks..."
+                      className="flex-1 px-3.5 py-2 rounded-xl bg-white/10 border border-white/15 text-white text-xs placeholder:text-white/40 focus:outline-hidden focus:ring-2 focus:ring-indigo-400"
+                    />
+                    <button
+                      onClick={() => handleShareToCommunity(completedRecord)}
+                      className="px-4 py-2 rounded-xl bg-indigo-500 hover:bg-indigo-600 text-white text-xs font-bold shrink-0 cursor-pointer"
+                    >
+                      Post to Feed
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             {/* Reflection & Personal Notes Card Banner */}
             <div className="p-4 bg-gradient-to-r from-amber-500/15 via-orange-500/10 to-amber-500/15 rounded-2xl border border-brand-amber/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
               <div className="flex items-center gap-3">
@@ -1858,6 +2204,33 @@ Please provide a JSON response with:
 
       {/* Real-Time Auto-Save Toast Notification */}
       <AnimatePresence>
+        {communityShareToast && (
+          <motion.div
+            initial={{ opacity: 0, y: 30, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="fixed bottom-20 right-6 z-50 flex items-center gap-3 px-4 py-3 bg-indigo-950/95 backdrop-blur-md text-white rounded-2xl shadow-2xl border border-indigo-500/40 text-left"
+          >
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 flex items-center justify-center shrink-0">
+              <Users className="w-4 h-4" />
+            </div>
+            <div>
+              <div className="font-display font-bold text-xs text-white">
+                Community Peer Review
+              </div>
+              <p className="text-[11px] text-indigo-200">
+                {communityShareToast}
+              </p>
+            </div>
+            <button
+              onClick={() => setCommunityShareToast(null)}
+              className="ml-1 text-white/40 hover:text-white text-xs cursor-pointer p-1"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+
         {saveToast && saveToast.show && (
           <motion.div
             initial={{ opacity: 0, y: 30, scale: 0.9 }}

@@ -14,6 +14,30 @@ export interface TopicTagMeta {
 
 export const TOPIC_TAG_DEFINITIONS: TopicTagMeta[] = [
   {
+    id: 'react-frontend',
+    name: 'React',
+    badgeBg: 'bg-cyan-500/10',
+    badgeText: 'text-cyan-800',
+    borderColor: 'border-cyan-500/30',
+    keywords: [
+      'react', 'hooks', 'useeffect', 'usestate', 'usememo', 'virtual dom', 'fiber',
+      'jsx', 'redux', 'context api', 'rendering', 'reconciliation', 'frontend', 'props',
+      'component lifecycle', 'hydration', 'ssr', 'nextjs', 'suspense'
+    ]
+  },
+  {
+    id: 'coding-algorithms',
+    name: 'Algorithms',
+    badgeBg: 'bg-emerald-500/10',
+    badgeText: 'text-emerald-800',
+    borderColor: 'border-emerald-500/30',
+    keywords: [
+      'algorithm', 'binary tree', 'graph', 'dynamic programming', 'time complexity',
+      'big o', 'space complexity', 'hash map', 'recursion', 'sorting', 'pointer', 'array',
+      'stack', 'queue', 'dijkstra', 'dfs', 'bfs', 'greedy', 'two pointers', 'sliding window'
+    ]
+  },
+  {
     id: 'system-design',
     name: 'System Design',
     badgeBg: 'bg-indigo-500/10',
@@ -22,19 +46,8 @@ export const TOPIC_TAG_DEFINITIONS: TopicTagMeta[] = [
     keywords: [
       'system design', 'architecture', 'scalability', 'microservices', 'load balancer',
       'caching', 'throughput', 'latency', 'pipeline', 'sharding', 'distributed',
-      'kv-cache', 'database design', 'high availability', 'failover', 'api gateway', 'concurrency'
-    ]
-  },
-  {
-    id: 'behavioral',
-    name: 'Behavioral & Leadership',
-    badgeBg: 'bg-rose-500/10',
-    badgeText: 'text-rose-700',
-    borderColor: 'border-rose-500/30',
-    keywords: [
-      'behavioral', 'conflict', 'leadership', 'star method', 'team', 'disagreement',
-      'deadline', 'mistake', 'culture', 'communication', 'stakeholder', 'prioritization',
-      'mentoring', 'negotiation', 'failure', 'ownership'
+      'kv-cache', 'database design', 'high availability', 'failover', 'api gateway', 'concurrency',
+      'message queue', 'kafka', 'redis', 'cap theorem', 'rate limiter'
     ]
   },
   {
@@ -75,23 +88,24 @@ export const TOPIC_TAG_DEFINITIONS: TopicTagMeta[] = [
   {
     id: 'computer-vision',
     name: 'Computer Vision',
-    badgeBg: 'bg-cyan-500/10',
-    badgeText: 'text-cyan-800',
-    borderColor: 'border-cyan-500/30',
+    badgeBg: 'bg-blue-500/10',
+    badgeText: 'text-blue-800',
+    borderColor: 'border-blue-500/30',
     keywords: [
       'computer vision', 'image', 'vision', 'segmentation', 'object detection',
       'yolo', 'opencv', 'bounding box', 'resnet', 'feature map', 'ocr', 'gaze'
     ]
   },
   {
-    id: 'coding-algorithms',
-    name: 'Algorithms & Coding',
-    badgeBg: 'bg-emerald-500/10',
-    badgeText: 'text-emerald-800',
-    borderColor: 'border-emerald-500/30',
+    id: 'behavioral',
+    name: 'Behavioral & Leadership',
+    badgeBg: 'bg-rose-500/10',
+    badgeText: 'text-rose-700',
+    borderColor: 'border-rose-500/30',
     keywords: [
-      'algorithm', 'binary tree', 'graph', 'dynamic programming', 'time complexity',
-      'big o', 'space complexity', 'hash map', 'recursion', 'sorting', 'pointer', 'array', 'stack', 'queue'
+      'behavioral', 'conflict', 'leadership', 'star method', 'team', 'disagreement',
+      'deadline', 'mistake', 'culture', 'communication', 'stakeholder', 'prioritization',
+      'mentoring', 'negotiation', 'failure', 'ownership'
     ]
   },
   {
@@ -212,6 +226,33 @@ export function getTopicTagMeta(topicName: string): TopicTagMeta | undefined {
   return TOPIC_TAG_DEFINITIONS.find(
     m => m.name.toLowerCase() === topicName.toLowerCase() || m.id.toLowerCase() === topicName.toLowerCase()
   );
+}
+
+/**
+ * Updates tags for a specific interview record and persists to localStorage.
+ */
+export function updateRecordTags(recordId: string, updatedTags: string[]): MockInterviewRecord[] {
+  try {
+    const raw = localStorage.getItem('clay_mock_interview_history');
+    if (!raw) return [];
+    const list: MockInterviewRecord[] = JSON.parse(raw);
+    const updated = list.map(item => {
+      if (item.id === recordId) {
+        return {
+          ...item,
+          tags: updatedTags,
+          topics: updatedTags,
+        };
+      }
+      return item;
+    });
+    localStorage.setItem('clay_mock_interview_history', JSON.stringify(updated));
+    window.dispatchEvent(new Event('clay_interview_records_updated'));
+    return updated;
+  } catch (err) {
+    console.error('Failed to update record tags:', err);
+    return [];
+  }
 }
 
 /**

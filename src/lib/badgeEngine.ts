@@ -194,6 +194,60 @@ const BADGE_DEFINITIONS: Omit<AchievementBadge, 'unlocked' | 'unlockDate' | 'cur
     rarityPercent: 18
   },
   {
+    id: 'rising_star',
+    title: 'Rising Star',
+    titleHyd: 'Umeed-e-Sahar (Rising Star)',
+    description: 'Score 80% or higher on a mock interview, demonstrating outstanding foundational growth.',
+    category: 'interview',
+    tier: 'Bronze',
+    iconName: 'Star',
+    badgeEmoji: '🌟',
+    gradient: 'from-amber-400 to-orange-500',
+    borderClass: 'border-amber-400/60',
+    bgClass: 'bg-amber-500/10',
+    textClass: 'text-amber-800',
+    xpReward: 300,
+    targetValue: 80,
+    requirementText: 'Score 80%+ on any mock interview session',
+    rarityPercent: 62
+  },
+  {
+    id: 'system_design_pro',
+    title: 'System Design Pro',
+    titleHyd: 'System Design Mahir',
+    description: 'Pass a System Design or Distributed AI Architecture interview with an 85%+ score.',
+    category: 'interview',
+    tier: 'Gold',
+    iconName: 'Network',
+    badgeEmoji: '🏗️',
+    gradient: 'from-blue-600 via-indigo-600 to-purple-600',
+    borderClass: 'border-blue-400/60',
+    bgClass: 'bg-blue-500/10',
+    textClass: 'text-blue-800',
+    xpReward: 600,
+    targetValue: 85,
+    requirementText: 'Score 85%+ on a System Design interview round',
+    rarityPercent: 22
+  },
+  {
+    id: 'algorithm_ace',
+    title: 'Algorithm Ace',
+    titleHyd: 'Algorithms Ace',
+    description: 'Score 90%+ in technical algorithmic problem solving and optimization analysis.',
+    category: 'interview',
+    tier: 'Silver',
+    iconName: 'Terminal',
+    badgeEmoji: '⚡',
+    gradient: 'from-emerald-500 to-teal-600',
+    borderClass: 'border-emerald-400/60',
+    bgClass: 'bg-emerald-500/10',
+    textClass: 'text-emerald-800',
+    xpReward: 450,
+    targetValue: 90,
+    requirementText: 'Score 90%+ in technical accuracy',
+    rarityPercent: 35
+  },
+  {
     id: 'senior_staff_caliber',
     title: 'Senior & Staff Caliber',
     titleHyd: 'Senior Engineer Caliber',
@@ -379,6 +433,25 @@ export class BadgeEngine {
       ? Math.round(interviewHistory.reduce((sum, r) => sum + r.eyeContactScore, 0) / totalInterviews)
       : (totalInterviews === 0 ? 0 : 92);
 
+    const systemDesignBest = interviewHistory
+      .filter(r => 
+        r.roleTrack.toLowerCase().includes('system') || 
+        r.roleTrack.toLowerCase().includes('architecture') ||
+        (r.topics && r.topics.some(t => t.toLowerCase().includes('system') || t.toLowerCase().includes('architecture'))) ||
+        (r.tags && r.tags.some(t => t.toLowerCase().includes('system') || t.toLowerCase().includes('architecture')))
+      )
+      .reduce((max, r) => Math.max(max, r.overallScore), 0);
+
+    const algoBest = interviewHistory
+      .filter(r => 
+        r.roleTrack.toLowerCase().includes('algorithm') || 
+        r.roleTrack.toLowerCase().includes('ml') || 
+        r.roleTrack.toLowerCase().includes('ai') ||
+        (r.topics && r.topics.some(t => t.toLowerCase().includes('algorithm') || t.toLowerCase().includes('deep learning'))) ||
+        (r.tags && r.tags.some(t => t.toLowerCase().includes('algorithm') || t.toLowerCase().includes('deep learning')))
+      )
+      .reduce((max, r) => Math.max(max, r.technicalScore || r.overallScore), 0);
+
     let totalXp = 0;
     let unlockedCount = 0;
 
@@ -406,6 +479,18 @@ export class BadgeEngine {
         case 'hot_seat_debut':
           currentValue = totalInterviews;
           unlocked = totalInterviews >= def.targetValue;
+          break;
+        case 'rising_star':
+          currentValue = highestScore;
+          unlocked = highestScore >= def.targetValue;
+          break;
+        case 'system_design_pro':
+          currentValue = systemDesignBest;
+          unlocked = systemDesignBest >= def.targetValue;
+          break;
+        case 'algorithm_ace':
+          currentValue = algoBest;
+          unlocked = algoBest >= def.targetValue;
           break;
         case 'technical_titan':
           currentValue = highestScore;

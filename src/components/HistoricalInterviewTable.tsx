@@ -17,11 +17,23 @@ import {
   Mic, 
   Edit3,
   CheckCircle2,
-  BarChart2
+  BarChart2,
+  Plus,
+  X,
+  Check,
+  Filter,
+  BookOpen
 } from 'lucide-react';
 import { MockInterviewRecord } from '../types';
 import { useLanguage } from '../hooks/useLanguage';
 import { audioEngine } from '../lib/audioEngine';
+import { 
+  deriveSessionTags, 
+  getTopicTagMeta, 
+  TOPIC_TAG_DEFINITIONS, 
+  updateRecordTags 
+} from '../lib/interviewExportAndTags';
+import SessionInlineReflectionEditor from './SessionInlineReflectionEditor';
 
 interface HistoricalInterviewTableProps {
   records: MockInterviewRecord[];
@@ -30,6 +42,8 @@ interface HistoricalInterviewTableProps {
   onOpenReflectionModal: (record: MockInterviewRecord) => void;
   onExportCsv: (record: MockInterviewRecord) => void;
   onOpenComparison?: (record: MockInterviewRecord) => void;
+  onTagSelected?: (tag: string) => void;
+  onRecordsUpdated?: () => void;
 }
 
 type SortField = 'date' | 'score' | 'difficulty' | 'role';
@@ -41,11 +55,17 @@ export default function HistoricalInterviewTable({
   onOpenAudioReplay,
   onOpenReflectionModal,
   onExportCsv,
-  onOpenComparison
+  onOpenComparison,
+  onTagSelected,
+  onRecordsUpdated
 }: HistoricalInterviewTableProps) {
   const { lang } = useLanguage();
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
+  const [activeTagFilter, setActiveTagFilter] = useState<string>('all');
+  const [tagEditorRecord, setTagEditorRecord] = useState<MockInterviewRecord | null>(null);
+  const [customTagInput, setCustomTagInput] = useState('');
+  const [expandedReflectionId, setExpandedReflectionId] = useState<string | null>(null);
 
   const handleSort = (field: SortField) => {
     audioEngine.playLoFiChord();
@@ -64,8 +84,40 @@ export default function HistoricalInterviewTable({
     'Staff': 4
   };
 
+  // Derive tags for each record and extract unique tags with counts
+  const recordTagsMap = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const rec of records) {
+      const derived = deriveSessionTags(rec);
+      // Combine custom tags + derived tags without duplicates
+      const combined = Array.from(new Set([...(rec.tags || []), ...derived.topicTags]));
+      map.set(rec.id, combined);
+    }
+    return map;
+  }, [records]);
+
+  // Unique tags for quick filtering
+  const allAvailableTags = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const tags of recordTagsMap.values()) {
+      for (const t of tags) {
+        counts[t] = (counts[t] || 0) + 1;
+      }
+    }
+    return counts;
+  }, [recordTagsMap]);
+
+  // Filter records by activeTagFilter if set
+  const filteredRecords = useMemo(() => {
+    if (activeTagFilter === 'all') return records;
+    return records.filter(rec => {
+      const tags = recordTagsMap.get(rec.id) || [];
+      return tags.some(t => t.toLowerCase() === activeTagFilter.toLowerCase());
+    });
+  }, [records, activeTagFilter, recordTagsMap]);
+
   const sortedRecords = useMemo(() => {
-    return [...records].sort((a, b) => {
+    return [...filteredRecords].sort((a, b) => {
       let comparison = 0;
       if (sortField === 'date') {
         comparison = (a.timestamp || 0) - (b.timestamp || 0);
@@ -78,7 +130,48 @@ export default function HistoricalInterviewTable({
       }
       return sortOrder === 'asc' ? comparison : -comparison;
     });
-  }, [records, sortField, sortOrder]);
+  }, [filteredRecords, sortField, sortOrder]);
+
+  const handleTagClick = (tag: string) => {
+    audioEngine.playLoFiChord();
+    if (onTagSelected) {
+      onTagSelected(tag);
+    }
+    setActiveTagFilter(prev => prev.toLowerCase() === tag.toLowerCase() ? 'all' : tag);
+  };
+
+  const handleOpenTagEditor = (rec: MockInterviewRecord, e: React.MouseEvent) => {
+    e.stopPropagation();
+    audioEngine.playLoFiChord();
+    setTagEditorRecord(rec);
+    setCustomTagInput('');
+  };
+
+  const handleToggleTagOnRecord = (tagName: string) => {
+    if (!tagEditorRecord) return;
+    audioEngine.playLoFiChord();
+    const currentTags = tagEditorRecord.tags || deriveSessionTags(tagEditorRecord).topicTags;
+    const exists = currentTags.some(t => t.toLowerCase() === tagName.toLowerCase());
+    const updated = exists 
+      ? currentTags.filter(t => t.toLowerCase() !== tagName.toLowerCase())
+      : [...currentTags, tagName];
+
+    setTagEditorRecord({
+      ...tagEditorRecord,
+      tags: updated,
+      topics: updated
+    });
+    updateRecordTags(tagEditorRecord.id, updated);
+    if (onRecordsUpdated) onRecordsUpdated();
+  };
+
+  const handleAddCustomTag = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!tagEditorRecord || !customTagInput.trim()) return;
+    const trimmed = customTagInput.trim();
+    handleToggleTagOnRecord(trimmed);
+    setCustomTagInput('');
+  };
 
   if (records.length === 0) {
     return (
@@ -103,7 +196,67 @@ export default function HistoricalInterviewTable({
   };
 
   return (
-    <div className="w-full overflow-hidden rounded-2xl border border-brand-slate/15 bg-white shadow-2xs">
+    <div className="w-full overflow-hidden rounded-2xl border border-brand-slate/15 bg-white shadow-2xs space-y-0">
+      
+      {/* Quick Tag Categorization & Filter Toolbar */}
+      <div className="p-3 bg-brand-sand/20 border-b border-brand-slate/15 flex flex-wrap items-center justify-between gap-2 text-xs">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-brand-slate mr-1">
+            <Tag className="w-3.5 h-3.5 text-brand-amber" />
+            <span>Category Tags:</span>
+          </div>
+
+          <button
+            onClick={() => setActiveTagFilter('all')}
+            className={`px-2 py-0.5 rounded-lg text-[10.5px] font-mono font-bold transition-all cursor-pointer ${
+              activeTagFilter === 'all'
+                ? 'bg-brand-charcoal text-white shadow-xs'
+                : 'bg-white border border-brand-slate/20 text-brand-slate hover:bg-brand-sand/40'
+            }`}
+          >
+            All ({records.length})
+          </button>
+
+          {Object.entries(allAvailableTags).slice(0, 8).map(([tagName, count]) => {
+            const isSelected = activeTagFilter.toLowerCase() === tagName.toLowerCase();
+            const meta = getTopicTagMeta(tagName);
+            const badgeClass = meta 
+              ? `${meta.badgeBg} ${meta.badgeText} ${meta.borderColor}` 
+              : 'bg-slate-100 text-slate-700 border-slate-200';
+
+            return (
+              <button
+                key={tagName}
+                onClick={() => handleTagClick(tagName)}
+                className={`px-2 py-0.5 rounded-lg text-[10.5px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                  isSelected
+                    ? 'bg-brand-amber text-white border-brand-amber shadow-xs font-black'
+                    : `${badgeClass} hover:opacity-85`
+                }`}
+                title={`Filter interviews by ${tagName}`}
+              >
+                <span>{tagName}</span>
+                <span className={`text-[9px] font-mono px-1 rounded-full ${
+                  isSelected ? 'bg-white/20 text-white' : 'bg-black/10'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {activeTagFilter !== 'all' && (
+          <button
+            onClick={() => setActiveTagFilter('all')}
+            className="text-[10.5px] font-mono text-brand-amber hover:underline font-bold flex items-center gap-1 cursor-pointer"
+          >
+            <X className="w-3 h-3" />
+            <span>Clear Tag Filter</span>
+          </button>
+        )}
+      </div>
+
       {/* Table Container */}
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse text-xs">
@@ -121,14 +274,14 @@ export default function HistoricalInterviewTable({
                 onClick={() => handleSort('role')}
                 className="py-3 px-4 cursor-pointer hover:text-brand-charcoal transition-colors select-none"
               >
-                <span>Role Track & Persona</span>
+                <span>Role Track & Tags</span>
                 {renderSortIndicator('role')}
               </th>
               <th 
                 onClick={() => handleSort('difficulty')}
                 className="py-3 px-4 cursor-pointer hover:text-brand-charcoal transition-colors select-none"
               >
-                <span>Difficulty Level</span>
+                <span>Difficulty</span>
                 {renderSortIndicator('difficulty')}
               </th>
               <th 
@@ -142,7 +295,7 @@ export default function HistoricalInterviewTable({
                 <span>Hiring Bar</span>
               </th>
               <th className="py-3 px-4 select-none hidden md:table-cell">
-                <span>Tone & Reflections</span>
+                <span>Tone & Notes</span>
               </th>
               <th className="py-3 px-4 text-right select-none">
                 <span>Actions</span>
@@ -155,13 +308,12 @@ export default function HistoricalInterviewTable({
             {sortedRecords.map((rec) => {
               const hasReflections = Boolean(rec.personalReflections || rec.personalNotes);
               const tone = rec.speechSentimentReport?.dominantTone || 'Analytical';
+              const assignedTags = recordTagsMap.get(rec.id) || ['Technical AI'];
 
               return (
-                <tr 
-                  key={rec.id}
-                  className="hover:bg-brand-sand/15 transition-colors group"
-                >
-                  {/* Date Column */}
+                <React.Fragment key={rec.id}>
+                  <tr className="hover:bg-brand-sand/15 transition-colors group">
+                    {/* Date Column */}
                   <td className="py-3.5 px-4 font-mono text-[11.5px] text-brand-charcoal whitespace-nowrap">
                     <div className="flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5 text-brand-muted shrink-0" />
@@ -169,12 +321,44 @@ export default function HistoricalInterviewTable({
                     </div>
                   </td>
 
-                  {/* Role Track Column */}
+                  {/* Role Track & Tag Badges Column */}
                   <td className="py-3.5 px-4">
-                    <div className="space-y-0.5">
+                    <div className="space-y-1.5">
                       <div className="font-display font-bold text-brand-charcoal text-xs sm:text-[13px]">
                         {rec.roleTrack}
                       </div>
+                      
+                      {/* Topic Tag Badges */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {assignedTags.map((tag) => {
+                          const meta = getTopicTagMeta(tag);
+                          const badgeStyle = meta 
+                            ? `${meta.badgeBg} ${meta.badgeText} ${meta.borderColor}`
+                            : 'bg-slate-100 text-slate-700 border-slate-200';
+
+                          return (
+                            <button
+                              key={tag}
+                              onClick={() => handleTagClick(tag)}
+                              className={`text-[9.5px] font-mono font-bold px-1.5 py-0.5 rounded border transition-all cursor-pointer ${badgeStyle} hover:opacity-80`}
+                              title={`Filter by tag "${tag}"`}
+                            >
+                              {tag}
+                            </button>
+                          );
+                        })}
+
+                        {/* Quick Tag Edit Button */}
+                        <button
+                          onClick={(e) => handleOpenTagEditor(rec, e)}
+                          className="text-[9.5px] font-mono text-brand-muted hover:text-brand-charcoal px-1 py-0.5 rounded hover:bg-brand-sand/50 border border-dashed border-brand-slate/20 transition-all flex items-center gap-0.5 cursor-pointer"
+                          title="Manage and assign category tags to this interview"
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                          <span>Tag</span>
+                        </button>
+                      </div>
+
                       <div className="text-[10px] font-mono text-brand-muted flex items-center gap-1">
                         <span>Interviewer: {rec.interviewerName}</span>
                         <span>•</span>
@@ -187,11 +371,11 @@ export default function HistoricalInterviewTable({
                   <td className="py-3.5 px-4 whitespace-nowrap">
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-lg text-[10px] font-mono font-bold border ${
                       rec.difficulty === 'Staff' ? 'bg-purple-50 text-purple-800 border-purple-200' :
-                      rec.difficulty === 'Senior' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
-                      rec.difficulty === 'Mid-Level' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                      rec.difficulty === 'Senior' || rec.difficulty === 'Advanced' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' :
+                      rec.difficulty === 'Mid-Level' || rec.difficulty === 'Intermediate' ? 'bg-blue-50 text-blue-800 border-blue-200' :
                       'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}>
-                      {rec.difficulty || 'Mid-Level'}
+                      {rec.difficulty || 'Intermediate'}
                     </span>
                   </td>
 
@@ -237,21 +421,27 @@ export default function HistoricalInterviewTable({
 
                       {hasReflections ? (
                         <button
-                          onClick={() => onOpenReflectionModal(rec)}
-                          className="flex items-center gap-1 text-[10px] font-mono text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 cursor-pointer"
-                          title="View personal notes and reflections"
+                          onClick={() => {
+                            audioEngine.playLoFiChord();
+                            setExpandedReflectionId(prev => prev === rec.id ? null : rec.id);
+                          }}
+                          className="flex items-center gap-1 text-[10px] font-mono text-emerald-700 hover:text-emerald-900 bg-emerald-50 hover:bg-emerald-100 px-2 py-0.5 rounded border border-emerald-200 cursor-pointer shadow-2xs"
+                          title="Click to toggle inline reflection editor"
                         >
                           <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                          <span>Notes</span>
+                          <span>{expandedReflectionId === rec.id ? 'Close' : 'Reflections'}</span>
                         </button>
                       ) : (
                         <button
-                          onClick={() => onOpenReflectionModal(rec)}
+                          onClick={() => {
+                            audioEngine.playLoFiChord();
+                            setExpandedReflectionId(prev => prev === rec.id ? null : rec.id);
+                          }}
                           className="flex items-center gap-1 text-[10px] font-mono text-brand-muted hover:text-brand-charcoal hover:bg-brand-sand/40 px-2 py-0.5 rounded border border-dashed border-brand-slate/20 cursor-pointer"
-                          title="Add personal reflection notes"
+                          title="Click to open inline reflection editor"
                         >
                           <Edit3 className="w-3 h-3 text-brand-slate" />
-                          <span>+ Note</span>
+                          <span>{expandedReflectionId === rec.id ? 'Close' : '+ Reflection'}</span>
                         </button>
                       )}
                     </div>
@@ -278,11 +468,18 @@ export default function HistoricalInterviewTable({
                       </button>
 
                       <button
-                        onClick={() => onOpenReflectionModal(rec)}
-                        className="p-1.5 rounded-lg bg-white border border-brand-slate/20 hover:bg-brand-sand/40 text-brand-charcoal transition-all cursor-pointer"
-                        title="Add/Edit Personal Reflection Notes"
+                        onClick={() => {
+                          audioEngine.playLoFiChord();
+                          setExpandedReflectionId(prev => prev === rec.id ? null : rec.id);
+                        }}
+                        className={`p-1.5 rounded-lg border transition-all cursor-pointer ${
+                          expandedReflectionId === rec.id 
+                            ? 'bg-amber-500 text-white border-amber-600' 
+                            : 'bg-white border-brand-slate/20 hover:bg-amber-50 text-purple-600'
+                        }`}
+                        title="Toggle Inline Reflection Editor"
                       >
-                        <Edit3 className="w-3.5 h-3.5 text-purple-600" />
+                        <Edit3 className="w-3.5 h-3.5" />
                       </button>
 
                       {onOpenComparison && (
@@ -305,6 +502,28 @@ export default function HistoricalInterviewTable({
                     </div>
                   </td>
                 </tr>
+
+                {/* Inline Reflection Editor Row */}
+                {expandedReflectionId === rec.id && (
+                  <tr className="bg-amber-50/20 border-b border-amber-200">
+                    <td colSpan={7} className="p-3 sm:p-4">
+                      <motion.div
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <SessionInlineReflectionEditor
+                          record={rec}
+                          onSave={() => {
+                            if (onRecordsUpdated) onRecordsUpdated();
+                          }}
+                        />
+                      </motion.div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
               );
             })}
           </tbody>
@@ -315,11 +534,137 @@ export default function HistoricalInterviewTable({
       <div className="p-3 bg-brand-sand/20 border-t border-brand-slate/15 flex flex-wrap items-center justify-between gap-2 text-[10.5px] font-mono text-brand-muted">
         <span>Showing <strong>{sortedRecords.length}</strong> mock interview sessions</span>
         <div className="flex items-center gap-3">
-          <span>Sort by clicking column headers</span>
+          <span>Click any tag badge to filter</span>
           <span>•</span>
           <span className="text-emerald-700 font-bold">Passing Bar: ≥85%</span>
         </div>
       </div>
+
+      {/* ======================================================================= */}
+      {/* MODAL: TAG MANAGER & CATEGORIZATION DIALOG */}
+      {/* ======================================================================= */}
+      <AnimatePresence>
+        {tagEditorRecord && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0, y: 10 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 10 }}
+              className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-brand-slate/20 space-y-4 text-left"
+            >
+              <div className="flex items-center justify-between border-b border-brand-slate/10 pb-3">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-xl bg-brand-amber/15 text-brand-amber-dark">
+                    <Tag className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-display font-bold text-sm text-brand-charcoal">
+                      Categorize Interview Session
+                    </h3>
+                    <p className="text-[11px] font-mono text-brand-muted">
+                      {tagEditorRecord.roleTrack} ({tagEditorRecord.dateStr})
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  onClick={() => setTagEditorRecord(null)}
+                  className="p-1 rounded-lg text-brand-muted hover:text-brand-charcoal cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {/* Tag Selection Chips */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-brand-charcoal block">
+                  Select Topic & Category Tags:
+                </label>
+                <div className="flex flex-wrap gap-1.5 max-h-48 overflow-y-auto p-1">
+                  {TOPIC_TAG_DEFINITIONS.map((def) => {
+                    const currentTags = tagEditorRecord.tags || deriveSessionTags(tagEditorRecord).topicTags;
+                    const isChecked = currentTags.some(t => t.toLowerCase() === def.name.toLowerCase() || t.toLowerCase() === def.id.toLowerCase());
+
+                    return (
+                      <button
+                        key={def.id}
+                        type="button"
+                        onClick={() => handleToggleTagOnRecord(def.name)}
+                        className={`px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isChecked
+                            ? `${def.badgeBg} ${def.badgeText} ${def.borderColor} font-bold ring-1 ring-brand-amber/40`
+                            : 'bg-brand-sand/20 border-brand-slate/15 text-brand-slate hover:bg-brand-sand/40'
+                        }`}
+                      >
+                        {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                        <span>{def.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add Custom Tag Input */}
+              <form onSubmit={handleAddCustomTag} className="pt-2 border-t border-brand-slate/10 space-y-2">
+                <label className="text-xs font-bold text-brand-charcoal block">
+                  Add Custom Tag:
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="text"
+                    value={customTagInput}
+                    onChange={(e) => setCustomTagInput(e.target.value)}
+                    placeholder="e.g. Next.js, Dynamic Programming..."
+                    className="flex-1 px-3 py-1.5 rounded-xl border border-brand-slate/20 text-xs text-brand-charcoal placeholder:text-brand-muted focus:outline-hidden focus:border-brand-amber focus:ring-1 focus:ring-brand-amber"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!customTagInput.trim()}
+                    className="px-3 py-1.5 bg-brand-charcoal text-white rounded-xl text-xs font-bold hover:bg-black disabled:opacity-40 transition-all cursor-pointer shrink-0"
+                  >
+                    Add Tag
+                  </button>
+                </div>
+              </form>
+
+              {/* Current Active Tags on this record */}
+              <div className="bg-brand-sand/20 rounded-2xl p-3 border border-brand-slate/10 space-y-1">
+                <span className="text-[10px] font-mono text-brand-muted block uppercase font-bold">
+                  Assigned Tags for this Session:
+                </span>
+                <div className="flex flex-wrap gap-1">
+                  {(tagEditorRecord.tags || deriveSessionTags(tagEditorRecord).topicTags).map(t => (
+                    <span
+                      key={t}
+                      className="px-2 py-0.5 rounded-md bg-white border border-brand-slate/20 text-[10px] font-mono font-bold text-brand-charcoal flex items-center gap-1"
+                    >
+                      <span>{t}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleToggleTagOnRecord(t)}
+                        className="text-brand-muted hover:text-red-600 cursor-pointer"
+                        title={`Remove tag ${t}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setTagEditorRecord(null)}
+                  className="px-4 py-2 bg-brand-amber text-white rounded-xl text-xs font-bold hover:bg-brand-amber-dark transition-all cursor-pointer"
+                >
+                  Done & Save Tags
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
